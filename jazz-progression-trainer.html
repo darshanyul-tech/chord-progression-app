@@ -1,0 +1,1193 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jazz Chord Progression Ear Trainer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg-1: #0e1118;
+      --bg-2: #171c29;
+      --panel: #1b2130;
+      --panel-2: #242d41;
+      --text: #f1f4ff;
+      --muted: #b5bfd8;
+      --accent: #5eb4ff;
+      --accent-2: #82e6a4;
+      --danger: #ff7a7a;
+      --warn: #ffd479;
+      --border: #39445f;
+      --bar: #232c40;
+      --bar-active: #2d6fb0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 1.25rem;
+      font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: linear-gradient(150deg, var(--bg-1), var(--bg-2));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.1rem 1.2rem;
+    }
+
+    h1 { margin: 0 0 0.25rem 0; font-size: 1.55rem; }
+    h2 { margin: 0 0 0.7rem 0; font-size: 1.05rem; color: var(--muted); font-weight: 700; }
+    .sub { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(225px, 1fr));
+      gap: 0.9rem;
+    }
+
+    label { display: block; font-size: 0.9rem; font-weight: 600; margin-bottom: 0.4rem; }
+
+    .help { color: var(--muted); font-size: 0.76rem; margin-top: 0.4rem; line-height: 1.35; }
+
+    .field {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem;
+    }
+
+    .inline { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+    .inline label { display: inline-flex; align-items: center; gap: 0.3rem; margin: 0; font-weight: 500; }
+
+    select, input[type="range"], input[type="number"] {
+      width: 100%;
+      background: #0f1523;
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.55rem;
+      font: inherit;
+    }
+
+    input[type="range"] { padding: 0.3rem 0; accent-color: var(--accent); }
+    input[type="checkbox"] { accent-color: var(--accent); width: 1rem; height: 1rem; }
+
+    .valtag {
+      display: inline-block;
+      min-width: 2.2rem;
+      text-align: center;
+      background: #0f1523;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.05rem 0.4rem;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .buttons { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+    button {
+      background: #1d76c6;
+      color: #fff;
+      border: 1px solid #2b8de5;
+      border-radius: 9px;
+      font: inherit;
+      font-weight: 600;
+      padding: 0.6rem 1rem;
+      cursor: pointer;
+      transition: transform 0.05s ease, filter 0.15s ease;
+    }
+    button:hover:not(:disabled) { filter: brightness(1.1); }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button.secondary { background: #2d354c; border-color: #49567a; }
+    button.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .status {
+      color: var(--accent-2);
+      font-weight: 600;
+      min-height: 1.2rem;
+      margin: 0.85rem 0 0 0;
+    }
+    .status.error { color: var(--danger); }
+    .status.warn { color: var(--warn); }
+
+    .bars {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.2rem;
+    }
+    .bar {
+      flex: 1 1 70px;
+      min-width: 70px;
+      text-align: center;
+      background: var(--bar);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.7rem 0.4rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+    }
+    .bar .num { display: block; font-size: 0.7rem; color: var(--muted); font-weight: 600; margin-bottom: 0.25rem; }
+    .bar.active { background: var(--bar-active); border-color: var(--accent); transform: translateY(-2px); }
+    .bar.tonic-ref { background: #3a2d52; border-color: #7a5fb0; }
+
+    .answer {
+      background: #141a28;
+      border: 1px dashed #4b5b82;
+      border-radius: 10px;
+      padding: 0.85rem;
+      min-height: 3.2rem;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .guess-rows { display: grid; gap: 0.55rem; }
+    .guess-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 0.5rem 0.6rem;
+    }
+    .guess-row .barlabel { flex: 0 0 52px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+    .guess-row select { flex: 1 1 110px; min-width: 88px; width: auto; padding: 0.35rem 0.4rem; }
+    .guess-row .result { flex: 1 1 150px; text-align: right; }
+    .result { font-weight: 700; font-size: 0.85rem; }
+    .result.ok { color: var(--accent-2); }
+    .result.bad { color: var(--danger); }
+    .result.idle { color: var(--muted); font-weight: 500; }
+    .score {
+      margin: 0 0 0.7rem 0;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    @media (max-width: 560px) {
+      .guess-row .barlabel { flex: 0 0 100%; }
+      .guess-row .result { flex: 0 0 100%; text-align: left; }
+    }
+
+    .loadbadge {
+      display: inline-block;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-left: 0.5rem;
+    }
+
+    footer { color: var(--muted); font-size: 0.78rem; text-align: center; padding-bottom: 0.5rem; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="card">
+      <h1>Jazz Chord Progression Ear Trainer</h1>
+      <p class="sub">Train your ear on functional jazz harmony. Configure the rules, listen, then reveal the answer.</p>
+    </section>
+
+    <section class="card">
+      <h2>Settings</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="keySelect">Key center</label>
+          <select id="keySelect">
+            <option>C</option><option>Db</option><option>D</option><option>Eb</option>
+            <option>E</option><option>F</option><option>Gb</option><option>G</option>
+            <option>Ab</option><option>A</option><option>Bb</option><option>B</option>
+          </select>
+          <div class="help">Tonal center used to spell the progression.</div>
+        </div>
+
+        <div class="field">
+          <label for="randomKey">Random key</label>
+          <select id="randomKey">
+            <option value="no" selected>No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <div class="help">When on, a new random key is chosen for each progression (revealed with the answer).</div>
+        </div>
+
+        <div class="field">
+          <label for="tonality">Tonality</label>
+          <select id="tonality">
+            <option value="major" selected>Major</option>
+            <option value="minor">Minor</option>
+          </select>
+          <div class="help">Minor uses harmonic-minor harmony: i m7, ii&oslash;, bIII, iv, V7, bVI, vii&deg;7.</div>
+        </div>
+
+        <div class="field">
+          <label for="tonicFirst">Play tonic chord first</label>
+          <select id="tonicFirst">
+            <option value="yes">Yes</option>
+            <option value="no" selected>No</option>
+          </select>
+          <div class="help">Plays a reference I chord before the progression so you can orient your ear.</div>
+        </div>
+
+        <div class="field">
+          <label>Allowed chord extensions</label>
+          <div class="inline">
+            <label><input type="checkbox" class="ext" value="7" checked /> 7ths</label>
+            <label><input type="checkbox" class="ext" value="9" /> 9ths</label>
+            <label><input type="checkbox" class="ext" value="11" /> 11ths</label>
+            <label><input type="checkbox" class="ext" value="13" /> 13ths</label>
+          </div>
+          <div class="help">Highest selected tension is used per chord. 7ths is the jazz baseline.</div>
+        </div>
+
+        <div class="field">
+          <label for="diatonicOnly">Diatonic progression</label>
+          <select id="diatonicOnly">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+          <div class="help">If No, allows secondary dominants and a borrowed iv chord.</div>
+        </div>
+
+        <div class="field">
+          <label for="useSubdominant">Use sub-dominant chords</label>
+          <select id="useSubdominant">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+          <div class="help">Toggles ii and IV (sub-dominant function) material.</div>
+        </div>
+
+        <div class="field">
+          <label for="barsRange">Progression length (bars): <span id="barsValue" class="valtag">4</span></label>
+          <input id="barsRange" type="range" min="2" max="12" step="1" value="4" />
+          <div class="help">One chord per bar.</div>
+        </div>
+
+        <div class="field">
+          <label for="bpmRange">Speed (BPM): <span id="bpmValue" class="valtag">90</span></label>
+          <input id="bpmRange" type="range" min="40" max="220" step="1" value="90" />
+          <div class="help">Tempo of playback (one chord per bar, half-note feel).</div>
+        </div>
+
+        <div class="field">
+          <label for="cadenceEnd">End on resolution</label>
+          <select id="cadenceEnd">
+            <option value="yes" selected>Yes</option>
+            <option value="no">No</option>
+          </select>
+          <div class="help">Forces a V&rarr;I style cadence into the final bar.</div>
+        </div>
+
+        <div class="field">
+          <label for="chromaticism">Chromaticism</label>
+          <select id="chromaticism">
+            <option value="no" selected>No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <div class="help">Allows chromatic roots via tritone substitutions (e.g. subV) for chromatic bass motion. Adds chromatic roman numerals to the guess.</div>
+        </div>
+
+        <div class="field">
+          <label for="chromaticRange">Chromatic chords: <span id="chromaticValue" class="valtag">1</span></label>
+          <input id="chromaticRange" type="range" min="0" max="8" step="1" value="1" />
+          <div class="help">How many chromatic approach chords to weave in (only when Chromaticism is on).</div>
+        </div>
+
+        <div class="field">
+          <label for="rootless">Rootless voicings (split hands)</label>
+          <select id="rootless">
+            <option value="no" selected>No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <div class="help">Right hand plays a rootless chord; an independent bass voice plays the root (or inversion tone) in the left hand.</div>
+        </div>
+
+        <div class="field">
+          <label for="inversions">Use inversions</label>
+          <select id="inversions">
+            <option value="no" selected>No</option>
+            <option value="yes">Yes</option>
+          </select>
+          <div class="help">When on, chords are voiced in random inversions and the guess section adds an inversion selector.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Session</h2>
+      <div class="buttons">
+        <button id="initBtn">Initialize Audio<span id="loadBadge" class="loadbadge"></span></button>
+        <button id="generateBtn" class="secondary">Generate</button>
+        <button id="playBtn">Play</button>
+        <button id="replayBtn" class="secondary">Replay</button>
+        <button id="stopBtn" class="ghost">Stop</button>
+        <button id="revealBtn" class="secondary">Reveal Answer</button>
+        <button id="nextBtn">Next</button>
+      </div>
+      <p class="status" id="status">Press Initialize Audio, then Generate &amp; Play.</p>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="card">
+      <h2>Your Guess</h2>
+      <p class="score" id="score">Pick a roman numeral, quality and extension for each bar, then Check Answers.</p>
+      <div class="guess-rows" id="guessRows"></div>
+      <div class="buttons" style="margin-top: 0.8rem;">
+        <button id="checkBtn">Check Answers</button>
+        <button id="clearGuessBtn" class="ghost">Clear</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Hidden Answer</h2>
+      <div id="answer" class="answer">Answer hidden. Listen first, then use &ldquo;Reveal Answer&rdquo;.</div>
+    </section>
+
+    <footer>
+      Single-file trainer &middot; audio by <a href="https://tonejs.github.io/" target="_blank" rel="noopener">Tone.js</a> + Salamander Grand Piano samples.
+    </footer>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script>
+  "use strict";
+
+  // ----- Music theory constants -----
+  const NOTE_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+  // Tonality definitions. Minor borrows the harmonic-minor leading tone so the
+  // dominant (V) is a real V7 and the vii is a leading-tone diminished 7.
+  const SCALES = {
+    major: {
+      offsets: [0, 2, 4, 5, 7, 9, 11],
+      quality: { 1: "maj7", 2: "m7", 3: "m7", 4: "maj7", 5: "7", 6: "m7", 7: "m7b5" },
+      roman:   { 1: "I", 2: "ii", 3: "iii", 4: "IV", 5: "V", 6: "vi", 7: "vii\u00f8" },
+      tonicQuality: "maj7", tonicRoman: "I",
+      chromatic: ["I", "bII", "II", "bIII", "III", "IV", "#IV", "V", "bVI", "VI", "bVII", "VII"]
+    },
+    minor: {
+      offsets: [0, 2, 3, 5, 7, 8, 11],
+      quality: { 1: "m7", 2: "m7b5", 3: "maj7", 4: "m7", 5: "7", 6: "maj7", 7: "dim7" },
+      roman:   { 1: "i", 2: "ii\u00f8", 3: "bIII", 4: "iv", 5: "V", 6: "bVI", 7: "vii\u00b0" },
+      tonicQuality: "m7", tonicRoman: "i",
+      chromatic: ["i", "bII", "ii", "bIII", "III", "iv", "#iv", "V", "bVI", "VI", "bVII", "vii"]
+    }
+  };
+  const MAJOR_SCALE = SCALES.major.offsets; // default fallback
+
+  // Functional buckets reference scale degrees.
+  const FUNCTIONS = {
+    tonic: [1, 3, 6],
+    subdominant: [2, 4],
+    dominant: [5, 7]
+  };
+
+  // Likelihood of moving from one function to another (jazz-ish voice of function).
+  const FLOW = {
+    start: ["tonic", "subdominant", "tonic"],
+    tonic: ["subdominant", "subdominant", "dominant", "tonic"],
+    subdominant: ["dominant", "dominant", "tonic", "subdominant"],
+    dominant: ["tonic", "tonic", "subdominant"]
+  };
+
+  // Chord interval recipes (semitones from root).
+  const RECIPES = {
+    "maj7":  [0, 4, 7, 11],
+    "maj9":  [0, 4, 7, 11, 14],
+    "maj11": [0, 4, 7, 11, 14, 17],
+    "maj13": [0, 4, 7, 11, 14, 21],
+    "7":     [0, 4, 7, 10],
+    "9":     [0, 4, 7, 10, 14],
+    "11":    [0, 4, 7, 10, 14, 17],
+    "13":    [0, 4, 7, 10, 14, 21],
+    "m7":    [0, 3, 7, 10],
+    "m9":    [0, 3, 7, 10, 14],
+    "m11":   [0, 3, 7, 10, 14, 17],
+    "m13":   [0, 3, 7, 10, 14, 21],
+    "m7b5":  [0, 3, 6, 10],
+    "dim7":  [0, 3, 6, 9]
+  };
+
+  // ----- App state -----
+  const state = {
+    audioReady: false,
+    loading: false,
+    sampler: null,
+    progression: [],
+    settings: null,
+    isPlaying: false,
+    timers: [],
+    revealed: false
+  };
+
+  // ----- DOM -----
+  const el = {
+    keySelect: document.getElementById("keySelect"),
+    randomKey: document.getElementById("randomKey"),
+    tonality: document.getElementById("tonality"),
+    tonicFirst: document.getElementById("tonicFirst"),
+    diatonicOnly: document.getElementById("diatonicOnly"),
+    useSubdominant: document.getElementById("useSubdominant"),
+    cadenceEnd: document.getElementById("cadenceEnd"),
+    chromaticism: document.getElementById("chromaticism"),
+    chromaticRange: document.getElementById("chromaticRange"),
+    chromaticValue: document.getElementById("chromaticValue"),
+    rootless: document.getElementById("rootless"),
+    inversions: document.getElementById("inversions"),
+    barsRange: document.getElementById("barsRange"),
+    bpmRange: document.getElementById("bpmRange"),
+    barsValue: document.getElementById("barsValue"),
+    bpmValue: document.getElementById("bpmValue"),
+    status: document.getElementById("status"),
+    answer: document.getElementById("answer"),
+    bars: document.getElementById("bars"),
+    guessRows: document.getElementById("guessRows"),
+    score: document.getElementById("score"),
+    loadBadge: document.getElementById("loadBadge"),
+    initBtn: document.getElementById("initBtn"),
+    generateBtn: document.getElementById("generateBtn"),
+    playBtn: document.getElementById("playBtn"),
+    replayBtn: document.getElementById("replayBtn"),
+    stopBtn: document.getElementById("stopBtn"),
+    revealBtn: document.getElementById("revealBtn"),
+    nextBtn: document.getElementById("nextBtn"),
+    checkBtn: document.getElementById("checkBtn"),
+    clearGuessBtn: document.getElementById("clearGuessBtn"),
+    extChecks: Array.from(document.querySelectorAll(".ext"))
+  };
+
+  // ----- Helpers -----
+  function setStatus(text, kind) {
+    el.status.textContent = text;
+    el.status.classList.remove("error", "warn");
+    if (kind) el.status.classList.add(kind);
+  }
+
+  function mod12(n) { return ((n % 12) + 12) % 12; }
+  function noteName(pc) { return NOTE_NAMES[mod12(pc)]; }
+  function scaleOf(s) { return (s && s.scale) ? s.scale : SCALES.major; }
+  function degreePc(keyPc, degree, s) { return mod12(keyPc + scaleOf(s).offsets[degree - 1]); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  function getSettings() {
+    const exts = el.extChecks.filter(c => c.checked).map(c => Number(c.value));
+    const tonality = el.tonality.value === "minor" ? "minor" : "major";
+    const randomKey = el.randomKey.value === "yes";
+    let key = el.keySelect.value;
+    if (randomKey) {
+      key = pick(NOTE_NAMES);
+      el.keySelect.value = key; // reflect the chosen key in the dropdown
+    }
+    return {
+      key,
+      keyPc: NOTE_NAMES.indexOf(key),
+      tonality,
+      scale: SCALES[tonality],
+      randomKey,
+      tonicFirst: el.tonicFirst.value === "yes",
+      diatonicOnly: el.diatonicOnly.value === "yes",
+      useSubdominant: el.useSubdominant.value === "yes",
+      cadenceEnd: el.cadenceEnd.value === "yes",
+      chromaticism: el.chromaticism.value === "yes",
+      chromaticCount: Number(el.chromaticRange.value),
+      rootless: el.rootless.value === "yes",
+      inversions: el.inversions.value === "yes",
+      bars: Number(el.barsRange.value),
+      bpm: Number(el.bpmRange.value),
+      extensions: exts.length ? exts : [7]
+    };
+  }
+
+  // Decide the spelled quality given a base diatonic quality + allowed extensions.
+  function applyExtensions(baseQuality, extensions) {
+    if (baseQuality === "m7b5") return "m7b5"; // half-diminished: keep simple
+    if (baseQuality === "dim7") return "dim7"; // diminished 7: keep simple
+    const top = Math.max.apply(null, extensions);
+    if (baseQuality === "7") {
+      if (top >= 13) return "13";
+      if (top >= 11) return "11";
+      if (top >= 9) return "9";
+      return "7";
+    }
+    if (baseQuality === "m7") {
+      if (top >= 13) return "m13";
+      if (top >= 11) return "m11";
+      if (top >= 9) return "m9";
+      return "m7";
+    }
+    // maj7 family
+    if (top >= 13) return "maj13";
+    if (top >= 11) return "maj11";
+    if (top >= 9) return "maj9";
+    return "maj7";
+  }
+
+  function chordSymbol(rootName, quality) {
+    const map = {
+      "maj7": "maj7", "maj9": "maj9", "maj11": "maj11", "maj13": "maj13",
+      "7": "7", "9": "9", "11": "11", "13": "13",
+      "m7": "m7", "m9": "m9", "m11": "m11", "m13": "m13",
+      "m7b5": "m7b5", "dim7": "dim7"
+    };
+    return rootName + (map[quality] || quality);
+  }
+
+  // Decompose a spelled quality into { family, ext } for guessing/grading.
+  // family: "maj" | "min" | "dom" | "halfdim"; ext: 7 | 9 | 11 | 13
+  function qualityParts(quality) {
+    if (quality === "m7b5") return { family: "halfdim", ext: 7 };
+    if (quality === "dim7") return { family: "dim", ext: 7 };
+    let family;
+    if (quality.startsWith("maj")) family = "maj";
+    else if (quality.startsWith("m")) family = "min";
+    else family = "dom";
+    const ext = parseInt(quality.replace(/[^0-9]/g, ""), 10) || 7;
+    return { family, ext };
+  }
+
+  // Unique id so we can prevent the same chord twice in a row.
+  // Inversion is part of identity so re-spelling can vary it too.
+  function chordId(ch) { return ch.rootPc + ":" + ch.quality + ":" + (ch.inversion || 0); }
+
+  function maxInversionFor(quality) {
+    const r = RECIPES[quality] || RECIPES["maj7"];
+    return Math.min(r.length - 1, 4); // root, 1st, 2nd, 3rd, (4th for 9th+ chords)
+  }
+
+  function chooseInversion(quality, s) {
+    if (!s.inversions) return 0;
+    return Math.floor(Math.random() * (maxInversionFor(quality) + 1));
+  }
+
+  function inversionLabel(i) {
+    if (i === 0) return "Root position";
+    const ord = ["1st", "2nd", "3rd", "4th", "5th"][i - 1] || (i + "th");
+    return ord + " inv";
+  }
+
+  // The bass (lowest-sounding) chord tone for a given inversion.
+  function chordBassName(ch) {
+    const r = RECIPES[ch.quality] || RECIPES["maj7"];
+    const iv = r[Math.min(ch.inversion || 0, r.length - 1)];
+    return noteName(mod12(ch.rootPc + iv));
+  }
+
+  // Display symbol with slash-bass notation when inverted.
+  function chordDisplay(ch) {
+    return (ch.inversion ? ch.symbol + "/" + chordBassName(ch) : ch.symbol);
+  }
+
+  // Build the actual sounding voicing.
+  // opts: { rootless, inversion } -> { chord: [noteStrings], bass: noteString|null }
+  function buildVoicing(rootPc, quality, opts) {
+    opts = opts || {};
+    const recipe = RECIPES[quality] || RECIPES["maj7"];
+    const inversion = opts.inversion || 0;
+    const handBase = 52 + rootPc; // right-hand register (~E3 and up)
+
+    // Build the normal block voicing, applying any inversion by lifting the
+    // lowest tone(s) up an octave.
+    let midis = recipe.map(iv => handBase + iv);
+    midis.sort((a, b) => a - b);
+    for (let k = 0; k < inversion; k++) {
+      midis[0] += 12;
+      midis.sort((a, b) => a - b);
+    }
+    midis.sort((a, b) => a - b);
+
+    if (opts.rootless) {
+      // Take the bottom note that would have been played normally and drop it
+      // down an octave into an independent bass voice. Everything else is
+      // identical, so the chord quality is unchanged.
+      const bass = Tone.Frequency(midis[0] - 12, "midi").toNote();
+      const chord = midis.slice(1).map(m => Tone.Frequency(m, "midi").toNote());
+      return { chord, bass };
+    }
+
+    const chord = midis.map(m => Tone.Frequency(m, "midi").toNote());
+    return { chord, bass: null };
+  }
+
+  // ----- Progression generator -----
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function pcToDegree(keyPc, pc, s) {
+    for (let d = 1; d <= 7; d++) {
+      if (degreePc(keyPc, d, s) === pc) return d;
+    }
+    return null;
+  }
+
+  function degreeFunction(degree) {
+    if (FUNCTIONS.tonic.indexOf(degree) !== -1) return "tonic";
+    if (FUNCTIONS.subdominant.indexOf(degree) !== -1) return "subdominant";
+    return "dominant";
+  }
+
+  function makeDiatonicChord(degree, fnName, s) {
+    const quality = applyExtensions(scaleOf(s).quality[degree], s.extensions);
+    const rootPc = degreePc(s.keyPc, degree, s);
+    const rootName = noteName(rootPc);
+    const parts = qualityParts(quality);
+    return {
+      degree, fn: fnName, rootPc, rootName, quality,
+      rootDegree: degree, family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: scaleOf(s).roman[degree],
+      // Keep the tonic rooted so it stays the bass/anchor for the key.
+      inversion: degree === 1 ? 0 : chooseInversion(quality, s),
+      secondary: false
+    };
+  }
+
+  // Borrowed minor iv (major-key colour).
+  function makeBorrowedIv(s) {
+    const quality = applyExtensions("m7", s.extensions);
+    const rootPc = degreePc(s.keyPc, 4, s);
+    const rootName = noteName(rootPc);
+    const parts = qualityParts(quality);
+    return {
+      degree: 4, fn: "subdominant", rootPc, rootName, quality,
+      rootDegree: 4, family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: "iv",
+      inversion: chooseInversion(quality, s),
+      secondary: false
+    };
+  }
+
+  function makeSecondaryDominant(targetDegree, s) {
+    const targetPc = degreePc(s.keyPc, targetDegree, s);
+    const domPc = mod12(targetPc + 7); // a fifth above the target
+    const quality = applyExtensions("7", s.extensions);
+    const rootName = noteName(domPc);
+    const parts = qualityParts(quality);
+    const target = scaleOf(s).roman[targetDegree] || String(targetDegree);
+    return {
+      degree: targetDegree, fn: "dominant", rootPc: domPc, rootName, quality,
+      rootDegree: pcToDegree(s.keyPc, domPc, s), family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: "V/" + target,
+      inversion: chooseInversion(quality, s),
+      secondary: true
+    };
+  }
+
+  // Tritone substitution: root a half-step ABOVE the target, resolving down by
+  // a semitone (chromatic bass motion).
+  function makeTritoneSub(targetDegree, s) {
+    const targetPc = degreePc(s.keyPc, targetDegree, s);
+    const subPc = mod12(targetPc + 1);
+    const quality = applyExtensions("7", s.extensions);
+    const rootName = noteName(subPc);
+    const parts = qualityParts(quality);
+    const target = scaleOf(s).roman[targetDegree] || String(targetDegree);
+    return {
+      degree: targetDegree, fn: "dominant", rootPc: subPc, rootName, quality,
+      rootDegree: pcToDegree(s.keyPc, subPc, s), family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: "subV/" + target,
+      inversion: chooseInversion(quality, s),
+      secondary: true, chromatic: true
+    };
+  }
+
+  // Any NON-tonic diatonic chord turned into a dominant 7 on its own root.
+  function makeAppliedDominant(degree, s) {
+    const quality = applyExtensions("7", s.extensions);
+    const rootPc = degreePc(s.keyPc, degree, s);
+    const rootName = noteName(rootPc);
+    const parts = qualityParts(quality);
+    const base = (scaleOf(s).roman[degree] || String(degree)).toUpperCase();
+    return {
+      degree, fn: "dominant", rootPc, rootName, quality,
+      rootDegree: degree, family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: base + "7(dom)",
+      inversion: chooseInversion(quality, s),
+      secondary: true
+    };
+  }
+
+  // Chromatic approach chord: a dom7 a half-step above the chord it resolves
+  // into (tritone-sub style), giving a chromatic bass note.
+  function makeChromaticApproach(next, s) {
+    const rootPc = mod12(next.rootPc + 1);
+    const quality = applyExtensions("7", s.extensions);
+    const rootName = noteName(rootPc);
+    const parts = qualityParts(quality);
+    const nextDeg = pcToDegree(s.keyPc, next.rootPc, s);
+    const targetLabel = nextDeg ? scaleOf(s).roman[nextDeg] : next.rootName;
+    return {
+      degree: null, fn: "dominant", rootPc, rootName, quality,
+      rootDegree: pcToDegree(s.keyPc, rootPc, s), family: parts.family, ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman: "subV/" + targetLabel,
+      inversion: chooseInversion(quality, s),
+      secondary: true, chromatic: true
+    };
+  }
+
+  // Build the chord for a single bar. Returns { chord, fn, forced }.
+  // The tonic (degree 1) is never converted into a dominant - it stays home.
+  function buildBarChord(i, s, prevFn) {
+    const isLast = i === s.bars - 1;
+    const isPenultimate = i === s.bars - 2;
+
+    if (s.cadenceEnd && isLast) {
+      return { chord: makeDiatonicChord(1, "tonic", s), fn: "tonic", forced: true };
+    }
+    if (s.cadenceEnd && isPenultimate) {
+      return { chord: makeDiatonicChord(5, "dominant", s), fn: "dominant", forced: true };
+    }
+    if (i === 0) {
+      return { chord: makeDiatonicChord(1, "tonic", s), fn: "tonic", forced: true };
+    }
+
+    let candidates = FLOW[prevFn] ? FLOW[prevFn].slice() : ["tonic"];
+    if (!s.useSubdominant) candidates = candidates.filter(f => f !== "subdominant");
+    if (!candidates.length) candidates = ["tonic", "dominant"];
+    let fnName = pick(candidates);
+
+    let degreePool = FUNCTIONS[fnName].slice();
+    if (fnName === "subdominant" && !s.useSubdominant) {
+      fnName = "dominant";
+      degreePool = FUNCTIONS.dominant.slice();
+    }
+    const degree = pick(degreePool);
+
+    // Non-diatonic colour (secondary / applied dominants, borrowed iv).
+    // Chromatic-root chords are added separately via the chromaticism count.
+    if (!s.diatonicOnly && Math.random() < 0.34) {
+      const colours = ["secdom"];
+      // Any NON-tonic chord can become a dominant when sub-dominants are on.
+      if (s.useSubdominant && degree !== 1) colours.push("applied");
+      if (s.useSubdominant) colours.push("borrowediv");
+      const choice = pick(colours);
+
+      if (choice === "secdom") {
+        // Secondary dominant of ANY diatonic target (not just ii / IV),
+        // restricted to diatonic-rooted dominants so it stays guessable.
+        let targets = [1, 2, 3, 4, 5, 6, 7].filter(
+          t => pcToDegree(s.keyPc, mod12(degreePc(s.keyPc, t, s) + 7), s) !== null
+        );
+        const tgt = pick(targets.length ? targets : [5]);
+        return { chord: makeSecondaryDominant(tgt, s), fn: "dominant", forced: false };
+      }
+      if (choice === "applied") {
+        return { chord: makeAppliedDominant(degree, s), fn: "dominant", forced: false };
+      }
+      if (choice === "borrowediv") {
+        return { chord: makeBorrowedIv(s), fn: "subdominant", forced: false };
+      }
+    }
+    return { chord: makeDiatonicChord(degree, fnName, s), fn: fnName, forced: false };
+  }
+
+  // Safety pass: guarantee no identical chord appears in two adjacent bars.
+  function dedupeAdjacent(prog, s) {
+    for (let i = 1; i < prog.length; i++) {
+      if (chordId(prog[i]) !== chordId(prog[i - 1])) continue;
+
+      // Prefer re-spelling a bar that is neither forced (cadence) nor a
+      // deliberate chromatic chord, so those stay intact.
+      const free = idx => prog[idx] && !prog[idx]._forced && !prog[idx].chromatic;
+      const target = free(i) ? i : (free(i - 1) ? i - 1 : i);
+      const tPrevId = target > 0 ? chordId(prog[target - 1]) : null;
+      const tNextId = target + 1 < prog.length ? chordId(prog[target + 1]) : null;
+
+      let degrees = shuffle([1, 2, 3, 4, 5, 6, 7]);
+      if (!s.useSubdominant) degrees = degrees.filter(d => FUNCTIONS.subdominant.indexOf(d) === -1);
+
+      for (const d of degrees) {
+        const cand = makeDiatonicChord(d, degreeFunction(d), s);
+        if (chordId(cand) !== tPrevId && chordId(cand) !== tNextId) {
+          cand._forced = prog[target]._forced;
+          prog[target] = cand;
+          break;
+        }
+      }
+    }
+  }
+
+  // Replace a number of inner bars with chromatic approach chords (tritone-sub
+  // style) that resolve by a semitone into the following chord. The tonic anchor
+  // (first bar) and the final resolution chord are left untouched.
+  function insertChromaticChords(prog, s) {
+    const count = Math.max(0, Math.min(s.chromaticCount, prog.length));
+    if (!count) return;
+    const eligible = [];
+    for (let i = 1; i < prog.length - 1; i++) eligible.push(i); // needs a chord to resolve into
+    const chosen = shuffle(eligible).slice(0, Math.min(count, eligible.length));
+    // Right-to-left so each approach chord targets a finalized next chord.
+    chosen.sort((a, b) => b - a).forEach(i => {
+      const repl = makeChromaticApproach(prog[i + 1], s);
+      repl._forced = false;
+      prog[i] = repl;
+    });
+  }
+
+  function generateProgression(s) {
+    const prog = [];
+    let prevFn = "start";
+
+    for (let i = 0; i < s.bars; i++) {
+      let built = buildBarChord(i, s, prevFn);
+      let attempts = 0;
+      // Re-roll non-forced bars that would repeat the previous chord.
+      while (!built.forced && prog.length &&
+             chordId(built.chord) === chordId(prog[prog.length - 1]) &&
+             attempts < 24) {
+        built = buildBarChord(i, s, prevFn);
+        attempts++;
+      }
+      built.chord._forced = built.forced;
+      prog.push(built.chord);
+      prevFn = built.fn;
+    }
+
+    dedupeAdjacent(prog, s);
+    if (s.chromaticism) insertChromaticChords(prog, s);
+    dedupeAdjacent(prog, s);
+    return prog;
+  }
+
+  // ----- Rendering -----
+  function renderBars(prog, opts) {
+    opts = opts || {};
+    el.bars.innerHTML = "";
+    if (opts.tonicRef) {
+      const ref = document.createElement("div");
+      ref.className = "bar tonic-ref";
+      ref.id = "bar-ref";
+      const sc = scaleOf(state.settings);
+      const refLabel = state.revealed ? (state.settings.key + sc.tonicQuality) : sc.tonicRoman;
+      ref.innerHTML = '<span class="num">ref</span>' + refLabel;
+      el.bars.appendChild(ref);
+    }
+    prog.forEach((ch, i) => {
+      const b = document.createElement("div");
+      b.className = "bar";
+      b.id = "bar-" + i;
+      const label = state.revealed ? chordDisplay(ch) : "?";
+      b.innerHTML = '<span class="num">' + (i + 1) + '</span>' + label;
+      el.bars.appendChild(b);
+    });
+  }
+
+  function highlightBar(id) {
+    document.querySelectorAll(".bar.active").forEach(b => b.classList.remove("active"));
+    if (id) {
+      const node = document.getElementById(id);
+      if (node) node.classList.add("active");
+    }
+  }
+
+  function renderAnswer(prog, s) {
+    const symbols = prog.map(c => chordDisplay(c)).join("  |  ");
+    const romans = prog.map(c => c.roman).join("  |  ");
+    const lines = [
+      "Key: " + s.key + " " + s.tonality,
+      "Bars: " + s.bars + "   Tempo: " + s.bpm + " BPM",
+      "Chords:    " + symbols,
+      "Function:  " + romans
+    ];
+    if (s.inversions) {
+      lines.push("Inversions: " + prog.map(c => inversionLabel(c.inversion)).join("  |  "));
+    }
+    const voiceBits = [];
+    if (s.rootless) voiceBits.push("rootless (split-hand bass)");
+    if (s.chromaticism) voiceBits.push("chromaticism on");
+    if (voiceBits.length) lines.push("Voicing: " + voiceBits.join(", "));
+    return lines.join("\n");
+  }
+
+  // ----- Guess section -----
+  const FAMILY_OPTS = [
+    { value: "maj", label: "Major (maj7)" },
+    { value: "min", label: "Minor (m7)" },
+    { value: "dom", label: "Dominant (7)" },
+    { value: "halfdim", label: "Half-dim (m7b5)" },
+    { value: "dim", label: "Diminished (\u00b07)" }
+  ];
+  const EXT_OPTS = [7, 9, 11, 13];
+
+  function selectHtml(id, options) {
+    let html = '<select id="' + id + '">';
+    options.forEach(o => {
+      html += '<option value="' + o.value + '">' + o.label + '</option>';
+    });
+    html += '</select>';
+    return html;
+  }
+
+  function degreeOptions(s) {
+    const scale = scaleOf(s);
+    if (s && s.chromaticism) {
+      return scale.chromatic.map((label, off) => ({ value: off, label }));
+    }
+    return [1, 2, 3, 4, 5, 6, 7].map(d => ({ value: scale.offsets[d - 1], label: scale.roman[d] }));
+  }
+
+  function renderGuessRows(prog) {
+    const s = state.settings;
+    el.guessRows.innerHTML = "";
+    const degOpts = degreeOptions(s);
+    const extOpts = EXT_OPTS.map(e => ({ value: e, label: String(e) + "th" }));
+    prog.forEach((ch, i) => {
+      const row = document.createElement("div");
+      row.className = "guess-row";
+      let html =
+        '<span class="barlabel">Bar ' + (i + 1) + '</span>' +
+        selectHtml("g-deg-" + i, degOpts) +
+        selectHtml("g-fam-" + i, FAMILY_OPTS) +
+        selectHtml("g-ext-" + i, extOpts);
+      if (s && s.inversions) {
+        const invOpts = [];
+        for (let k = 0; k <= maxInversionFor(ch.quality); k++) {
+          invOpts.push({ value: k, label: inversionLabel(k) });
+        }
+        html += selectHtml("g-inv-" + i, invOpts);
+      }
+      html += '<span class="result idle" id="res-' + i + '">awaiting</span>';
+      row.innerHTML = html;
+      el.guessRows.appendChild(row);
+    });
+  }
+
+  function gradeGuesses() {
+    if (!state.progression.length) {
+      setStatus("Generate a progression first.", "warn");
+      return;
+    }
+    const s = state.settings;
+    let correct = 0;
+    state.progression.forEach((ch, i) => {
+      const degEl = document.getElementById("g-deg-" + i);
+      const famEl = document.getElementById("g-fam-" + i);
+      const extEl = document.getElementById("g-ext-" + i);
+      const invEl = document.getElementById("g-inv-" + i);
+      const resEl = document.getElementById("res-" + i);
+      if (!degEl || !famEl || !extEl || !resEl) return;
+
+      const off = Number(degEl.value);
+      const fam = famEl.value;
+      const ext = Number(extEl.value);
+
+      const degOk = mod12(s.keyPc + off) === ch.rootPc;
+      const famOk = fam === ch.family;
+      const extOk = ext === ch.ext;
+      const invOk = !s.inversions || !invEl || Number(invEl.value) === (ch.inversion || 0);
+
+      const answer = ch.roman + " (" + chordDisplay(ch) +
+        (s.inversions ? ", " + inversionLabel(ch.inversion || 0) : "") + ")";
+
+      if (degOk && famOk && extOk && invOk) {
+        correct++;
+        resEl.className = "result ok";
+        resEl.textContent = "\u2713 " + answer;
+      } else {
+        resEl.className = "result bad";
+        resEl.textContent = "\u2717 was " + answer;
+      }
+    });
+    const total = state.progression.length;
+    el.score.textContent = "Score: " + correct + " / " + total +
+      (correct === total ? "  \u2014 perfect ear!" : "");
+    setStatus("Checked your answers.");
+  }
+
+  function clearGuesses() {
+    state.progression.forEach((ch, i) => {
+      const degEl = document.getElementById("g-deg-" + i);
+      const famEl = document.getElementById("g-fam-" + i);
+      const extEl = document.getElementById("g-ext-" + i);
+      const invEl = document.getElementById("g-inv-" + i);
+      const resEl = document.getElementById("res-" + i);
+      if (degEl) degEl.selectedIndex = 0;
+      if (famEl) famEl.selectedIndex = 0;
+      if (extEl) extEl.selectedIndex = 0;
+      if (invEl) invEl.selectedIndex = 0;
+      if (resEl) { resEl.className = "result idle"; resEl.textContent = "awaiting"; }
+    });
+    el.score.textContent = "Pick a roman numeral, quality and extension for each bar, then Check Answers.";
+  }
+
+  // ----- Audio -----
+  async function initAudio() {
+    if (state.audioReady || state.loading) return;
+    state.loading = true;
+    el.loadBadge.textContent = " (loading samples...)";
+    setStatus("Loading piano samples...");
+    try {
+      await Tone.start();
+      const base = "https://tonejs.github.io/audio/salamander/";
+      state.sampler = new Tone.Sampler({
+        urls: {
+          A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3",
+          A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3",
+          A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3",
+          A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3", A5: "A5.mp3"
+        },
+        baseUrl: base,
+        release: 1.6
+      }).toDestination();
+      state.sampler.volume.value = -6;
+      await Tone.loaded();
+      state.audioReady = true;
+      el.initBtn.disabled = true;
+      el.loadBadge.textContent = " (ready)";
+      setStatus("Audio ready. Generate & Play.");
+    } catch (err) {
+      el.loadBadge.textContent = "";
+      setStatus("Audio init failed: " + err.message, "error");
+    } finally {
+      state.loading = false;
+    }
+  }
+
+  function clearTimers() {
+    state.timers.forEach(t => clearTimeout(t));
+    state.timers = [];
+  }
+
+  function stopPlayback() {
+    clearTimers();
+    if (state.sampler) {
+      try { state.sampler.releaseAll(); } catch (e) { /* noop */ }
+    }
+    state.isPlaying = false;
+    highlightBar(null);
+  }
+
+  async function play() {
+    if (!state.audioReady) {
+      await initAudio();
+      if (!state.audioReady) return;
+    }
+    if (!state.progression.length) generateNew(false);
+    stopPlayback();
+
+    const s = state.settings;
+    const barSec = 120 / s.bpm;      // half-note per bar feel
+    const lead = 0.15;
+    let cursor = Tone.now() + lead;
+    let wallClock = 0;               // ms offset for UI highlighting
+    state.isPlaying = true;
+    setStatus("Playing...");
+
+    // Optional tonic reference chord.
+    if (s.tonicFirst) {
+      const ref = buildVoicing(s.keyPc, scaleOf(s).tonicQuality, { rootless: s.rootless, inversion: 0 });
+      state.sampler.triggerAttackRelease(ref.chord, barSec * 0.85, cursor, 0.85);
+      if (ref.bass) state.sampler.triggerAttackRelease(ref.bass, barSec * 0.9, cursor, 0.9);
+      state.timers.push(setTimeout(() => highlightBar("bar-ref"), wallClock));
+      cursor += barSec;
+      wallClock += barSec * 1000;
+    }
+
+    state.progression.forEach((ch, i) => {
+      const when = cursor;
+      const v = buildVoicing(ch.rootPc, ch.quality, { rootless: s.rootless, inversion: ch.inversion });
+      state.sampler.triggerAttackRelease(v.chord, barSec * 0.9, when, 0.9);
+      if (v.bass) state.sampler.triggerAttackRelease(v.bass, barSec * 0.95, when, 0.95);
+      state.timers.push(setTimeout(() => highlightBar("bar-" + i), wallClock));
+      cursor += barSec;
+      wallClock += barSec * 1000;
+    });
+
+    state.timers.push(setTimeout(() => {
+      state.isPlaying = false;
+      highlightBar(null);
+      setStatus(state.revealed ? "Answer shown above." : "Playback complete. Reveal when ready.");
+    }, wallClock + 200));
+  }
+
+  // ----- Session actions -----
+  function generateNew(autoStatus) {
+    state.settings = getSettings();
+    state.progression = generateProgression(state.settings);
+    state.revealed = false;
+    el.answer.textContent = "Answer hidden. Listen first, then use \u201cReveal Answer\u201d.";
+    renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
+    renderGuessRows(state.progression);
+    el.score.textContent = "Pick a roman numeral, quality and extension for each bar, then Check Answers.";
+    if (autoStatus !== false) setStatus("New progression generated (" + state.settings.bars + " bars).");
+  }
+
+  function reveal() {
+    if (!state.progression.length) {
+      setStatus("Generate a progression first.", "warn");
+      return;
+    }
+    state.revealed = true;
+    el.answer.textContent = renderAnswer(state.progression, state.settings);
+    renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
+    setStatus("Answer revealed.");
+  }
+
+  function syncLabels() {
+    el.barsValue.textContent = el.barsRange.value;
+    el.bpmValue.textContent = el.bpmRange.value;
+    el.chromaticValue.textContent = el.chromaticRange.value;
+  }
+
+  // ----- Wiring -----
+  el.initBtn.addEventListener("click", initAudio);
+  el.generateBtn.addEventListener("click", () => generateNew(true));
+  el.playBtn.addEventListener("click", play);
+  el.replayBtn.addEventListener("click", play);
+  el.stopBtn.addEventListener("click", () => { stopPlayback(); setStatus("Stopped."); });
+  el.revealBtn.addEventListener("click", reveal);
+  el.nextBtn.addEventListener("click", async () => { generateNew(false); await play(); });
+  el.checkBtn.addEventListener("click", gradeGuesses);
+  el.clearGuessBtn.addEventListener("click", clearGuesses);
+
+  el.barsRange.addEventListener("input", syncLabels);
+  el.bpmRange.addEventListener("input", syncLabels);
+  el.chromaticRange.addEventListener("input", syncLabels);
+
+  // Disable the manual key picker while a random key is in effect.
+  el.randomKey.addEventListener("change", () => {
+    el.keySelect.disabled = el.randomKey.value === "yes";
+    generateNew(true);
+  });
+
+  // Regenerate when harmony-affecting settings change so the board stays in sync.
+  [el.keySelect, el.tonality, el.tonicFirst, el.diatonicOnly, el.useSubdominant,
+   el.cadenceEnd, el.chromaticism, el.rootless, el.inversions]
+    .forEach(node => node.addEventListener("change", () => generateNew(true)));
+  el.extChecks.forEach(c => c.addEventListener("change", () => generateNew(true)));
+  el.barsRange.addEventListener("change", () => generateNew(false));
+  el.chromaticRange.addEventListener("change", () => generateNew(false));
+
+  // Initial render.
+  el.keySelect.disabled = el.randomKey.value === "yes";
+  syncLabels();
+  generateNew(false);
+  setStatus("Ready. Press Initialize Audio, then Play.");
+  </script>
+</body>
+</html>
