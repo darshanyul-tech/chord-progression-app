@@ -240,14 +240,30 @@
     .bar.active { background: var(--bar-active); border-color: var(--accent); transform: translateY(-2px); }
     .bar.tonic-ref { background: #3a2d52; border-color: #7a5fb0; }
 
-    .answer {
+    .session-scores {
+      display: grid;
+      gap: 0.55rem;
       background: #141a28;
-      border: 1px dashed #4b5b82;
+      border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 0.85rem;
-      min-height: 3.2rem;
-      white-space: pre-wrap;
-      line-height: 1.5;
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .session-score-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .session-score-label {
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .session-score-value {
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--accent);
       font-variant-numeric: tabular-nums;
     }
 
@@ -633,8 +649,25 @@
     </section>
 
     <section class="card">
-      <h2>Hidden Answer</h2>
-      <div id="answer" class="answer">Answer hidden. Listen first, then use &ldquo;Reveal Answer&rdquo;.</div>
+      <h2>Session score</h2>
+      <div class="session-scores">
+        <div class="session-score-row">
+          <span class="session-score-label">Overall (all fields)</span>
+          <span id="sessionOverall" class="session-score-value">0 / 0</span>
+        </div>
+        <div class="session-score-row">
+          <span class="session-score-label">Function (roman / degree)</span>
+          <span id="sessionFunction" class="session-score-value">0 / 0</span>
+        </div>
+        <div class="session-score-row">
+          <span class="session-score-label">Tonality (major, minor, etc.)</span>
+          <span id="sessionTonality" class="session-score-value">0 / 0</span>
+        </div>
+      </div>
+      <div class="help">Totals accumulate each time you use Check Answers until you reset.</div>
+      <div class="buttons" style="margin-top: 0.65rem;">
+        <button type="button" id="resetSessionScoreBtn" class="ghost">Reset score</button>
+      </div>
     </section>
     </div><!-- /practiceView -->
 
@@ -762,7 +795,12 @@
     timers: [],
     revealed: false,
     customMode: false,
-    playbackGen: 0
+    playbackGen: 0,
+    sessionStats: {
+      overall: { correct: 0, total: 0 },
+      function: { correct: 0, total: 0 },
+      tonality: { correct: 0, total: 0 }
+    }
   };
 
   // ----- DOM -----
@@ -788,7 +826,10 @@
     barsValue: document.getElementById("barsValue"),
     bpmValue: document.getElementById("bpmValue"),
     status: document.getElementById("status"),
-    answer: document.getElementById("answer"),
+    sessionOverall: document.getElementById("sessionOverall"),
+    sessionFunction: document.getElementById("sessionFunction"),
+    sessionTonality: document.getElementById("sessionTonality"),
+    resetSessionScoreBtn: document.getElementById("resetSessionScoreBtn"),
     bars: document.getElementById("bars"),
     guessRows: document.getElementById("guessRows"),
     score: document.getElementById("score"),
@@ -1312,23 +1353,25 @@
     }
   }
 
-  function renderAnswer(prog, s) {
-    const symbols = prog.map(c => chordDisplay(c)).join("  |  ");
-    const romans = prog.map(c => c.roman).join("  |  ");
-    const lines = [
-      "Key: " + s.key + " " + s.tonality,
-      "Bars: " + s.bars + "   Tempo: " + s.bpm + " BPM",
-      "Chords:    " + symbols,
-      "Function:  " + romans
-    ];
-    if (s.inversions) {
-      lines.push("Inversions: " + prog.map(c => inversionLabel(c.inversion)).join("  |  "));
-    }
-    const voiceBits = [];
-    if (s.rootless) voiceBits.push("rootless (split-hand bass)");
-    if (s.chromaticism) voiceBits.push("chromaticism on");
-    if (voiceBits.length) lines.push("Voicing: " + voiceBits.join(", "));
-    return lines.join("\n");
+  function formatSessionScore(correct, total) {
+    return correct + " / " + total;
+  }
+
+  function renderSessionScore() {
+    const st = state.sessionStats;
+    el.sessionOverall.textContent = formatSessionScore(st.overall.correct, st.overall.total);
+    el.sessionFunction.textContent = formatSessionScore(st.function.correct, st.function.total);
+    el.sessionTonality.textContent = formatSessionScore(st.tonality.correct, st.tonality.total);
+  }
+
+  function resetSessionScore() {
+    state.sessionStats = {
+      overall: { correct: 0, total: 0 },
+      function: { correct: 0, total: 0 },
+      tonality: { correct: 0, total: 0 }
+    };
+    renderSessionScore();
+    setStatus("Session score reset.");
   }
 
   // ----- Guess section -----
@@ -1452,6 +1495,8 @@
     }
     const s = state.settings;
     let correct = 0;
+    let fnCorrect = 0;
+    let tonCorrect = 0;
     state.progression.forEach((ch, i) => {
       const degEl = document.getElementById("g-deg-" + i);
       const famEl = document.getElementById("g-fam-" + i);
@@ -1467,8 +1512,20 @@
       const match = gradeBarMatch(ch, off, fam, ext, invVal, s);
       const answer = describeBarAnswer(ch, s);
 
+      state.sessionStats.overall.total++;
+      state.sessionStats.function.total++;
+      state.sessionStats.tonality.total++;
+      if (match.degOk) {
+        fnCorrect++;
+        state.sessionStats.function.correct++;
+      }
+      if (match.famOk) {
+        tonCorrect++;
+        state.sessionStats.tonality.correct++;
+      }
       if (match.allOk) {
         correct++;
+        state.sessionStats.overall.correct++;
         resEl.className = "result ok";
         resEl.textContent = "\u2713 " + answer;
       } else {
@@ -1476,10 +1533,13 @@
         resEl.textContent = "\u2717 was " + answer;
       }
     });
+    renderSessionScore();
     const total = state.progression.length;
-    el.score.textContent = "Score: " + correct + " / " + total +
-      (correct === total ? "  \u2014 perfect ear!" : "");
-    setStatus("Checked your answers.");
+    el.score.textContent = "Last check: " + correct + " / " + total + " bars perfect" +
+      (correct === total ? "  \u2014 nice!" : "") +
+      "  \u00b7  Function " + fnCorrect + "/" + total +
+      "  \u00b7  Tonality " + tonCorrect + "/" + total;
+    setStatus("Checked your answers. Session totals updated below.");
   }
 
   function familyExtToQuality(fam, ext, s) {
@@ -1529,11 +1589,73 @@
     return Array.from({ length: s.bars }, () => makePlaceholderChord(s));
   }
 
+  function captureGuessInputs() {
+    const preserved = [];
+    const rowCount = el.guessRows.querySelectorAll(".guess-row").length;
+    for (let i = 0; i < rowCount; i++) {
+      const degEl = document.getElementById("g-deg-" + i);
+      const famEl = document.getElementById("g-fam-" + i);
+      const extEl = document.getElementById("g-ext-" + i);
+      const invEl = document.getElementById("g-inv-" + i);
+      if (!degEl || !famEl || !extEl) continue;
+      preserved.push({
+        off: degEl.value,
+        fam: famEl.value,
+        ext: extEl.value,
+        inv: invEl ? invEl.value : null
+      });
+    }
+    return preserved;
+  }
+
+  function applyGuessInputs(preserved, s) {
+    const bars = s.bars;
+    for (let i = 0; i < bars; i++) {
+      const p = preserved[i];
+      if (!p) continue;
+      const degEl = document.getElementById("g-deg-" + i);
+      const famEl = document.getElementById("g-fam-" + i);
+      const extEl = document.getElementById("g-ext-" + i);
+      const invEl = document.getElementById("g-inv-" + i);
+      if (degEl && [...degEl.options].some(o => o.value === String(p.off))) degEl.value = String(p.off);
+      if (famEl && [...famEl.options].some(o => o.value === p.fam)) famEl.value = p.fam;
+      if (extEl && [...extEl.options].some(o => o.value === String(p.ext))) extEl.value = String(p.ext);
+      if (invEl && p.inv !== null && [...invEl.options].some(o => o.value === String(p.inv))) {
+        invEl.value = String(p.inv);
+      }
+    }
+  }
+
+  function syncCustomProgressionLength() {
+    if (!state.customMode) return;
+    const preserved = captureGuessInputs();
+    const bars = Number(el.barsRange.value);
+    const s = state.settings
+      ? Object.assign({}, state.settings, { bars })
+      : Object.assign(getSettings(), { bars });
+    state.settings = s;
+    state.revealed = false;
+    state.progression = makePlaceholderProgression(s);
+    renderBars(state.progression, { tonicRef: s.tonicFirst });
+    renderGuessRows(state.progression);
+    applyGuessInputs(preserved, s);
+  }
+
   function ensureGuessRowsForBars(s) {
     const rows = el.guessRows.querySelectorAll(".guess-row").length;
-    if (rows !== s.bars) {
-      renderGuessRows(makePlaceholderProgression(s));
+    if (rows === s.bars) return;
+    if (state.customMode) {
+      const preserved = captureGuessInputs();
+      state.settings = Object.assign({}, state.settings || s, { bars: s.bars });
+      el.barsRange.value = String(s.bars);
+      syncLabels();
+      state.progression = makePlaceholderProgression(state.settings);
+      renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
+      renderGuessRows(state.progression);
+      applyGuessInputs(preserved, state.settings);
+      return;
     }
+    renderGuessRows(makePlaceholderProgression(s));
   }
 
   function chordFromGuessRow(i, s) {
@@ -2409,7 +2531,7 @@
       if (playGen !== state.playbackGen) return;
       state.isPlaying = false;
       highlightBar(null);
-      let doneMsg = state.revealed ? "Answer shown above." : "Playback complete. Reveal when ready.";
+      let doneMsg = state.revealed ? "Answer revealed in the bars above." : "Playback complete. Reveal when ready.";
       if (state.customMode && s.randomKey) {
         doneMsg = "Played in " + s.key + ". " + doneMsg;
       }
@@ -2421,7 +2543,6 @@
   function generateNew(autoStatus) {
     state.settings = getSettings();
     state.revealed = false;
-    el.answer.textContent = "Answer hidden. Listen first, then use \u201cReveal Answer\u201d.";
 
     if (state.customMode) {
       state.progression = makePlaceholderProgression(state.settings);
@@ -2456,7 +2577,6 @@
       return;
     }
     state.revealed = true;
-    el.answer.textContent = renderAnswer(state.progression, state.settings);
     renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
     setStatus(state.customMode ? "Custom progression revealed." : "Answer revealed.");
   }
@@ -2494,8 +2614,12 @@
   el.customProgression.addEventListener("change", () => setCustomMode(el.customProgression.checked));
   el.checkBtn.addEventListener("click", gradeGuesses);
   el.clearGuessBtn.addEventListener("click", clearGuesses);
+  el.resetSessionScoreBtn.addEventListener("click", resetSessionScore);
 
-  el.barsRange.addEventListener("input", syncLabels);
+  el.barsRange.addEventListener("input", () => {
+    syncLabels();
+    if (state.customMode) syncCustomProgressionLength();
+  });
   el.bpmRange.addEventListener("input", syncLabels);
   el.chromaticRange.addEventListener("input", syncLabels);
 
@@ -2513,7 +2637,10 @@
    el.cadenceEnd, el.chromaticism, el.rootless, el.inversions]
     .forEach(node => node.addEventListener("change", onHarmonySettingChange));
   el.extChecks.forEach(c => c.addEventListener("change", onHarmonySettingChange));
-  el.barsRange.addEventListener("change", () => generateNew(false));
+  el.barsRange.addEventListener("change", () => {
+    if (state.customMode) syncCustomProgressionLength();
+    else generateNew(false);
+  });
   el.chromaticRange.addEventListener("change", () => generateNew(false));
 
   el.examModeBtn.addEventListener("click", () => ExamController.openSetup());
@@ -2533,6 +2660,7 @@
   syncExtensionSettingsUi();
   syncPracticeSettingsVisibility();
   syncSessionAudioUi();
+  renderSessionScore();
   generateNew(false);
   setStatus("Press Initialize Audio to begin.");
   </script>
