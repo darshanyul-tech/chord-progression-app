@@ -96,7 +96,66 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .buttons { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .buttons { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+
+    .toggle-switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      cursor: pointer;
+      user-select: none;
+      padding: 0.45rem 0.65rem;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      background: var(--panel-2);
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+    }
+    .toggle-switch:has(input:checked) {
+      color: var(--accent-2);
+      border-color: var(--accent);
+      background: #1a2d42;
+    }
+    .toggle-switch input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .toggle-slider {
+      position: relative;
+      flex: 0 0 2.5rem;
+      height: 1.35rem;
+      background: #0f1523;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      transition: background 0.15s ease;
+    }
+    .toggle-slider::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 1rem;
+      height: 1rem;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .toggle-switch input:checked + .toggle-slider {
+      background: #1d4a72;
+      border-color: var(--accent);
+    }
+    .toggle-switch input:checked + .toggle-slider::after {
+      transform: translateX(1.15rem);
+      background: var(--accent);
+    }
+    .toggle-switch input:focus-visible + .toggle-slider {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
 
     button {
       background: #1d76c6;
@@ -195,15 +254,174 @@
 
     footer { color: var(--muted); font-size: 0.78rem; text-align: center; padding-bottom: 0.5rem; }
     a { color: var(--accent); }
+
+    .hero-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .hero-header .hero-text { flex: 1 1 220px; min-width: 0; }
+    .hero-header .hero-actions { flex: 0 0 auto; align-self: center; }
+    button.exam-start {
+      background: #3d5a3d;
+      border-color: #5a8f5a;
+      white-space: nowrap;
+    }
+    button.exam-start:hover:not(:disabled) { filter: brightness(1.12); }
+
+    .view-hidden { display: none !important; }
+
+    .exam-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(8, 10, 16, 0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .exam-panel {
+      width: min(560px, 100%);
+      max-height: calc(100vh - 2rem);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .exam-panel.wide { width: min(920px, 100%); }
+
+    .exam-setup-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .exam-setup-grid .field {
+      min-width: 0;
+    }
+    .exam-types-container { display: grid; gap: 0.75rem; }
+
+    .exam-type-block {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem 0.95rem;
+    }
+    .exam-type-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      margin: 0 0 0.65rem 0;
+      line-height: 1.35;
+    }
+    .exam-type-toggle input { width: 1.05rem; height: 1.05rem; flex-shrink: 0; }
+    .exam-type-settings-wrap {
+      transition: opacity 0.15s ease;
+    }
+    .exam-type-settings-wrap.is-disabled {
+      opacity: 0.42;
+      pointer-events: none;
+    }
+    .exam-type-settings-grid { margin-top: 0.15rem; }
+
+    .exam-timer {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--warn);
+      font-variant-numeric: tabular-nums;
+      margin: 0.5rem 0 0.75rem 0;
+    }
+    .exam-progress {
+      color: var(--accent);
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      margin: 0 0 0.5rem 0;
+    }
+    .exam-phase {
+      color: var(--muted);
+      font-size: 0.92rem;
+      margin: 0 0 0.75rem 0;
+      min-height: 1.3rem;
+    }
+
+    .exam-summary-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .exam-stat {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      min-width: 120px;
+    }
+    .exam-stat .label { font-size: 0.78rem; color: var(--muted); margin-bottom: 0.2rem; }
+    .exam-stat .value { font-size: 1.35rem; font-weight: 800; color: var(--accent-2); }
+
+    .exam-result-list { display: grid; gap: 0.75rem; }
+    .exam-result-card {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.85rem;
+    }
+    .exam-result-card.perfect { border-color: #4a8f5a; }
+    .exam-result-card.partial { border-color: #8f7a4a; }
+    .exam-result-card.fail { border-color: #8f4a4a; }
+    .exam-result-card h3 {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.95rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .exam-badge {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .exam-badge.ok { background: #1a3d28; color: var(--accent-2); }
+    .exam-badge.bad { background: #3d1a1a; color: var(--danger); }
+    .exam-bar-compare {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      margin-top: 0.5rem;
+    }
+    .exam-bar-row {
+      display: grid;
+      grid-template-columns: 52px 1fr 1fr;
+      gap: 0.5rem;
+      align-items: start;
+    }
+    .exam-bar-row .hdr { color: var(--muted); font-weight: 600; font-size: 0.72rem; }
+    .exam-bar-row .you { color: var(--text); }
+    .exam-bar-row .actual { color: var(--accent-2); }
+    .exam-bar-row.miss .you { color: var(--danger); }
+    @media (max-width: 560px) {
+      .exam-bar-row { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <section class="card">
-      <h1>Jazz Chord Progression Ear Trainer</h1>
-      <p class="sub">Train your ear on functional jazz harmony. Configure the rules, listen, then reveal the answer.</p>
+    <section class="card hero-header">
+      <div class="hero-text">
+        <h1>Jazz Chord Progression Ear Trainer</h1>
+        <p class="sub">Train your ear on functional jazz harmony. Configure the rules, listen, then reveal the answer.</p>
+      </div>
+      <div class="hero-actions">
+        <button type="button" id="examModeBtn" class="exam-start">Exam mode</button>
+      </div>
     </section>
 
+    <div id="practiceView">
     <section class="card">
       <h2>Settings</h2>
       <div class="grid">
@@ -338,6 +556,11 @@
         <button id="replayBtn" class="secondary">Replay</button>
         <button id="stopBtn" class="ghost">Stop</button>
         <button id="revealBtn" class="secondary">Reveal Answer</button>
+        <label class="toggle-switch" id="customProgressionLabel" title="Play the chords you set in Your Guess instead of a generated progression">
+          <span class="toggle-label">Custom progression</span>
+          <input type="checkbox" id="customProgression" />
+          <span class="toggle-slider" aria-hidden="true"></span>
+        </label>
         <button id="nextBtn">Next</button>
       </div>
       <p class="status" id="status">Press Initialize Audio, then Generate &amp; Play.</p>
@@ -358,10 +581,56 @@
       <h2>Hidden Answer</h2>
       <div id="answer" class="answer">Answer hidden. Listen first, then use &ldquo;Reveal Answer&rdquo;.</div>
     </section>
+    </div><!-- /practiceView -->
 
     <footer>
       Single-file trainer &middot; audio by <a href="https://tonejs.github.io/" target="_blank" rel="noopener">Tone.js</a> + Salamander Grand Piano samples.
     </footer>
+  </div>
+
+  <!-- Exam setup -->
+  <div id="examSetupOverlay" class="exam-overlay view-hidden" role="dialog" aria-labelledby="examSetupTitle" aria-modal="true">
+    <section class="card exam-panel">
+      <h2 id="examSetupTitle">Exam mode setup</h2>
+      <p class="sub">Simulated exam conditions: limited hearings, and no feedback until the end. Enable one or more question types below; harmony rules for generation come from your Settings panel.</p>
+      <div id="examTypesContainer" class="exam-types-container" style="margin-top: 0.9rem;"></div>
+      <p id="examSetupError" class="status error view-hidden" style="margin-top: 0.65rem;"></p>
+      <p class="help" style="margin-top: 0.6rem;">You may <strong>submit early</strong> during hearings to skip remaining repetitions. After the final repetition, a <strong>30 second</strong> answer timer starts; the next question begins when you submit or when time runs out.</p>
+      <div class="buttons" style="margin-top: 1rem;">
+        <button type="button" id="examBeginBtn">Begin exam</button>
+        <button type="button" id="examSetupCancelBtn" class="ghost">Cancel</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Exam in progress -->
+  <div id="examActiveOverlay" class="exam-overlay view-hidden" aria-live="polite">
+    <section class="card exam-panel wide">
+      <p class="exam-progress" id="examProgressLabel">Question 1 of 5</p>
+      <p class="exam-phase" id="examPhaseLabel">Preparing&hellip;</p>
+      <p class="exam-timer view-hidden" id="examCountdown">0:30</p>
+      <div class="bars" id="examBars"></div>
+      <h2 style="margin-top: 1rem;">Your answer</h2>
+      <p class="sub">No feedback until the exam ends. Submit anytime to skip remaining hearings and move on (or after the final repetition, within the 30s answer window).</p>
+      <div class="guess-rows" id="examGuessRows"></div>
+      <div class="buttons" style="margin-top: 0.9rem;">
+        <button type="button" id="examSubmitBtn" disabled>Submit answer</button>
+        <button type="button" id="examAbortBtn" class="ghost">Leave exam</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Exam results -->
+  <div id="examResultsOverlay" class="exam-overlay view-hidden" role="dialog" aria-labelledby="examResultsTitle" aria-modal="true">
+    <section class="card exam-panel wide">
+      <h2 id="examResultsTitle">Exam results</h2>
+      <div class="exam-summary-stats" id="examSummaryStats"></div>
+      <div class="exam-result-list" id="examResultList"></div>
+      <div class="buttons" style="margin-top: 1rem;">
+        <button type="button" id="examRepeatBtn">Repeat test</button>
+        <button type="button" id="examLeaveBtn" class="secondary">Leave test</button>
+      </div>
+    </section>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -432,7 +701,8 @@
     settings: null,
     isPlaying: false,
     timers: [],
-    revealed: false
+    revealed: false,
+    customMode: false
   };
 
   // ----- DOM -----
@@ -466,9 +736,31 @@
     stopBtn: document.getElementById("stopBtn"),
     revealBtn: document.getElementById("revealBtn"),
     nextBtn: document.getElementById("nextBtn"),
+    customProgression: document.getElementById("customProgression"),
+    customProgressionLabel: document.getElementById("customProgressionLabel"),
     checkBtn: document.getElementById("checkBtn"),
     clearGuessBtn: document.getElementById("clearGuessBtn"),
-    extChecks: Array.from(document.querySelectorAll(".ext"))
+    extChecks: Array.from(document.querySelectorAll(".ext")),
+    practiceView: document.getElementById("practiceView"),
+    examModeBtn: document.getElementById("examModeBtn"),
+    examSetupOverlay: document.getElementById("examSetupOverlay"),
+    examActiveOverlay: document.getElementById("examActiveOverlay"),
+    examResultsOverlay: document.getElementById("examResultsOverlay"),
+    examTypesContainer: document.getElementById("examTypesContainer"),
+    examSetupError: document.getElementById("examSetupError"),
+    examBeginBtn: document.getElementById("examBeginBtn"),
+    examSetupCancelBtn: document.getElementById("examSetupCancelBtn"),
+    examProgressLabel: document.getElementById("examProgressLabel"),
+    examPhaseLabel: document.getElementById("examPhaseLabel"),
+    examCountdown: document.getElementById("examCountdown"),
+    examBars: document.getElementById("examBars"),
+    examGuessRows: document.getElementById("examGuessRows"),
+    examSubmitBtn: document.getElementById("examSubmitBtn"),
+    examAbortBtn: document.getElementById("examAbortBtn"),
+    examSummaryStats: document.getElementById("examSummaryStats"),
+    examResultList: document.getElementById("examResultList"),
+    examRepeatBtn: document.getElementById("examRepeatBtn"),
+    examLeaveBtn: document.getElementById("examLeaveBtn")
   };
 
   // ----- Helpers -----
@@ -977,7 +1269,37 @@
     });
   }
 
+  function gradeBarMatch(ch, off, fam, ext, invVal, s) {
+    const degOk = mod12(s.keyPc + off) === ch.rootPc;
+    const famOk = fam === ch.family;
+    const extOk = ext === ch.ext;
+    const invOk = !s.inversions || invVal === null || invVal === (ch.inversion || 0);
+    return {
+      degOk, famOk, extOk, invOk,
+      allOk: degOk && famOk && extOk && invOk
+    };
+  }
+
+  function describeBarAnswer(ch, s) {
+    let t = ch.roman + " \u00b7 " + chordDisplay(ch);
+    if (s.inversions) t += " \u00b7 " + inversionLabel(ch.inversion || 0);
+    return t;
+  }
+
+  function describeBarGuess(off, fam, ext, invVal, s, degEl) {
+    const roman = degEl ? degEl.options[degEl.selectedIndex].text : "?";
+    const qual = familyExtToQuality(fam, ext);
+    const sym = chordSymbol(noteName(mod12(s.keyPc + off)), qual);
+    let t = roman + " \u00b7 " + sym;
+    if (s.inversions && invVal !== null) t += " \u00b7 " + inversionLabel(invVal);
+    return t;
+  }
+
   function gradeGuesses() {
+    if (state.customMode) {
+      setStatus("In custom progression mode, Play uses your guess inputs. Turn off Custom to check against a generated progression.", "warn");
+      return;
+    }
     if (!state.progression.length) {
       setStatus("Generate a progression first.", "warn");
       return;
@@ -995,16 +1317,11 @@
       const off = Number(degEl.value);
       const fam = famEl.value;
       const ext = Number(extEl.value);
+      const invVal = invEl ? Number(invEl.value) : null;
+      const match = gradeBarMatch(ch, off, fam, ext, invVal, s);
+      const answer = describeBarAnswer(ch, s);
 
-      const degOk = mod12(s.keyPc + off) === ch.rootPc;
-      const famOk = fam === ch.family;
-      const extOk = ext === ch.ext;
-      const invOk = !s.inversions || !invEl || Number(invEl.value) === (ch.inversion || 0);
-
-      const answer = ch.roman + " (" + chordDisplay(ch) +
-        (s.inversions ? ", " + inversionLabel(ch.inversion || 0) : "") + ")";
-
-      if (degOk && famOk && extOk && invOk) {
+      if (match.allOk) {
         correct++;
         resEl.className = "result ok";
         resEl.textContent = "\u2713 " + answer;
@@ -1017,6 +1334,114 @@
     el.score.textContent = "Score: " + correct + " / " + total +
       (correct === total ? "  \u2014 perfect ear!" : "");
     setStatus("Checked your answers.");
+  }
+
+  function familyExtToQuality(fam, ext) {
+    const e = ext || 7;
+    if (fam === "halfdim") return "m7b5";
+    if (fam === "dim") return "dim7";
+    if (fam === "maj") {
+      if (e >= 13) return "maj13";
+      if (e >= 11) return "maj11";
+      if (e >= 9) return "maj9";
+      return "maj7";
+    }
+    if (fam === "min") {
+      if (e >= 13) return "m13";
+      if (e >= 11) return "m11";
+      if (e >= 9) return "m9";
+      return "m7";
+    }
+    if (e >= 13) return "13";
+    if (e >= 11) return "11";
+    if (e >= 9) return "9";
+    return "7";
+  }
+
+  function makePlaceholderChord(s) {
+    const sc = scaleOf(s);
+    const quality = sc.tonicQuality;
+    const parts = qualityParts(quality);
+    return {
+      rootPc: s.keyPc,
+      rootName: s.key,
+      quality,
+      family: parts.family,
+      ext: parts.ext,
+      symbol: chordSymbol(s.key, quality),
+      roman: sc.tonicRoman,
+      inversion: 0
+    };
+  }
+
+  function makePlaceholderProgression(s) {
+    return Array.from({ length: s.bars }, () => makePlaceholderChord(s));
+  }
+
+  function ensureGuessRowsForBars(s) {
+    const rows = el.guessRows.querySelectorAll(".guess-row").length;
+    if (rows !== s.bars) {
+      renderGuessRows(makePlaceholderProgression(s));
+    }
+  }
+
+  function chordFromGuessRow(i, s) {
+    const degEl = document.getElementById("g-deg-" + i);
+    const famEl = document.getElementById("g-fam-" + i);
+    const extEl = document.getElementById("g-ext-" + i);
+    const invEl = document.getElementById("g-inv-" + i);
+    if (!degEl || !famEl || !extEl) return null;
+
+    const off = Number(degEl.value);
+    const fam = famEl.value;
+    const ext = Number(extEl.value);
+    const quality = familyExtToQuality(fam, ext);
+    const rootPc = mod12(s.keyPc + off);
+    const rootName = noteName(rootPc);
+    const parts = qualityParts(quality);
+    const roman = degEl.options[degEl.selectedIndex].text;
+    const inversion = s.inversions && invEl ? Number(invEl.value) : 0;
+
+    return {
+      degree: pcToDegree(s.keyPc, rootPc, s),
+      rootPc,
+      rootName,
+      quality,
+      family: parts.family,
+      ext: parts.ext,
+      symbol: chordSymbol(rootName, quality),
+      roman,
+      inversion: inversion || 0
+    };
+  }
+
+  function buildProgressionFromGuesses() {
+    const s = state.settings || getSettings();
+    ensureGuessRowsForBars(s);
+    const prog = [];
+    for (let i = 0; i < s.bars; i++) {
+      const ch = chordFromGuessRow(i, s);
+      if (!ch) {
+        return { ok: false, message: "Set roman numeral, quality, and extension for each bar in Your Guess." };
+      }
+      prog.push(ch);
+    }
+    return { ok: true, prog, settings: s };
+  }
+
+  function applyCustomModeUi() {
+    if (state.customMode) {
+      el.score.textContent = "Custom mode: choose roman numeral, quality, and extension per bar, then Play.";
+    } else if (!state.revealed) {
+      el.score.textContent = "Pick a roman numeral, quality and extension for each bar, then Check Answers.";
+    }
+  }
+
+  function setCustomMode(on) {
+    state.customMode = on;
+    el.customProgression.checked = on;
+    applyCustomModeUi();
+    generateNew(true);
   }
 
   function clearGuesses() {
@@ -1034,6 +1459,649 @@
     });
     el.score.textContent = "Pick a roman numeral, quality and extension for each bar, then Check Answers.";
   }
+
+  // ----- Exam mode (extensible question types) -----
+  const EXAM_ANSWER_LIMIT_SEC = 30;
+
+  const exam = {
+    active: false,
+    timers: [],
+    answerTimer: null,
+    pendingPlayResolve: null,
+    questionToken: 0,
+    finalizing: false,
+    questions: [],
+    answers: [],
+    config: null,
+    typeId: null,
+    currentIndex: 0,
+    canSubmit: false
+  };
+
+  function stopExamAnswerTimer() {
+    if (exam.answerTimer) {
+      clearInterval(exam.answerTimer);
+      exam.answerTimer = null;
+    }
+  }
+
+  function clearExamTimers() {
+    exam.timers.forEach(t => clearTimeout(t));
+    exam.timers = [];
+    stopExamAnswerTimer();
+  }
+
+  function delaySec(sec) {
+    return new Promise(resolve => {
+      const end = Date.now() + sec * 1000;
+      const tick = () => {
+        if (!exam.active || exam.finalizing) {
+          resolve();
+          return;
+        }
+        if (Date.now() >= end) {
+          resolve();
+          return;
+        }
+        const id = setTimeout(tick, 200);
+        exam.timers.push(id);
+      };
+      tick();
+    });
+  }
+
+  function abortExamPlayback() {
+    clearExamTimers();
+    if (state.sampler) {
+      try { state.sampler.releaseAll(); } catch (e) { /* noop */ }
+    }
+    highlightBarsIn(el.examBars, null);
+    if (exam.pendingPlayResolve) {
+      exam.pendingPlayResolve();
+      exam.pendingPlayResolve = null;
+    }
+  }
+
+  function highlightBarsIn(container, barId) {
+    if (!container) return;
+    container.querySelectorAll(".bar.active").forEach(b => b.classList.remove("active"));
+    if (!barId) return;
+    const node = document.getElementById(barId);
+    if (node) node.classList.add("active");
+  }
+
+  function renderExamBars(question) {
+    const prog = question.progression;
+    const s = question.settings;
+    el.examBars.innerHTML = "";
+    if (s.tonicFirst) {
+      const ref = document.createElement("div");
+      ref.className = "bar tonic-ref";
+      ref.id = "exam-bar-ref";
+      ref.innerHTML = '<span class="num">ref</span>?';
+      el.examBars.appendChild(ref);
+    }
+    prog.forEach((ch, i) => {
+      const b = document.createElement("div");
+      b.className = "bar";
+      b.id = "exam-bar-" + i;
+      b.innerHTML = '<span class="num">' + (i + 1) + '</span>?';
+      el.examBars.appendChild(b);
+    });
+  }
+
+  function renderExamGuessRows(question) {
+    const s = question.settings;
+    el.examGuessRows.innerHTML = "";
+    const degOpts = degreeOptions(s);
+    const extOpts = EXT_OPTS.map(e => ({ value: e, label: String(e) + "th" }));
+    question.progression.forEach((ch, i) => {
+      const row = document.createElement("div");
+      row.className = "guess-row";
+      let html =
+        '<span class="barlabel">Bar ' + (i + 1) + '</span>' +
+        selectHtml("exam-g-deg-" + i, degOpts) +
+        selectHtml("exam-g-fam-" + i, FAMILY_OPTS) +
+        selectHtml("exam-g-ext-" + i, extOpts);
+      if (s.inversions) {
+        const invOpts = [];
+        for (let k = 0; k <= maxInversionFor(ch.quality); k++) {
+          invOpts.push({ value: k, label: inversionLabel(k) });
+        }
+        html += selectHtml("exam-g-inv-" + i, invOpts);
+      }
+      row.innerHTML = html;
+      el.examGuessRows.appendChild(row);
+    });
+  }
+
+  function playProgressionOnce(prog, s, ui) {
+    ui = ui || {};
+    const barsEl = ui.barsEl || el.bars;
+    const useExamTimers = !!ui.useExamTimers;
+
+    return new Promise(resolve => {
+      const finish = () => {
+        if (exam.pendingPlayResolve === resolve) exam.pendingPlayResolve = null;
+        if (ui.highlight) highlightBarsIn(barsEl, null);
+        resolve();
+      };
+      const aborted = () => ui.abortIf && ui.abortIf();
+
+      if (!state.audioReady || !state.sampler) {
+        finish();
+        return;
+      }
+      if (aborted()) {
+        finish();
+        return;
+      }
+      if (useExamTimers) {
+        exam.pendingPlayResolve = resolve;
+        clearExamTimers();
+        exam.pendingPlayResolve = resolve;
+      } else {
+        clearTimers();
+      }
+
+      try { state.sampler.releaseAll(); } catch (e) { /* noop */ }
+
+      const barSec = 120 / s.bpm;
+      let cursor = Tone.now() + 0.15;
+      let wallClock = 0;
+      const pushTimer = (fn, ms) => {
+        const id = setTimeout(fn, ms);
+        (useExamTimers ? exam.timers : state.timers).push(id);
+      };
+
+      if (s.tonicFirst) {
+        const ref = buildVoicing(s.keyPc, scaleOf(s).tonicQuality, { rootless: s.rootless, inversion: 0 });
+        state.sampler.triggerAttackRelease(ref.chord, barSec * 0.85, cursor, 0.85);
+        if (ref.bass) state.sampler.triggerAttackRelease(ref.bass, barSec * 0.9, cursor, 0.9);
+        if (ui.highlight) pushTimer(() => highlightBarsIn(barsEl, "exam-bar-ref"), wallClock);
+        cursor += barSec;
+        wallClock += barSec * 1000;
+      }
+
+      prog.forEach((ch, i) => {
+        const when = cursor;
+        const v = buildVoicing(ch.rootPc, ch.quality, { rootless: s.rootless, inversion: ch.inversion });
+        state.sampler.triggerAttackRelease(v.chord, barSec * 0.9, when, 0.9);
+        if (v.bass) state.sampler.triggerAttackRelease(v.bass, barSec * 0.95, when, 0.95);
+        if (ui.highlight) pushTimer(() => highlightBarsIn(barsEl, "exam-bar-" + i), wallClock);
+        cursor += barSec;
+        wallClock += barSec * 1000;
+      });
+
+      pushTimer(() => {
+        if (aborted()) {
+          finish();
+          return;
+        }
+        finish();
+      }, wallClock + 200);
+    });
+  }
+
+  /** Registry for exam question types (add new types via ExamRegistry.register). */
+  const ExamRegistry = (function() {
+    const types = {};
+    return {
+      register(type) { types[type.id] = type; },
+      get(id) { return types[id]; },
+      list() { return Object.values(types); }
+    };
+  })();
+
+  /** Renders per-type toggles + settings; reads enabled types for ExamController. */
+  const ExamSetupUI = {
+    render() {
+      el.examTypesContainer.innerHTML = "";
+      ExamRegistry.list().forEach(type => {
+        const block = document.createElement("div");
+        block.className = "exam-type-block";
+        block.dataset.typeId = type.id;
+
+        const enabled = type.defaultEnabled === true;
+        block.innerHTML =
+          '<label class="exam-type-toggle">' +
+          '<input type="checkbox" class="exam-type-enable" data-type-id="' + type.id + '"' +
+          (enabled ? " checked" : "") + " />" +
+          "<span>" + type.label + "</span></label>" +
+          '<div class="exam-type-settings-wrap' + (enabled ? "" : " is-disabled") + '" data-settings-wrap="' + type.id + '">' +
+          "</div>";
+
+        const settingsWrap = block.querySelector('[data-settings-wrap="' + type.id + '"]');
+        if (type.renderSetup) {
+          type.renderSetup(settingsWrap);
+        } else if (type.settingsSchema) {
+          this.renderSchemaSettings(type, settingsWrap);
+        }
+
+        const enableCb = block.querySelector(".exam-type-enable");
+        enableCb.addEventListener("change", () => {
+          settingsWrap.classList.toggle("is-disabled", !enableCb.checked);
+          el.examSetupError.classList.add("view-hidden");
+        });
+
+        el.examTypesContainer.appendChild(block);
+      });
+    },
+
+    renderSchemaSettings(type, container) {
+      const grid = document.createElement("div");
+      grid.className = "grid exam-setup-grid exam-type-settings-grid";
+      type.settingsSchema.forEach(field => {
+        const fieldDiv = document.createElement("div");
+        fieldDiv.className = "field";
+        const inputId = "exam-" + type.id + "-" + field.key;
+        const valId = inputId + "-val";
+        const suffix = field.suffix || "";
+        const def = field.default;
+        fieldDiv.innerHTML =
+          '<label for="' + inputId + '">' + field.label + ': <span id="' + valId + '" class="valtag">' +
+          def + suffix + "</span></label>" +
+          '<input type="range" id="' + inputId + '" data-exam-type="' + type.id + '" data-exam-key="' + field.key +
+          '" min="' + field.min + '" max="' + field.max + '" step="' + (field.step || 1) + '" value="' + def + '" />';
+        const input = fieldDiv.querySelector("input");
+        const valSpan = fieldDiv.querySelector(".valtag");
+        input.addEventListener("input", () => {
+          valSpan.textContent = input.value + suffix;
+        });
+        grid.appendChild(fieldDiv);
+      });
+      container.appendChild(grid);
+    },
+
+    readTypeSettings(type) {
+      const wrap = el.examTypesContainer.querySelector('[data-settings-wrap="' + type.id + '"]');
+      if (!wrap) return null;
+      if (type.readSetup) return type.readSetup(wrap);
+      if (!type.settingsSchema) return {};
+      const settings = {};
+      type.settingsSchema.forEach(field => {
+        const input = wrap.querySelector('[data-exam-type="' + type.id + '"][data-exam-key="' + field.key + '"]');
+        if (input) settings[field.key] = Number(input.value);
+      });
+      return settings;
+    },
+
+    getEnabledTypes() {
+      const enabled = [];
+      ExamRegistry.list().forEach(type => {
+        const cb = el.examTypesContainer.querySelector('.exam-type-enable[data-type-id="' + type.id + '"]');
+        if (!cb || !cb.checked) return;
+        const settings = this.readTypeSettings(type);
+        if (settings) enabled.push({ typeId: type.id, settings });
+      });
+      return enabled;
+    }
+  };
+
+  function buildMixedExamPaper(enabledTypes, baseHarmony) {
+    const paper = [];
+    enabledTypes.forEach(entry => {
+      const type = ExamRegistry.get(entry.typeId);
+      if (!type) return;
+      const qs = type.buildPaper(entry.settings, baseHarmony);
+      qs.forEach(q => {
+        q.typeId = entry.typeId;
+        q.typeConfig = Object.assign({}, entry.settings);
+        paper.push(q);
+      });
+    });
+    return shuffle(paper).map((q, i) => {
+      q.examIndex = i;
+      return q;
+    });
+  }
+
+  const ProgressionRecognitionExam = {
+    id: "progressionRecognition",
+    label: "Chord progression recognition",
+    defaultEnabled: true,
+
+    settingsSchema: [
+      { key: "count", label: "Number of progressions", type: "range", min: 1, max: 20, step: 1, default: 5 },
+      { key: "bars", label: "Bars per progression", type: "range", min: 2, max: 12, step: 1, default: 4 },
+      { key: "reps", label: "Repetitions per question", type: "range", min: 1, max: 5, step: 1, default: 2 },
+      { key: "spacingSec", label: "Spacing between repetitions", type: "range", min: 0, max: 15, step: 1, default: 3, suffix: "s" }
+    ],
+
+    buildPaper(settings, baseHarmony) {
+      const questions = [];
+      for (let i = 0; i < settings.count; i++) {
+        const s = Object.assign({}, baseHarmony, { bars: settings.bars });
+        if (s.randomKey) {
+          s.key = pick(NOTE_NAMES);
+          s.keyPc = NOTE_NAMES.indexOf(s.key);
+        }
+        questions.push({
+          typeId: this.id,
+          settings: s,
+          progression: generateProgression(s)
+        });
+      }
+      return questions;
+    },
+
+    prepareQuestionUI(question) {
+      renderExamBars(question);
+      renderExamGuessRows(question);
+    },
+
+    captureGuess(question) {
+      const bars = [];
+      for (let i = 0; i < question.progression.length; i++) {
+        const degEl = document.getElementById("exam-g-deg-" + i);
+        const famEl = document.getElementById("exam-g-fam-" + i);
+        const extEl = document.getElementById("exam-g-ext-" + i);
+        const invEl = document.getElementById("exam-g-inv-" + i);
+        if (!degEl || !famEl || !extEl) return null;
+        bars.push({
+          off: Number(degEl.value),
+          fam: famEl.value,
+          ext: Number(extEl.value),
+          inv: invEl ? Number(invEl.value) : 0,
+          degElLabel: degEl.options[degEl.selectedIndex].text
+        });
+      }
+      return { bars };
+    },
+
+    gradeQuestion(question, captured) {
+      const s = question.settings;
+      let correctBars = 0;
+      const barResults = [];
+      question.progression.forEach((ch, i) => {
+        const g = captured.bars[i];
+        const invVal = s.inversions ? g.inv : null;
+        const match = gradeBarMatch(ch, g.off, g.fam, g.ext, invVal, s);
+        if (match.allOk) correctBars++;
+        const labelEl = { options: [{ text: g.degElLabel }], selectedIndex: 0 };
+        barResults.push({
+          bar: i + 1,
+          match,
+          actual: describeBarAnswer(ch, s),
+          yours: describeBarGuess(g.off, g.fam, g.ext, invVal, s, labelEl)
+        });
+      });
+      const totalBars = question.progression.length;
+      return {
+        correctBars,
+        totalBars,
+        perfect: correctBars === totalBars,
+        barResults
+      };
+    },
+
+    formatQuestionTitle(question, index, total) {
+      return "Question " + (index + 1) + " of " + total + " \u2014 " + this.label + " \u2014 " +
+        question.settings.key + " " + question.settings.tonality +
+        " (" + question.settings.bars + " bars)";
+    }
+  };
+
+  ExamRegistry.register(ProgressionRecognitionExam);
+
+  const ExamController = {
+    openSetup() {
+      if (exam.active) return;
+      ExamSetupUI.render();
+      el.examSetupError.classList.add("view-hidden");
+      el.examSetupOverlay.classList.remove("view-hidden");
+    },
+
+    closeSetup() {
+      el.examSetupOverlay.classList.add("view-hidden");
+    },
+
+    async begin() {
+      const enabledTypes = ExamSetupUI.getEnabledTypes();
+      if (!enabledTypes.length) {
+        el.examSetupError.textContent = "Enable at least one question type to begin the exam.";
+        el.examSetupError.classList.remove("view-hidden");
+        return;
+      }
+      el.examSetupError.classList.add("view-hidden");
+
+      if (!state.audioReady) {
+        await initAudio();
+        if (!state.audioReady) return;
+      }
+
+      stopPlayback();
+      exam.active = true;
+      exam.enabledTypes = enabledTypes;
+      exam.currentIndex = 0;
+      exam.answers = [];
+      exam.questions = buildMixedExamPaper(enabledTypes, getSettings());
+      exam.canSubmit = false;
+
+      this.closeSetup();
+      el.practiceView.classList.add("view-hidden");
+      el.examModeBtn.disabled = true;
+      el.examActiveOverlay.classList.remove("view-hidden");
+      el.examResultsOverlay.classList.add("view-hidden");
+      el.examSubmitBtn.disabled = true;
+      el.examCountdown.classList.add("view-hidden");
+
+      await this.runQuestion(0);
+    },
+
+    async runQuestion(qIndex) {
+      if (!exam.active || qIndex >= exam.questions.length) return;
+
+      const token = ++exam.questionToken;
+      stopExamAnswerTimer();
+      exam.finalizing = false;
+      exam.currentIndex = qIndex;
+      const question = exam.questions[qIndex];
+      const typeConfig = question.typeConfig;
+      const type = ExamRegistry.get(question.typeId);
+      const s = question.settings;
+      const aborted = () => !exam.active || exam.finalizing || exam.questionToken !== token;
+
+      el.examCountdown.classList.add("view-hidden");
+      el.examProgressLabel.textContent = type.formatQuestionTitle(question, qIndex, exam.questions.length);
+      if (type.prepareQuestionUI) type.prepareQuestionUI(question);
+      else {
+        renderExamBars(question);
+        renderExamGuessRows(question);
+      }
+
+      exam.canSubmit = true;
+      el.examSubmitBtn.disabled = false;
+
+      for (let r = 0; r < typeConfig.reps; r++) {
+        if (aborted()) return;
+        const repsLeft = typeConfig.reps - r;
+        el.examPhaseLabel.textContent =
+          "Listening \u2014 repetition " + (r + 1) + " of " + typeConfig.reps +
+          (repsLeft > 1 ? ". Submit early to skip remaining hearings." : ".");
+        await playProgressionOnce(question.progression, s, {
+          barsEl: el.examBars,
+          useExamTimers: true,
+          highlight: true,
+          abortIf: aborted
+        });
+        if (aborted()) return;
+        if (r < typeConfig.reps - 1 && typeConfig.spacingSec > 0) {
+          el.examPhaseLabel.textContent =
+            "Pause before next repetition\u2026 Submit early to answer now.";
+          await delaySec(typeConfig.spacingSec);
+          if (aborted()) return;
+        }
+      }
+
+      if (aborted()) return;
+      this.startAnswerTimer();
+    },
+
+    startAnswerTimer() {
+      stopExamAnswerTimer();
+      exam.canSubmit = true;
+      exam.finalizing = false;
+      el.examSubmitBtn.disabled = false;
+      el.examCountdown.classList.remove("view-hidden");
+
+      let remaining = EXAM_ANSWER_LIMIT_SEC;
+      const update = () => {
+        const m = Math.floor(remaining / 60);
+        const sec = remaining % 60;
+        el.examCountdown.textContent = m + ":" + String(sec).padStart(2, "0");
+        el.examPhaseLabel.textContent =
+          "Submit your answer \u2014 " + remaining + "s remaining (no feedback until the exam ends).";
+      };
+      update();
+
+      const controller = this;
+      exam.answerTimer = setInterval(() => {
+        remaining--;
+        if (remaining <= 0) {
+          stopExamAnswerTimer();
+          el.examPhaseLabel.textContent = "Time\u2019s up \u2014 moving to next question\u2026";
+          controller.finalizeQuestion({ timedOut: true });
+        } else {
+          update();
+        }
+      }, 1000);
+    },
+
+    async submitAnswer() {
+      if (!exam.canSubmit || !exam.active || exam.finalizing) return;
+      const duringListening = !exam.answerTimer;
+      await this.finalizeQuestion({
+        timedOut: false,
+        submittedEarly: duringListening
+      });
+    },
+
+    async finalizeQuestion(opts) {
+      if (exam.finalizing || !exam.active) return;
+      exam.finalizing = true;
+      exam.questionToken++;
+      abortExamPlayback();
+      stopExamAnswerTimer();
+      exam.canSubmit = false;
+      el.examSubmitBtn.disabled = true;
+      el.examCountdown.classList.add("view-hidden");
+
+      const question = exam.questions[exam.currentIndex];
+      const type = ExamRegistry.get(question.typeId);
+      const captured = type.captureGuess(question);
+      if (!captured) {
+        exam.finalizing = false;
+        exam.canSubmit = true;
+        el.examSubmitBtn.disabled = false;
+        el.examPhaseLabel.textContent = "Complete every bar before submitting.";
+        this.startAnswerTimer();
+        return;
+      }
+
+      exam.answers.push({
+        questionIndex: exam.currentIndex,
+        question,
+        captured,
+        graded: type.gradeQuestion(question, captured),
+        timedOut: !!(opts && opts.timedOut),
+        submittedEarly: !!(opts && opts.submittedEarly)
+      });
+
+      const isLast = exam.currentIndex >= exam.questions.length - 1;
+      exam.finalizing = false;
+
+      if (isLast) {
+        this.finish();
+        return;
+      }
+
+      if (!exam.active) return;
+      await this.runQuestion(exam.currentIndex + 1);
+    },
+
+    finish() {
+      clearExamTimers();
+      stopPlayback();
+      exam.active = false;
+      el.examActiveOverlay.classList.add("view-hidden");
+      this.showResults();
+    },
+
+    showResults() {
+      let totalBars = 0;
+      let correctBars = 0;
+      let perfectQuestions = 0;
+
+      exam.answers.forEach(a => {
+        totalBars += a.graded.totalBars;
+        correctBars += a.graded.correctBars;
+        if (a.graded.perfect) perfectQuestions++;
+      });
+
+      const qTotal = exam.answers.length;
+      const barPct = totalBars ? Math.round(100 * correctBars / totalBars) : 0;
+      const qPct = qTotal ? Math.round(100 * perfectQuestions / qTotal) : 0;
+
+      el.examSummaryStats.innerHTML =
+        '<div class="exam-stat"><div class="label">Bar accuracy</div><div class="value">' +
+        correctBars + "/" + totalBars + " (" + barPct + "%)</div></div>" +
+        '<div class="exam-stat"><div class="label">Perfect progressions</div><div class="value">' +
+        perfectQuestions + "/" + qTotal + " (" + qPct + "%)</div></div>";
+
+      el.examResultList.innerHTML = "";
+      exam.answers.forEach((a, idx) => {
+        const card = document.createElement("div");
+        const cls = a.graded.perfect ? "perfect" : (a.graded.correctBars > 0 ? "partial" : "fail");
+        card.className = "exam-result-card " + cls;
+        let badge = a.graded.perfect
+          ? '<span class="exam-badge ok">Perfect</span>'
+          : '<span class="exam-badge bad">' + a.graded.correctBars + "/" + a.graded.totalBars + " bars</span>";
+        if (a.timedOut) badge += ' <span class="exam-badge bad">Timed out</span>';
+        if (a.submittedEarly) badge += ' <span class="exam-badge ok">Early submit</span>';
+
+        let rows =
+          '<div class="exam-bar-row hdr"><span></span><span>Your answer</span><span>Actual</span></div>';
+        a.graded.barResults.forEach(br => {
+          rows += '<div class="exam-bar-row' + (br.match.allOk ? "" : " miss") + '">' +
+            "<span>Bar " + br.bar + "</span>" +
+            '<span class="you">' + br.yours + "</span>" +
+            '<span class="actual">' + br.actual + "</span></div>";
+        });
+
+        const q = a.question;
+        const typeLabel = ExamRegistry.get(q.typeId).label;
+        card.innerHTML =
+          "<h3>Question " + (idx + 1) + " (" + typeLabel + "): " +
+          q.settings.key + " " + q.settings.tonality + " " + badge + "</h3>" +
+          '<div class="exam-bar-compare">' + rows + "</div>";
+        el.examResultList.appendChild(card);
+      });
+
+      el.examResultsOverlay.classList.remove("view-hidden");
+    },
+
+    leave() {
+      clearExamTimers();
+      stopPlayback();
+      exam.active = false;
+      exam.questions = [];
+      exam.answers = [];
+      exam.canSubmit = false;
+      el.examActiveOverlay.classList.add("view-hidden");
+      el.examResultsOverlay.classList.add("view-hidden");
+      el.examSetupOverlay.classList.add("view-hidden");
+      el.practiceView.classList.remove("view-hidden");
+      el.examModeBtn.disabled = false;
+      setStatus("Exam ended. Practice mode resumed.");
+    },
+
+    repeat() {
+      el.examResultsOverlay.classList.add("view-hidden");
+      exam.active = true;
+      this.begin();
+    }
+  };
 
   // ----- Audio -----
   async function initAudio() {
@@ -1087,7 +2155,18 @@
       await initAudio();
       if (!state.audioReady) return;
     }
-    if (!state.progression.length) generateNew(false);
+    if (state.customMode) {
+      const built = buildProgressionFromGuesses();
+      if (!built.ok) {
+        setStatus(built.message, "warn");
+        return;
+      }
+      state.settings = built.settings;
+      state.progression = built.prog;
+      renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
+    } else if (!state.progression.length) {
+      generateNew(false);
+    }
     stopPlayback();
 
     const s = state.settings;
@@ -1128,24 +2207,45 @@
   // ----- Session actions -----
   function generateNew(autoStatus) {
     state.settings = getSettings();
-    state.progression = generateProgression(state.settings);
     state.revealed = false;
     el.answer.textContent = "Answer hidden. Listen first, then use \u201cReveal Answer\u201d.";
+
+    if (state.customMode) {
+      state.progression = makePlaceholderProgression(state.settings);
+      renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
+      renderGuessRows(state.progression);
+      applyCustomModeUi();
+      if (autoStatus !== false) {
+        setStatus("Custom mode: set chords in Your Guess (" + state.settings.bars + " bars), then Play.");
+      }
+      return;
+    }
+
+    state.progression = generateProgression(state.settings);
     renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
     renderGuessRows(state.progression);
     el.score.textContent = "Pick a roman numeral, quality and extension for each bar, then Check Answers.";
+    applyCustomModeUi();
     if (autoStatus !== false) setStatus("New progression generated (" + state.settings.bars + " bars).");
   }
 
   function reveal() {
-    if (!state.progression.length) {
+    if (state.customMode) {
+      const built = buildProgressionFromGuesses();
+      if (!built.ok) {
+        setStatus(built.message, "warn");
+        return;
+      }
+      state.settings = built.settings;
+      state.progression = built.prog;
+    } else if (!state.progression.length) {
       setStatus("Generate a progression first.", "warn");
       return;
     }
     state.revealed = true;
     el.answer.textContent = renderAnswer(state.progression, state.settings);
     renderBars(state.progression, { tonicRef: state.settings.tonicFirst });
-    setStatus("Answer revealed.");
+    setStatus(state.customMode ? "Custom progression revealed." : "Answer revealed.");
   }
 
   function syncLabels() {
@@ -1161,7 +2261,11 @@
   el.replayBtn.addEventListener("click", play);
   el.stopBtn.addEventListener("click", () => { stopPlayback(); setStatus("Stopped."); });
   el.revealBtn.addEventListener("click", reveal);
-  el.nextBtn.addEventListener("click", async () => { generateNew(false); await play(); });
+  el.nextBtn.addEventListener("click", async () => {
+    if (!state.customMode) generateNew(false);
+    await play();
+  });
+  el.customProgression.addEventListener("change", () => setCustomMode(el.customProgression.checked));
   el.checkBtn.addEventListener("click", gradeGuesses);
   el.clearGuessBtn.addEventListener("click", clearGuesses);
 
@@ -1182,6 +2286,18 @@
   el.extChecks.forEach(c => c.addEventListener("change", () => generateNew(true)));
   el.barsRange.addEventListener("change", () => generateNew(false));
   el.chromaticRange.addEventListener("change", () => generateNew(false));
+
+  el.examModeBtn.addEventListener("click", () => ExamController.openSetup());
+  el.examSetupCancelBtn.addEventListener("click", () => ExamController.closeSetup());
+  el.examBeginBtn.addEventListener("click", () => ExamController.begin());
+  el.examSubmitBtn.addEventListener("click", () => ExamController.submitAnswer());
+  el.examAbortBtn.addEventListener("click", () => {
+    if (confirm("Leave the exam? Your progress on this attempt will be lost.")) ExamController.leave();
+  });
+  el.examLeaveBtn.addEventListener("click", () => ExamController.leave());
+  el.examRepeatBtn.addEventListener("click", () => ExamController.repeat());
+
+  ExamSetupUI.render();
 
   // Initial render.
   el.keySelect.disabled = el.randomKey.value === "yes";
