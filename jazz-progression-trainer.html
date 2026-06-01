@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jazz Chord Progression Ear Trainer</title>
+  <title>Ear Trainer — Progressions &amp; Intervals</title>
   <style>
     :root {
       color-scheme: dark;
@@ -342,14 +342,32 @@
       overflow-x: hidden;
     }
     .exam-panel.wide { width: min(920px, 100%); }
+    .exam-panel.exam-panel-setup { width: min(920px, 100%); }
 
     .exam-setup-grid {
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
+    .exam-type-settings-grid.exam-setup-grid {
+      grid-template-columns: 1fr;
+    }
     .exam-setup-grid .field {
       min-width: 0;
     }
-    .exam-types-container { display: grid; gap: 0.75rem; }
+    .exam-types-container {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+      align-items: start;
+    }
+    .exam-type-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+    @media (max-width: 640px) {
+      .exam-types-container { grid-template-columns: 1fr; }
+    }
 
     .exam-type-block {
       background: var(--panel-2);
@@ -455,8 +473,271 @@
     .exam-bar-row .you { color: var(--text); }
     .exam-bar-row .actual { color: var(--accent-2); }
     .exam-bar-row.miss .you { color: var(--danger); }
+
+    .exam-recognition-prompt {
+      margin: 0.5rem 0 0.75rem;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    #examRecognitionChoices .exam-rec-choice {
+      font-size: 0.82rem;
+      padding: 0.45rem 0.65rem;
+    }
+    #examRecognitionChoices .exam-rec-choice.exam-pick-selected {
+      outline: 2px solid var(--accent);
+      background: rgba(120, 180, 255, 0.15);
+    }
+    .exam-type-section-title {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin: 0;
+      padding: 0 0.1rem;
+    }
+
     @media (max-width: 560px) {
       .exam-bar-row { grid-template-columns: 1fr; }
+    }
+
+    .mode-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .mode-tab {
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+    }
+    .mode-tab:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .mode-tab.active {
+      background: #1d3a5c;
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .mode-tab:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .interval-matrix-wrap { overflow-x: auto; margin-top: 0.5rem; }
+    .interval-matrix {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .interval-matrix th,
+    .interval-matrix td {
+      border: 1px solid var(--border);
+      padding: 0.4rem 0.55rem;
+      text-align: center;
+    }
+    .interval-matrix th {
+      background: #0f1523;
+      color: var(--muted);
+      font-weight: 700;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .interval-matrix td:first-child {
+      text-align: left;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .interval-matrix input[type="checkbox"] { width: 1.05rem; height: 1.05rem; }
+    .interval-matrix tr.interval-toggle-row td {
+      padding-top: 0.45rem;
+      vertical-align: middle;
+      border-top: 1px dashed var(--border);
+    }
+    .interval-matrix tr.interval-toggle-row td:first-child {
+      border-top: 1px dashed var(--border);
+    }
+    .interval-matrix tr.interval-toggle-row .toggle-all-btn {
+      width: 100%;
+      max-width: 9rem;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .interval-prompt {
+      margin: 0.75rem 0 0.5rem 0;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .interval-choices {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.65rem;
+    }
+    .interval-choice {
+      flex: 1 1 140px;
+      min-width: 120px;
+      background: var(--panel-2);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.88rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.12s, background 0.12s, transform 0.1s;
+    }
+    .interval-choice:hover:not(:disabled) {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .interval-choice:disabled { cursor: default; opacity: 0.85; }
+    .interval-choice.correct {
+      border-color: var(--accent-2);
+      background: #1a3d28;
+      color: var(--accent-2);
+    }
+    .interval-choice.wrong {
+      border-color: var(--danger);
+      background: #3d1a1a;
+      color: var(--danger);
+    }
+    .interval-choice.reveal-actual {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .interval-session-score {
+      margin-top: 0.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .chord-type-groups { display: grid; gap: 0.85rem; margin-top: 0.5rem; }
+    .chord-type-group {
+      background: #0f1523;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.75rem;
+    }
+    .chord-type-group-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .chord-type-group-header .chord-type-group-title {
+      margin: 0;
+      flex: 1;
+      min-width: 0;
+    }
+    .chord-type-group-title {
+      margin: 0 0 0.5rem 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    button.toggle-all-btn {
+      flex-shrink: 0;
+      padding: 0.28rem 0.6rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      line-height: 1.2;
+      background: var(--panel-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    button.toggle-all-btn:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+    .chord-type-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.75rem;
+    }
+    .chord-type-checks label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin: 0;
+      font-weight: 500;
+      font-size: 0.82rem;
+      cursor: pointer;
+    }
+
+    .chord-answer-groups { display: grid; gap: 1rem; margin-top: 0.65rem; }
+    .chord-answer-group-title {
+      margin: 0 0 0.45rem 0;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .chord-choice-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .chord-choice {
+      flex: 1 1 118px;
+      min-width: 100px;
+      max-width: 200px;
+      background: var(--panel-2);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 0.55rem 0.5rem;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.8rem;
+      line-height: 1.25;
+      color: var(--text);
+      cursor: pointer;
+      text-align: center;
+      transition: border-color 0.12s, background 0.12s, transform 0.1s;
+    }
+    .chord-choice:hover:not(:disabled) {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+    .chord-choice:disabled { cursor: default; opacity: 0.88; }
+    .chord-choice.correct {
+      border-color: var(--accent-2);
+      background: #1a3d28;
+      color: var(--accent-2);
+    }
+    .chord-choice.wrong {
+      border-color: var(--danger);
+      background: #3d1a1a;
+      color: var(--danger);
+    }
+    .chord-choice.reveal-actual {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .chord-session-score {
+      margin-top: 0.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
     }
   </style>
 </head>
@@ -464,15 +745,25 @@
   <div class="container">
     <section class="card hero-header">
       <div class="hero-text">
-        <h1>Jazz Chord Progression Ear Trainer</h1>
-        <p class="sub">Train your ear on functional jazz harmony. Configure the rules, listen, then reveal the answer.</p>
+        <h1 id="appTitle">Ear Trainer</h1>
+        <p class="sub" id="appSubtitle">Train your ear on jazz chord progressions and intervals.</p>
       </div>
       <div class="hero-actions">
         <button type="button" id="examModeBtn" class="exam-start">Exam mode</button>
       </div>
     </section>
 
-    <div id="practiceView">
+    <nav class="mode-nav" aria-label="Practice mode">
+      <button type="button" class="mode-tab active" data-mode="progression" id="modeTabProgression">Chord progressions</button>
+      <button type="button" class="mode-tab" data-mode="interval" id="modeTabInterval">Interval recognition</button>
+      <button type="button" class="mode-tab" data-mode="chord" id="modeTabChord">Chord recognition</button>
+      <button type="button" class="mode-tab" data-mode="scale" id="modeTabScale">Scales</button>
+    </nav>
+
+    <!-- ================================================================== -->
+    <!-- CHORD PROGRESSION TRAINER (HTML)                                   -->
+    <!-- ================================================================== -->
+    <div id="progressionView">
     <section class="card">
       <h2>Settings</h2>
 
@@ -669,7 +960,201 @@
         <button type="button" id="resetSessionScoreBtn" class="ghost">Reset score</button>
       </div>
     </section>
-    </div><!-- /practiceView -->
+    </div><!-- /progressionView -->
+
+    <!-- ================================================================== -->
+    <!-- INTERVAL RECOGNITION (HTML)                                        -->
+    <!-- ================================================================== -->
+    <div id="intervalView" class="view-hidden">
+      <section class="card">
+        <h2>Interval settings</h2>
+        <div class="field">
+          <label for="intervalDirection">Practice direction</label>
+          <select id="intervalDirection">
+            <option value="asc">Ascending only</option>
+            <option value="desc">Descending only</option>
+            <option value="both" selected>Ascending and descending</option>
+          </select>
+          <div class="help">Controls whether you hear low&rarr;high, high&rarr;low, or a mix.</div>
+        </div>
+        <div class="field">
+          <span class="field-toggle-title">Intervals to include</span>
+          <div class="help">Tick which qualities can appear for each direction. At least one interval and one direction must be enabled.</div>
+          <div class="interval-matrix-wrap">
+            <table class="interval-matrix" id="intervalMatrix">
+              <thead>
+                <tr>
+                  <th>Interval</th>
+                  <th>Ascending</th>
+                  <th>Descending</th>
+                </tr>
+              </thead>
+              <tbody id="intervalMatrixBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="grid">
+          <div class="field">
+            <label for="intervalNoteLen">Note length: <span id="intervalNoteLenValue" class="valtag">0.55</span>s</label>
+            <input id="intervalNoteLen" type="range" min="0.25" max="1.2" step="0.05" value="0.55" />
+          </div>
+          <div class="field">
+            <label for="intervalGap">Gap between notes: <span id="intervalGapValue" class="valtag">0.12</span>s</label>
+            <input id="intervalGap" type="range" min="0" max="0.5" step="0.02" value="0.12" />
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Listen &amp; identify</h2>
+        <div class="field" style="margin-bottom: 0.75rem;">
+          <div class="field-toggle-header">
+            <span class="field-toggle-title" id="intervalAutoAdvanceLabel">Auto-advance after answer</span>
+            <label class="toggle-switch" for="intervalAutoAdvance">
+              <input type="checkbox" id="intervalAutoAdvance" aria-labelledby="intervalAutoAdvanceLabel" />
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="help">When on, the next interval plays automatically after your answer is revealed. You get 3 guesses; only a correct <strong>first</strong> guess adds to your score.</div>
+        </div>
+        <div class="buttons">
+          <button type="button" id="intervalInitBtn">Initialize Audio<span id="intervalLoadBadge" class="loadbadge"></span></button>
+          <button type="button" id="intervalPlayBtn" class="view-hidden">Play interval</button>
+          <button type="button" id="intervalReplayBtn" class="secondary view-hidden">Replay</button>
+          <button type="button" id="intervalStopBtn" class="ghost">Stop</button>
+          <button type="button" id="intervalNextBtn" class="secondary view-hidden">Next interval</button>
+        </div>
+        <p class="status" id="intervalStatus">Press Initialize Audio to begin.</p>
+        <p class="interval-prompt" id="intervalPrompt">Enable at least one interval, then play to hear a random interval.</p>
+        <div class="interval-choices" id="intervalChoices" role="group" aria-label="Interval answers"></div>
+        <p class="interval-session-score" id="intervalSessionScore">Session: 0 / 0 (first-guess correct)</p>
+        <div class="buttons" style="margin-top: 0.65rem;">
+          <button type="button" id="intervalResetScoreBtn" class="ghost">Reset score</button>
+        </div>
+      </section>
+    </div><!-- /intervalView -->
+
+    <!-- ================================================================== -->
+    <!-- CHORD RECOGNITION (HTML)                                           -->
+    <!-- ================================================================== -->
+    <div id="chordView" class="view-hidden">
+      <section class="card">
+        <h2>Chord types to practise</h2>
+        <div class="help">Choose which qualities can appear. Answer buttons below are grouped the same way for quick scanning.</div>
+        <div id="chordTypeSettings" class="chord-type-groups"></div>
+        <div class="field" style="margin-top: 0.85rem;">
+          <label for="chordPlaybackStyle">Playback style</label>
+          <select id="chordPlaybackStyle">
+            <option value="block" selected>Block chord</option>
+            <option value="arp">Upward arpeggio</option>
+          </select>
+          <div class="help">Block plays all notes together; arpeggio plays low to high, one note at a time.</div>
+        </div>
+        <div id="chordBlockTiming" class="grid">
+          <div class="field">
+            <label for="chordHoldLen">Chord length: <span id="chordHoldLenValue" class="valtag">1.4</span>s</label>
+            <input id="chordHoldLen" type="range" min="0.6" max="3" step="0.1" value="1.4" />
+          </div>
+        </div>
+        <div id="chordArpTiming" class="grid settings-hidden">
+          <div class="field">
+            <label for="chordArpNoteLen">Arpeggio note length: <span id="chordArpNoteLenValue" class="valtag">0.45</span>s</label>
+            <input id="chordArpNoteLen" type="range" min="0.2" max="1" step="0.05" value="0.45" />
+          </div>
+          <div class="field">
+            <label for="chordArpGap">Gap between notes: <span id="chordArpGapValue" class="valtag">0.1</span>s</label>
+            <input id="chordArpGap" type="range" min="0" max="0.4" step="0.02" value="0.1" />
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Listen &amp; identify</h2>
+        <div class="field" style="margin-bottom: 0.75rem;">
+          <div class="field-toggle-header">
+            <span class="field-toggle-title" id="chordAutoAdvanceLabel">Auto-advance after answer</span>
+            <label class="toggle-switch" for="chordAutoAdvance">
+              <input type="checkbox" id="chordAutoAdvance" aria-labelledby="chordAutoAdvanceLabel" />
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="help">When on, the next chord plays automatically after your answer is revealed. You get 3 guesses; only a correct <strong>first</strong> guess adds to your score.</div>
+        </div>
+        <div class="buttons">
+          <button type="button" id="chordInitBtn">Initialize Audio<span id="chordLoadBadge" class="loadbadge"></span></button>
+          <button type="button" id="chordPlayBtn" class="view-hidden">Play chord</button>
+          <button type="button" id="chordReplayBtn" class="secondary view-hidden">Replay</button>
+          <button type="button" id="chordStopBtn" class="ghost">Stop</button>
+          <button type="button" id="chordNextBtn" class="secondary view-hidden">Next chord</button>
+        </div>
+        <p class="status" id="chordStatus">Press Initialize Audio to begin.</p>
+        <p class="interval-prompt" id="chordPrompt">Enable at least one chord type, then play to hear a random chord.</p>
+        <div id="chordChoices" class="chord-answer-groups" role="group" aria-label="Chord answers"></div>
+        <p class="chord-session-score" id="chordSessionScore">Session: 0 / 0 (first-guess correct)</p>
+        <div class="buttons" style="margin-top: 0.65rem;">
+          <button type="button" id="chordResetScoreBtn" class="ghost">Reset score</button>
+        </div>
+      </section>
+    </div><!-- /chordView -->
+
+    <!-- ================================================================== -->
+    <!-- SCALE RECOGNITION (HTML)                                           -->
+    <!-- ================================================================== -->
+    <div id="scaleView" class="view-hidden">
+      <section class="card">
+        <h2>Scales to practise</h2>
+        <div class="help">Choose which scales can appear. Scales play up to the octave from a random root (between C2 and C5).</div>
+        <div id="scaleTypeSettings" class="chord-type-groups"></div>
+        <div class="field" style="margin-top: 0.85rem;">
+          <div class="field-toggle-header">
+            <span class="field-toggle-title" id="scaleDescendLabel">Play descending after ascending</span>
+            <label class="toggle-switch" for="scaleDescend">
+              <input type="checkbox" id="scaleDescend" aria-labelledby="scaleDescendLabel" />
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="help">When on, after reaching the octave the scale plays back down to the starting note.</div>
+        </div>
+        <div class="grid" style="margin-top: 0.85rem;">
+          <div class="field">
+            <label for="scaleNoteLen">Note length: <span id="scaleNoteLenValue" class="valtag">0.4</span>s</label>
+            <input id="scaleNoteLen" type="range" min="0.2" max="0.9" step="0.05" value="0.4" />
+          </div>
+          <div class="field">
+            <label for="scaleNoteGap">Gap between notes: <span id="scaleNoteGapValue" class="valtag">0.08</span>s</label>
+            <input id="scaleNoteGap" type="range" min="0" max="0.35" step="0.02" value="0.08" />
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Listen &amp; identify</h2>
+        <div class="field" style="margin-bottom: 0.75rem;">
+          <div class="field-toggle-header">
+            <span class="field-toggle-title" id="scaleAutoAdvanceLabel">Auto-advance after answer</span>
+            <label class="toggle-switch" for="scaleAutoAdvance">
+              <input type="checkbox" id="scaleAutoAdvance" aria-labelledby="scaleAutoAdvanceLabel" />
+              <span class="toggle-slider" aria-hidden="true"></span>
+            </label>
+          </div>
+          <div class="help">When on, the next scale plays automatically after your answer is revealed. You get 3 guesses; only a correct <strong>first</strong> guess adds to your score.</div>
+        </div>
+        <div class="buttons">
+          <button type="button" id="scaleInitBtn">Initialize Audio<span id="scaleLoadBadge" class="loadbadge"></span></button>
+          <button type="button" id="scalePlayBtn" class="view-hidden">Play scale</button>
+          <button type="button" id="scaleReplayBtn" class="secondary view-hidden">Replay</button>
+          <button type="button" id="scaleStopBtn" class="ghost">Stop</button>
+          <button type="button" id="scaleNextBtn" class="secondary view-hidden">Next scale</button>
+        </div>
+        <p class="status" id="scaleStatus">Press Initialize Audio to begin.</p>
+        <p class="interval-prompt" id="scalePrompt">Enable at least one scale, then play to hear a random scale.</p>
+        <div id="scaleChoices" class="chord-answer-groups" role="group" aria-label="Scale answers"></div>
+        <p class="chord-session-score" id="scaleSessionScore">Session: 0 / 0 (first-guess correct)</p>
+        <div class="buttons" style="margin-top: 0.65rem;">
+          <button type="button" id="scaleResetScoreBtn" class="ghost">Reset score</button>
+        </div>
+      </section>
+    </div><!-- /scaleView -->
 
     <footer>
       Single-file trainer &middot; audio by <a href="https://tonejs.github.io/" target="_blank" rel="noopener">Tone.js</a> + Salamander Grand Piano samples.
@@ -678,9 +1163,9 @@
 
   <!-- Exam setup -->
   <div id="examSetupOverlay" class="exam-overlay view-hidden" role="dialog" aria-labelledby="examSetupTitle" aria-modal="true">
-    <section class="card exam-panel">
+    <section class="card exam-panel exam-panel-setup">
       <h2 id="examSetupTitle">Exam mode setup</h2>
-      <p class="sub">Simulated exam conditions: limited hearings, and no feedback until the end. Enable one or more question types below; harmony rules for generation come from your Settings panel.</p>
+      <p class="sub">Simulated exam conditions: limited hearings, and no feedback until the end. Enable one or more question types below. Progression questions use your chord progression Settings; interval, chord, and scale questions use the enabled types and playback options from each practice tab.</p>
       <div id="examTypesContainer" class="exam-types-container" style="margin-top: 0.9rem;"></div>
       <p id="examSetupError" class="status error view-hidden" style="margin-top: 0.65rem;"></p>
       <p class="help" style="margin-top: 0.6rem;">You may <strong>submit early</strong> during hearings to skip remaining repetitions. After the final repetition, a <strong>30 second</strong> answer timer starts; the next question begins when you submit or when time runs out.</p>
@@ -697,10 +1182,16 @@
       <p class="exam-progress" id="examProgressLabel">Question 1 of 5</p>
       <p class="exam-phase" id="examPhaseLabel">Preparing&hellip;</p>
       <p class="exam-timer view-hidden" id="examCountdown">0:30</p>
-      <div class="bars" id="examBars"></div>
-      <h2 style="margin-top: 1rem;">Your answer</h2>
-      <p class="sub">No feedback until the exam ends. Submit anytime to skip remaining hearings and move on (or after the final repetition, within the 30s answer window).</p>
-      <div class="guess-rows" id="examGuessRows"></div>
+      <div id="examProgressionPanel">
+        <div class="bars" id="examBars"></div>
+        <h2 style="margin-top: 1rem;">Your answer</h2>
+        <p class="sub">No feedback until the exam ends. Submit anytime to skip remaining hearings and move on (or after the final repetition, within the 30s answer window).</p>
+        <div class="guess-rows" id="examGuessRows"></div>
+      </div>
+      <div id="examRecognitionPanel" class="view-hidden">
+        <p class="exam-recognition-prompt" id="examRecognitionPrompt">Select your answer below.</p>
+        <div id="examRecognitionChoices" class="chord-choice-grid" role="group" aria-label="Exam answer choices"></div>
+      </div>
       <div class="buttons" style="margin-top: 0.9rem;">
         <button type="button" id="examSubmitBtn" disabled>Submit answer</button>
         <button type="button" id="examAbortBtn" class="ghost">Leave exam</button>
@@ -725,8 +1216,70 @@
   <script>
   "use strict";
 
-  // ----- Music theory constants -----
+  // ============================================================================
+  // SHARED: constants, audio engine state, DOM helpers
+  // ============================================================================
   const NOTE_NAMES = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+
+  const AppMode = {
+    current: "progression",
+    SUBTITLES: {
+      progression: "Train your ear on functional jazz harmony. Configure the rules, listen, then check your guesses.",
+      interval: "Hear two notes, then pick the interval. Configure which intervals and directions to practise.",
+      chord: "Hear a chord, then pick its quality from the grouped answer grid.",
+      scale: "Hear a scale played upward, then pick its name from the grouped answer grid."
+    }
+  };
+
+  const RECOGNITION_ROOT_MIDI_MIN = 36; // C2
+  const RECOGNITION_ROOT_MIDI_MAX = 72; // C5
+  const RECOGNITION_MAX_TOP_MIDI = 84;  // keep scale tops below ~C6
+
+  const RECOGNITION_MAX_GUESSES = 3;
+  const RECOGNITION_AUTO_ADVANCE_MS = 450;
+
+  function clearRecognitionAdvance(state) {
+    if (state.advanceTimer) {
+      clearTimeout(state.advanceTimer);
+      state.advanceTimer = null;
+    }
+  }
+
+  function scheduleRecognitionAdvance(state, autoAdvanceEl, startFn) {
+    if (!autoAdvanceEl || !autoAdvanceEl.checked) return;
+    clearRecognitionAdvance(state);
+    state.advanceTimer = setTimeout(() => {
+      state.advanceTimer = null;
+      startFn();
+    }, RECOGNITION_AUTO_ADVANCE_MS);
+  }
+
+  function syncRecognitionNextButton(nextBtn, answered, autoAdvanceEl) {
+    nextBtn.classList.toggle("view-hidden", !answered || (autoAdvanceEl && autoAdvanceEl.checked));
+  }
+
+  function toggleAllInList(checkboxes) {
+    const list = Array.from(checkboxes);
+    if (!list.length) return;
+    const allOn = list.every(cb => cb.checked);
+    list.forEach(cb => { cb.checked = !allOn; });
+  }
+
+  function createToggleAllButton(ariaLabel, getCheckboxes, onAfterChange) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "toggle-all-btn";
+    btn.textContent = "All";
+    btn.setAttribute("aria-label", ariaLabel);
+    btn.addEventListener("click", () => {
+      toggleAllInList(getCheckboxes());
+      if (onAfterChange) onAfterChange();
+    });
+    return btn;
+  }
+  // ============================================================================
+  // CHORD PROGRESSION TRAINER — music theory & generation
+  // ============================================================================
   // Tonality definitions. Minor borrows the harmonic-minor leading tone so the
   // dominant (V) is a real V7 and the vii is a leading-tone diminished 7.
   const SCALES = {
@@ -784,7 +1337,7 @@
     "dom":   [0, 4, 7]
   };
 
-  // ----- App state -----
+  // ----- Chord progression app state -----
   const state = {
     audioReady: false,
     loading: false,
@@ -847,7 +1400,15 @@
     extChecks: Array.from(document.querySelectorAll(".ext")),
     extUpperWrap: document.getElementById("extUpperWrap"),
     extHelp: document.getElementById("extHelp"),
-    practiceView: document.getElementById("practiceView"),
+    progressionView: document.getElementById("progressionView"),
+    intervalView: document.getElementById("intervalView"),
+    appSubtitle: document.getElementById("appSubtitle"),
+    modeTabProgression: document.getElementById("modeTabProgression"),
+    modeTabInterval: document.getElementById("modeTabInterval"),
+    modeTabChord: document.getElementById("modeTabChord"),
+    modeTabScale: document.getElementById("modeTabScale"),
+    chordView: document.getElementById("chordView"),
+    scaleView: document.getElementById("scaleView"),
     examModeBtn: document.getElementById("examModeBtn"),
     examSetupOverlay: document.getElementById("examSetupOverlay"),
     examActiveOverlay: document.getElementById("examActiveOverlay"),
@@ -861,6 +1422,10 @@
     examCountdown: document.getElementById("examCountdown"),
     examBars: document.getElementById("examBars"),
     examGuessRows: document.getElementById("examGuessRows"),
+    examProgressionPanel: document.getElementById("examProgressionPanel"),
+    examRecognitionPanel: document.getElementById("examRecognitionPanel"),
+    examRecognitionPrompt: document.getElementById("examRecognitionPrompt"),
+    examRecognitionChoices: document.getElementById("examRecognitionChoices"),
     examSubmitBtn: document.getElementById("examSubmitBtn"),
     examAbortBtn: document.getElementById("examAbortBtn"),
     examSummaryStats: document.getElementById("examSummaryStats"),
@@ -1753,8 +2318,167 @@
     typeId: null,
     currentIndex: 0,
     canSubmit: false,
-    audioPlayGen: 0
+    audioPlayGen: 0,
+    setupFocusMode: "progression",
+    recognitionPick: null,
+    allowEmptyCapture: false
   };
+
+  const EXAM_SECTION_MODES = {
+    progressionRecognition: "progression",
+    intervalRecognition: "interval",
+    chordRecognition: "chord",
+    scaleRecognition: "scale"
+  };
+
+  const EXAM_RECOGNITION_SETTINGS_SCHEMA = [
+    { key: "count", label: "Number of questions", type: "range", min: 1, max: 30, step: 1, default: 5 },
+    { key: "reps", label: "Repetitions per question", type: "range", min: 1, max: 5, step: 1, default: 2 },
+    { key: "spacingSec", label: "Spacing between repetitions", type: "range", min: 0, max: 15, step: 1, default: 3, suffix: "s" }
+  ];
+
+  function examTypeDefaultEnabled(type, focusMode) {
+    const mode = type.sectionMode || EXAM_SECTION_MODES[type.id];
+    return mode === focusMode;
+  }
+
+  function setExamQuestionPanels(typeId) {
+    const isProg = typeId === "progressionRecognition";
+    el.examProgressionPanel.classList.toggle("view-hidden", !isProg);
+    el.examRecognitionPanel.classList.toggle("view-hidden", isProg);
+  }
+
+  function clearExamRecognitionPick() {
+    exam.recognitionPick = null;
+    if (el.examRecognitionChoices) {
+      el.examRecognitionChoices.querySelectorAll(".exam-rec-choice").forEach(btn => {
+        btn.classList.remove("exam-pick-selected");
+      });
+    }
+  }
+
+  function renderExamRecognitionChoices(question) {
+    clearExamRecognitionPick();
+    el.examRecognitionChoices.innerHTML = "";
+    const grouped = question.choiceGrouped || [];
+    const defs = question.choiceDefs || [];
+
+    if (grouped.length) {
+      el.examRecognitionChoices.className = "chord-answer-groups";
+      grouped.forEach(grp => {
+        const section = document.createElement("div");
+        section.className = "chord-answer-group";
+        section.innerHTML = '<h3 class="chord-answer-group-title">' + grp.title + "</h3>";
+        const grid = document.createElement("div");
+        grid.className = "chord-choice-grid";
+        grp.items.forEach(item => {
+          grid.appendChild(makeExamRecognitionChoiceBtn(item));
+        });
+        section.appendChild(grid);
+        el.examRecognitionChoices.appendChild(section);
+      });
+      return;
+    }
+
+    if (defs.length) {
+      el.examRecognitionChoices.className = question.choiceLayoutClass || "chord-choice-grid";
+      defs.forEach(item => {
+        el.examRecognitionChoices.appendChild(makeExamRecognitionChoiceBtn(item));
+      });
+      return;
+    }
+
+    el.examRecognitionChoices.className = "chord-choice-grid";
+    el.examRecognitionChoices.innerHTML = '<p class="help" style="margin:0;">No answer choices configured.</p>';
+  }
+
+  function makeExamRecognitionChoiceBtn(item) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "exam-rec-choice " + (item.btnClass || "interval-choice");
+    btn.dataset.answerId = item.id;
+    btn.textContent = item.label;
+    btn.addEventListener("click", () => {
+      clearExamRecognitionPick();
+      exam.recognitionPick = item.id;
+      btn.classList.add("exam-pick-selected");
+    });
+    return btn;
+  }
+
+  function playExamNoteSequence(midis, noteLen, gap, abortIf) {
+    return new Promise(resolve => {
+      const finish = () => {
+        if (exam.pendingPlayResolve === resolve) exam.pendingPlayResolve = null;
+        resolve();
+      };
+      if (!state.audioReady || !state.sampler || (abortIf && abortIf())) {
+        finish();
+        return;
+      }
+      exam.pendingPlayResolve = resolve;
+      clearExamTimers();
+      exam.pendingPlayResolve = resolve;
+      try { state.sampler.releaseAll(0); } catch (e) { /* noop */ }
+      const playGen = exam.audioPlayGen;
+      const timers = exam.timers;
+      let cursor = Tone.now() + 0.12;
+      let wallClock = 0;
+      midis.forEach(midi => {
+        const note = midiToNoteName(midi);
+        scheduleSamplerTrigger(playGen, true, cursor, note, noteLen, 0.88, timers);
+        const step = (noteLen + gap) * 1000;
+        wallClock += step;
+        cursor += noteLen + gap;
+      });
+      const id = setTimeout(() => {
+        if (abortIf && abortIf()) {
+          finish();
+          return;
+        }
+        finish();
+      }, wallClock + 120);
+      timers.push(id);
+    });
+  }
+
+  function playExamChordBlock(notes, dur, abortIf) {
+    return new Promise(resolve => {
+      const finish = () => {
+        if (exam.pendingPlayResolve === resolve) exam.pendingPlayResolve = null;
+        resolve();
+      };
+      if (!state.audioReady || !state.sampler || (abortIf && abortIf())) {
+        finish();
+        return;
+      }
+      exam.pendingPlayResolve = resolve;
+      clearExamTimers();
+      const playGen = exam.audioPlayGen;
+      const timers = exam.timers;
+      try { state.sampler.releaseAll(0); } catch (e) { /* noop */ }
+      const cursor = Tone.now() + 0.1;
+      scheduleSamplerTrigger(playGen, true, cursor, notes, dur, 0.9, timers);
+      const id = setTimeout(() => finish(), dur * 1000 + 150);
+      timers.push(id);
+    });
+  }
+
+  async function playExamRepetitions(playOnce, typeConfig, aborted, onPhase) {
+    for (let r = 0; r < typeConfig.reps; r++) {
+      if (aborted()) return;
+      onPhase(
+        "Listening \u2014 repetition " + (r + 1) + " of " + typeConfig.reps +
+        (typeConfig.reps - r > 1 ? ". Submit early to skip remaining hearings." : ".")
+      );
+      await playOnce();
+      if (aborted()) return;
+      if (r < typeConfig.reps - 1 && typeConfig.spacingSec > 0) {
+        onPhase("Pause before next repetition\u2026 Submit early to answer now.");
+        await delaySec(typeConfig.spacingSec);
+      }
+    }
+  }
 
   function stopExamAnswerTimer() {
     if (exam.answerTimer) {
@@ -1801,10 +2525,12 @@
     }
   }
 
-  function scheduleSamplerTrigger(playGen, useExamTimers, when, notes, duration, velocity, timers) {
+  function scheduleSamplerTrigger(playGen, useExamTimers, when, notes, duration, velocity, timers, genRef) {
     const delayMs = Math.max(0, (when - Tone.now()) * 1000);
     const id = setTimeout(() => {
-      const currentGen = useExamTimers ? exam.audioPlayGen : state.playbackGen;
+      let currentGen;
+      if (genRef) currentGen = genRef.playbackGen;
+      else currentGen = useExamTimers ? exam.audioPlayGen : state.playbackGen;
       if (playGen !== currentGen || !state.sampler) return;
       state.sampler.triggerAttackRelease(notes, duration, Tone.now(), velocity);
     }, delayMs);
@@ -1819,6 +2545,13 @@
       el.initBtn.classList.remove("view-hidden");
       el.playBtn.classList.add("view-hidden");
     }
+  }
+
+  function syncAllAudioUi() {
+    syncSessionAudioUi();
+    syncIntervalAudioUi();
+    syncChordAudioUi();
+    syncScaleAudioUi();
   }
 
   function highlightBarsIn(container, barId) {
@@ -1973,14 +2706,30 @@
 
   /** Renders per-type toggles + settings; reads enabled types for ExamController. */
   const ExamSetupUI = {
-    render() {
+    render(focusMode) {
+      focusMode = focusMode || exam.setupFocusMode || AppMode.current || "progression";
       el.examTypesContainer.innerHTML = "";
-      ExamRegistry.list().forEach(type => {
+      const types = ExamRegistry.list();
+      const sectionTitles = {
+        progression: "Chord progressions",
+        interval: "Interval recognition",
+        chord: "Chord recognition",
+        scale: "Scale recognition"
+      };
+      types.forEach(type => {
+        const section = type.sectionMode || EXAM_SECTION_MODES[type.id] || "other";
+        const cell = document.createElement("div");
+        cell.className = "exam-type-cell";
+        const heading = document.createElement("p");
+        heading.className = "exam-type-section-title";
+        heading.textContent = sectionTitles[section] || section;
+        cell.appendChild(heading);
+
         const block = document.createElement("div");
         block.className = "exam-type-block";
         block.dataset.typeId = type.id;
 
-        const enabled = type.defaultEnabled === true;
+        const enabled = examTypeDefaultEnabled(type, focusMode);
         block.innerHTML =
           '<label class="exam-type-toggle">' +
           '<input type="checkbox" class="exam-type-enable" data-type-id="' + type.id + '"' +
@@ -1991,9 +2740,16 @@
 
         const settingsWrap = block.querySelector('[data-settings-wrap="' + type.id + '"]');
         if (type.renderSetup) {
-          type.renderSetup(settingsWrap);
+          type.renderSetup(settingsWrap, focusMode);
         } else if (type.settingsSchema) {
           this.renderSchemaSettings(type, settingsWrap);
+        }
+        if (type.setupHelp) {
+          const help = document.createElement("p");
+          help.className = "help";
+          help.style.marginTop = "0.45rem";
+          help.textContent = type.setupHelp;
+          settingsWrap.appendChild(help);
         }
 
         const enableCb = block.querySelector(".exam-type-enable");
@@ -2002,7 +2758,8 @@
           el.examSetupError.classList.add("view-hidden");
         });
 
-        el.examTypesContainer.appendChild(block);
+        cell.appendChild(block);
+        el.examTypesContainer.appendChild(cell);
       });
     },
 
@@ -2077,7 +2834,8 @@
   const ProgressionRecognitionExam = {
     id: "progressionRecognition",
     label: "Chord progression recognition",
-    defaultEnabled: true,
+    sectionMode: "progression",
+    setupHelp: "Uses harmony and progression options from the Settings panel on the Chord progressions tab.",
 
     settingsSchema: [
       { key: "count", label: "Number of progressions", type: "range", min: 1, max: 20, step: 1, default: 5 },
@@ -2104,8 +2862,23 @@
     },
 
     prepareQuestionUI(question) {
+      setExamQuestionPanels(this.id);
       renderExamBars(question);
       renderExamGuessRows(question);
+    },
+
+    async playQuestion(question, typeConfig, aborted) {
+      await playExamRepetitions(
+        () => playProgressionOnce(question.progression, question.settings, {
+          barsEl: el.examBars,
+          useExamTimers: true,
+          highlight: true,
+          abortIf: aborted
+        }),
+        typeConfig,
+        aborted,
+        text => { el.examPhaseLabel.textContent = text; }
+      );
     },
 
     captureGuess(question) {
@@ -2157,15 +2930,63 @@
       return "Question " + (index + 1) + " of " + total + " \u2014 " + this.label + " \u2014 " +
         question.settings.key + " " + question.settings.tonality +
         " (" + question.settings.bars + " bars)";
+    },
+
+    formatResultHeading(question) {
+      return question.settings.key + " " + question.settings.tonality;
+    },
+
+    renderResultBody(graded) {
+      let rows =
+        '<div class="exam-bar-row hdr"><span></span><span>Your answer</span><span>Actual</span></div>';
+      graded.barResults.forEach(br => {
+        rows += '<div class="exam-bar-row' + (br.match.allOk ? "" : " miss") + '">' +
+          "<span>Bar " + br.bar + "</span>" +
+          '<span class="you">' + br.yours + "</span>" +
+          '<span class="actual">' + br.actual + "</span></div>";
+      });
+      return '<div class="exam-bar-compare">' + rows + "</div>";
     }
   };
 
   ExamRegistry.register(ProgressionRecognitionExam);
 
+  function gradeRecognitionSingle(captured, question) {
+    const perfect = !!(captured && captured.guessId && captured.guessId === question.answerId);
+    const yours = captured && captured.guessLabel
+      ? captured.guessLabel
+      : "(no answer)";
+    return {
+      correctBars: perfect ? 1 : 0,
+      totalBars: 1,
+      perfect,
+      barResults: [{
+        bar: 1,
+        match: { allOk: perfect },
+        actual: question.answerLabel,
+        yours
+      }]
+    };
+  }
+
+  function recognitionExamPaperEmptyMessage(type) {
+    if (type.id === "intervalRecognition") {
+      return "Enable at least one interval (ascending or descending) on the Interval recognition tab.";
+    }
+    if (type.id === "chordRecognition") {
+      return "Enable at least one chord type on the Chord recognition tab.";
+    }
+    if (type.id === "scaleRecognition") {
+      return "Enable at least one scale on the Scales tab.";
+    }
+    return "No questions could be generated for " + type.label + ".";
+  }
+
   const ExamController = {
     openSetup() {
       if (exam.active) return;
-      ExamSetupUI.render();
+      exam.setupFocusMode = AppMode.current;
+      ExamSetupUI.render(exam.setupFocusMode);
       el.examSetupError.classList.add("view-hidden");
       el.examSetupOverlay.classList.remove("view-hidden");
     },
@@ -2181,6 +3002,22 @@
         el.examSetupError.classList.remove("view-hidden");
         return;
       }
+
+      const baseHarmony = getSettings();
+      const paper = buildMixedExamPaper(enabledTypes, baseHarmony);
+      if (!paper.length) {
+        const emptyTypes = [];
+        enabledTypes.forEach(entry => {
+          const type = ExamRegistry.get(entry.typeId);
+          const qs = type.buildPaper(entry.settings, baseHarmony);
+          if (!qs.length) emptyTypes.push(recognitionExamPaperEmptyMessage(type));
+        });
+        el.examSetupError.textContent = emptyTypes.length
+          ? emptyTypes[0]
+          : "Could not build any exam questions. Check your settings.";
+        el.examSetupError.classList.remove("view-hidden");
+        return;
+      }
       el.examSetupError.classList.add("view-hidden");
 
       if (!state.audioReady) {
@@ -2189,15 +3026,21 @@
       }
 
       stopPlayback();
+      stopIntervalPlayback();
+      stopChordPlayback();
+      stopScalePlayback();
       exam.active = true;
       exam.enabledTypes = enabledTypes;
       exam.currentIndex = 0;
       exam.answers = [];
-      exam.questions = buildMixedExamPaper(enabledTypes, getSettings());
+      exam.questions = paper;
       exam.canSubmit = false;
 
       this.closeSetup();
-      el.practiceView.classList.add("view-hidden");
+      el.progressionView.classList.add("view-hidden");
+      el.intervalView.classList.add("view-hidden");
+      el.chordView.classList.add("view-hidden");
+      el.scaleView.classList.add("view-hidden");
       el.examModeBtn.disabled = true;
       el.examActiveOverlay.classList.remove("view-hidden");
       el.examResultsOverlay.classList.add("view-hidden");
@@ -2223,33 +3066,24 @@
       el.examCountdown.classList.add("view-hidden");
       el.examProgressLabel.textContent = type.formatQuestionTitle(question, qIndex, exam.questions.length);
       if (type.prepareQuestionUI) type.prepareQuestionUI(question);
-      else {
-        renderExamBars(question);
-        renderExamGuessRows(question);
-      }
 
       exam.canSubmit = true;
       el.examSubmitBtn.disabled = false;
 
-      for (let r = 0; r < typeConfig.reps; r++) {
-        if (aborted()) return;
-        const repsLeft = typeConfig.reps - r;
-        el.examPhaseLabel.textContent =
-          "Listening \u2014 repetition " + (r + 1) + " of " + typeConfig.reps +
-          (repsLeft > 1 ? ". Submit early to skip remaining hearings." : ".");
-        await playProgressionOnce(question.progression, s, {
-          barsEl: el.examBars,
-          useExamTimers: true,
-          highlight: true,
-          abortIf: aborted
-        });
-        if (aborted()) return;
-        if (r < typeConfig.reps - 1 && typeConfig.spacingSec > 0) {
-          el.examPhaseLabel.textContent =
-            "Pause before next repetition\u2026 Submit early to answer now.";
-          await delaySec(typeConfig.spacingSec);
-          if (aborted()) return;
-        }
+      if (type.playQuestion) {
+        await type.playQuestion(question, typeConfig, aborted);
+      } else {
+        await playExamRepetitions(
+          () => playProgressionOnce(question.progression, s, {
+            barsEl: el.examBars,
+            useExamTimers: true,
+            highlight: true,
+            abortIf: aborted
+          }),
+          typeConfig,
+          aborted,
+          text => { el.examPhaseLabel.textContent = text; }
+        );
       }
 
       if (aborted()) return;
@@ -2307,12 +3141,16 @@
 
       const question = exam.questions[exam.currentIndex];
       const type = ExamRegistry.get(question.typeId);
+      exam.allowEmptyCapture = !!(opts && opts.timedOut);
       const captured = type.captureGuess(question);
+      exam.allowEmptyCapture = false;
       if (!captured) {
         exam.finalizing = false;
         exam.canSubmit = true;
         el.examSubmitBtn.disabled = false;
-        el.examPhaseLabel.textContent = "Complete every bar before submitting.";
+        el.examPhaseLabel.textContent = question.typeId === "progressionRecognition"
+          ? "Complete every bar before submitting."
+          : "Select an answer before submitting.";
         this.startAnswerTimer();
         return;
       }
@@ -2350,49 +3188,83 @@
       let totalBars = 0;
       let correctBars = 0;
       let perfectQuestions = 0;
+      const byType = {};
 
       exam.answers.forEach(a => {
         totalBars += a.graded.totalBars;
         correctBars += a.graded.correctBars;
         if (a.graded.perfect) perfectQuestions++;
+        const tid = a.question.typeId;
+        if (!byType[tid]) byType[tid] = { perfect: 0, total: 0, label: ExamRegistry.get(tid).label };
+        byType[tid].total++;
+        if (a.graded.perfect) byType[tid].perfect++;
       });
 
       const qTotal = exam.answers.length;
       const barPct = totalBars ? Math.round(100 * correctBars / totalBars) : 0;
       const qPct = qTotal ? Math.round(100 * perfectQuestions / qTotal) : 0;
 
-      el.examSummaryStats.innerHTML =
-        '<div class="exam-stat"><div class="label">Bar accuracy</div><div class="value">' +
-        correctBars + "/" + totalBars + " (" + barPct + "%)</div></div>" +
-        '<div class="exam-stat"><div class="label">Perfect progressions</div><div class="value">' +
-        perfectQuestions + "/" + qTotal + " (" + qPct + "%)</div></div>";
+      let statsHtml =
+        '<div class="exam-stat"><div class="label">Overall</div><div class="value">' +
+        perfectQuestions + "/" + qTotal + " correct (" + qPct + "%)</div></div>";
+
+      const progAnswers = exam.answers.filter(a => a.question.typeId === "progressionRecognition");
+      if (progAnswers.length) {
+        let pBars = 0;
+        let pCorrect = 0;
+        let pPerfect = 0;
+        progAnswers.forEach(a => {
+          pBars += a.graded.totalBars;
+          pCorrect += a.graded.correctBars;
+          if (a.graded.perfect) pPerfect++;
+        });
+        const pBarPct = pBars ? Math.round(100 * pCorrect / pBars) : 0;
+        statsHtml +=
+          '<div class="exam-stat"><div class="label">Progression bars</div><div class="value">' +
+          pCorrect + "/" + pBars + " (" + pBarPct + "%)</div></div>" +
+          '<div class="exam-stat"><div class="label">Perfect progressions</div><div class="value">' +
+          pPerfect + "/" + progAnswers.length + "</div></div>";
+      }
+
+      Object.keys(byType).forEach(tid => {
+        if (tid === "progressionRecognition") return;
+        const row = byType[tid];
+        const pct = row.total ? Math.round(100 * row.perfect / row.total) : 0;
+        statsHtml +=
+          '<div class="exam-stat"><div class="label">' + row.label + "</div><div class=\"value\">" +
+          row.perfect + "/" + row.total + " (" + pct + "%)</div></div>";
+      });
+
+      el.examSummaryStats.innerHTML = statsHtml;
 
       el.examResultList.innerHTML = "";
       exam.answers.forEach((a, idx) => {
         const card = document.createElement("div");
         const cls = a.graded.perfect ? "perfect" : (a.graded.correctBars > 0 ? "partial" : "fail");
         card.className = "exam-result-card " + cls;
+        const type = ExamRegistry.get(a.question.typeId);
+        const isProg = a.question.typeId === "progressionRecognition";
         let badge = a.graded.perfect
-          ? '<span class="exam-badge ok">Perfect</span>'
-          : '<span class="exam-badge bad">' + a.graded.correctBars + "/" + a.graded.totalBars + " bars</span>";
+          ? '<span class="exam-badge ok">Correct</span>'
+          : (isProg
+            ? '<span class="exam-badge bad">' + a.graded.correctBars + "/" + a.graded.totalBars + ' bars</span>'
+            : '<span class="exam-badge bad">Incorrect</span>');
         if (a.timedOut) badge += ' <span class="exam-badge bad">Timed out</span>';
         if (a.submittedEarly) badge += ' <span class="exam-badge ok">Early submit</span>';
 
-        let rows =
-          '<div class="exam-bar-row hdr"><span></span><span>Your answer</span><span>Actual</span></div>';
-        a.graded.barResults.forEach(br => {
-          rows += '<div class="exam-bar-row' + (br.match.allOk ? "" : " miss") + '">' +
-            "<span>Bar " + br.bar + "</span>" +
-            '<span class="you">' + br.yours + "</span>" +
-            '<span class="actual">' + br.actual + "</span></div>";
-        });
-
         const q = a.question;
-        const typeLabel = ExamRegistry.get(q.typeId).label;
+        const heading = type.formatResultHeading
+          ? type.formatResultHeading(q)
+          : (q.promptDetail || q.answerLabel || "");
+        const body = type.renderResultBody
+          ? type.renderResultBody(a.graded)
+          : ('<div class="exam-bar-compare">' +
+            '<div class="exam-bar-row' + (a.graded.perfect ? "" : " miss") + '">' +
+            "<span></span><span class=\"you\">" + a.graded.barResults[0].yours + "</span>" +
+            '<span class="actual">' + a.graded.barResults[0].actual + "</span></div></div>");
+
         card.innerHTML =
-          "<h3>Question " + (idx + 1) + " (" + typeLabel + "): " +
-          q.settings.key + " " + q.settings.tonality + " " + badge + "</h3>" +
-          '<div class="exam-bar-compare">' + rows + "</div>";
+          "<h3>Question " + (idx + 1) + " (" + type.label + "): " + heading + " " + badge + "</h3>" + body;
         el.examResultList.appendChild(card);
       });
 
@@ -2409,9 +3281,9 @@
       el.examActiveOverlay.classList.add("view-hidden");
       el.examResultsOverlay.classList.add("view-hidden");
       el.examSetupOverlay.classList.add("view-hidden");
-      el.practiceView.classList.remove("view-hidden");
+      setAppMode(AppMode.current);
       el.examModeBtn.disabled = false;
-      setStatus("Exam ended. Practice mode resumed.");
+      if (AppMode.current === "progression") setStatus("Exam ended. Practice mode resumed.");
     },
 
     repeat() {
@@ -2422,11 +3294,19 @@
   };
 
   // ----- Audio -----
-  async function initAudio() {
+  async function initAudio(opts) {
+    opts = opts || {};
     if (state.audioReady || state.loading) return;
     state.loading = true;
     el.loadBadge.textContent = " (loading samples...)";
-    setStatus("Loading piano samples...");
+    intervalEl.loadBadge.textContent = " (loading samples...)";
+    chordEl.loadBadge.textContent = " (loading samples...)";
+    scaleEl.loadBadge.textContent = " (loading samples...)";
+    const loadingMsg = "Loading piano samples...";
+    if (AppMode.current === "interval") setIntervalStatus(loadingMsg);
+    else if (AppMode.current === "chord") setChordStatus(loadingMsg);
+    else if (AppMode.current === "scale") setScaleStatus(loadingMsg);
+    else setStatus(loadingMsg);
     try {
       await Tone.start();
       const base = "https://tonejs.github.io/audio/salamander/";
@@ -2444,11 +3324,28 @@
       await Tone.loaded();
       state.audioReady = true;
       el.loadBadge.textContent = " (ready)";
-      syncSessionAudioUi();
-      setStatus("Audio ready. Generate, then Play.");
+      intervalEl.loadBadge.textContent = " (ready)";
+      chordEl.loadBadge.textContent = " (ready)";
+      scaleEl.loadBadge.textContent = " (ready)";
+      syncAllAudioUi();
+      let readyMsg = "Audio ready. Generate, then Play.";
+      if (opts.source === "interval") readyMsg = "Audio ready. Press Play interval.";
+      else if (opts.source === "chord") readyMsg = "Audio ready. Press Play chord.";
+      else if (opts.source === "scale") readyMsg = "Audio ready. Press Play scale.";
+      if (opts.source === "interval") setIntervalStatus(readyMsg);
+      else if (opts.source === "chord") setChordStatus(readyMsg);
+      else if (opts.source === "scale") setScaleStatus(readyMsg);
+      else setStatus(readyMsg);
     } catch (err) {
       el.loadBadge.textContent = "";
-      setStatus("Audio init failed: " + err.message, "error");
+      intervalEl.loadBadge.textContent = "";
+      chordEl.loadBadge.textContent = "";
+      scaleEl.loadBadge.textContent = "";
+      const errMsg = "Audio init failed: " + err.message;
+      if (opts.source === "interval") setIntervalStatus(errMsg, "error");
+      else if (opts.source === "chord") setChordStatus(errMsg, "error");
+      else if (opts.source === "scale") setScaleStatus(errMsg, "error");
+      else setStatus(errMsg, "error");
     } finally {
       state.loading = false;
     }
@@ -2598,7 +3495,1536 @@
     el.chromaticCountBlock.classList.toggle("settings-hidden", !chromaticYes);
   }
 
-  // ----- Wiring -----
+  // ============================================================================
+  // INTERVAL RECOGNITION (self-contained; separate from progression logic above)
+  // ============================================================================
+  const INTERVAL_TYPES = [
+    { id: "m2", label: "Minor 2nd", semitones: 1 },
+    { id: "M2", label: "Major 2nd", semitones: 2 },
+    { id: "m3", label: "Minor 3rd", semitones: 3 },
+    { id: "M3", label: "Major 3rd", semitones: 4 },
+    { id: "P4", label: "Perfect 4th", semitones: 5 },
+    { id: "TT", label: "Tritone", semitones: 6 },
+    { id: "P5", label: "Perfect 5th", semitones: 7 },
+    { id: "m6", label: "Minor 6th", semitones: 8 },
+    { id: "M6", label: "Major 6th", semitones: 9 },
+    { id: "m7", label: "Minor 7th", semitones: 10 },
+    { id: "M7", label: "Major 7th", semitones: 11 },
+    { id: "P8", label: "Perfect octave", semitones: 12 },
+    { id: "m9", label: "Minor 9th", semitones: 13 },
+    { id: "M9", label: "Major 9th", semitones: 14 }
+  ];
+
+  const intervalEl = {
+    direction: document.getElementById("intervalDirection"),
+    matrixBody: document.getElementById("intervalMatrixBody"),
+    noteLen: document.getElementById("intervalNoteLen"),
+    noteLenValue: document.getElementById("intervalNoteLenValue"),
+    gap: document.getElementById("intervalGap"),
+    gapValue: document.getElementById("intervalGapValue"),
+    initBtn: document.getElementById("intervalInitBtn"),
+    playBtn: document.getElementById("intervalPlayBtn"),
+    replayBtn: document.getElementById("intervalReplayBtn"),
+    stopBtn: document.getElementById("intervalStopBtn"),
+    nextBtn: document.getElementById("intervalNextBtn"),
+    loadBadge: document.getElementById("intervalLoadBadge"),
+    status: document.getElementById("intervalStatus"),
+    prompt: document.getElementById("intervalPrompt"),
+    choices: document.getElementById("intervalChoices"),
+    sessionScore: document.getElementById("intervalSessionScore"),
+    resetScoreBtn: document.getElementById("intervalResetScoreBtn"),
+    autoAdvance: document.getElementById("intervalAutoAdvance")
+  };
+
+  const intervalState = {
+    question: null,
+    answered: false,
+    guessesUsed: 0,
+    advanceTimer: null,
+    timers: [],
+    playbackGen: 0,
+    session: { correct: 0, total: 0 }
+  };
+
+  function setIntervalStatus(text, kind) {
+    intervalEl.status.textContent = text;
+    intervalEl.status.classList.remove("error", "warn");
+    if (kind) intervalEl.status.classList.add(kind);
+  }
+
+  function midiToNoteName(midi) {
+    const pc = mod12(midi);
+    const octave = Math.floor(midi / 12) - 1;
+    return noteName(pc) + octave;
+  }
+
+  function syncIntervalLabels() {
+    intervalEl.noteLenValue.textContent = Number(intervalEl.noteLen.value).toFixed(2);
+    intervalEl.gapValue.textContent = Number(intervalEl.gap.value).toFixed(2);
+  }
+
+  function syncIntervalAudioUi() {
+    if (state.audioReady) {
+      intervalEl.initBtn.classList.add("view-hidden");
+      intervalEl.playBtn.classList.remove("view-hidden");
+    } else {
+      intervalEl.initBtn.classList.remove("view-hidden");
+      intervalEl.playBtn.classList.add("view-hidden");
+    }
+  }
+
+  function renderIntervalSettingsMatrix() {
+    intervalEl.matrixBody.innerHTML = "";
+    INTERVAL_TYPES.forEach(def => {
+      const tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td>" + def.label + "</td>" +
+        '<td><input type="checkbox" class="int-asc" data-id="' + def.id + '" aria-label="' + def.label + ' ascending" /></td>' +
+        '<td><input type="checkbox" class="int-desc" data-id="' + def.id + '" aria-label="' + def.label + ' descending" /></td>';
+      intervalEl.matrixBody.appendChild(tr);
+      const asc = tr.querySelector(".int-asc");
+      const desc = tr.querySelector(".int-desc");
+      asc.checked = def.semitones <= 7;
+      desc.checked = def.semitones <= 7;
+      asc.addEventListener("change", () => {
+        onIntervalSettingsChange();
+      });
+      desc.addEventListener("change", () => {
+        onIntervalSettingsChange();
+      });
+    });
+    const footer = document.createElement("tr");
+    footer.className = "interval-toggle-row";
+    const ascCell = document.createElement("td");
+    ascCell.colSpan = 1;
+    ascCell.textContent = "";
+    const ascBtnCell = document.createElement("td");
+    ascBtnCell.appendChild(createToggleAllButton(
+      "Toggle all ascending intervals",
+      () => intervalEl.matrixBody.querySelectorAll("tr:not(.interval-toggle-row) .int-asc"),
+      onIntervalSettingsChange
+    ));
+    const descBtnCell = document.createElement("td");
+    descBtnCell.appendChild(createToggleAllButton(
+      "Toggle all descending intervals",
+      () => intervalEl.matrixBody.querySelectorAll("tr:not(.interval-toggle-row) .int-desc"),
+      onIntervalSettingsChange
+    ));
+    footer.appendChild(ascCell);
+    footer.appendChild(ascBtnCell);
+    footer.appendChild(descBtnCell);
+    intervalEl.matrixBody.appendChild(footer);
+  }
+
+  function getIntervalPracticeSettings() {
+    const directionMode = intervalEl.direction.value;
+    const enabled = [];
+    INTERVAL_TYPES.forEach(def => {
+      const asc = intervalEl.matrixBody.querySelector('.int-asc[data-id="' + def.id + '"]');
+      const desc = intervalEl.matrixBody.querySelector('.int-desc[data-id="' + def.id + '"]');
+      if (asc && asc.checked) {
+        enabled.push({ id: def.id, label: def.label, semitones: def.semitones, direction: "asc" });
+      }
+      if (desc && desc.checked) {
+        enabled.push({ id: def.id, label: def.label, semitones: def.semitones, direction: "desc" });
+      }
+    });
+    let pool = enabled;
+    if (directionMode === "asc") pool = enabled.filter(e => e.direction === "asc");
+    else if (directionMode === "desc") pool = enabled.filter(e => e.direction === "desc");
+    return {
+      directionMode,
+      pool,
+      noteLen: Number(intervalEl.noteLen.value),
+      gap: Number(intervalEl.gap.value)
+    };
+  }
+
+  function getIntervalChoiceDefs() {
+    const s = getIntervalPracticeSettings();
+    const seen = {};
+    const defs = [];
+    s.pool.forEach(entry => {
+      if (!seen[entry.id]) {
+        seen[entry.id] = true;
+        const base = INTERVAL_TYPES.find(t => t.id === entry.id);
+        defs.push(base);
+      }
+    });
+    return defs.sort((a, b) => a.semitones - b.semitones);
+  }
+
+  function renderIntervalChoiceButtons() {
+    const defs = getIntervalChoiceDefs();
+    intervalEl.choices.innerHTML = "";
+    defs.forEach(def => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "interval-choice";
+      btn.dataset.intervalId = def.id;
+      btn.textContent = def.label;
+      btn.disabled = !intervalState.question || intervalState.answered;
+      btn.addEventListener("click", () => submitIntervalGuess(def.id));
+      intervalEl.choices.appendChild(btn);
+    });
+    if (!defs.length) {
+      intervalEl.choices.innerHTML = '<p class="help" style="margin:0;">Enable at least one interval in the settings above.</p>';
+    }
+  }
+
+  function syncIntervalQuestionUi() {
+    intervalEl.replayBtn.classList.toggle("view-hidden", !intervalState.question);
+    syncRecognitionNextButton(intervalEl.nextBtn, intervalState.answered, intervalEl.autoAdvance);
+  }
+
+  function onIntervalSettingsChange() {
+    clearRecognitionAdvance(intervalState);
+    renderIntervalChoiceButtons();
+    intervalState.question = null;
+    intervalState.answered = false;
+    intervalState.guessesUsed = 0;
+    syncIntervalQuestionUi();
+    intervalEl.prompt.textContent = "Settings updated. Press Play interval for a new question.";
+  }
+
+  function replayIntervalQuestion() {
+    if (!intervalState.question) return;
+    playIntervalQuestion(intervalState.question);
+  }
+
+  function pickIntervalQuestion() {
+    const s = getIntervalPracticeSettings();
+    if (!s.pool.length) return null;
+    return buildIntervalExamQuestion(s);
+  }
+
+  function getIntervalChoiceDefsForPractice(practice) {
+    const seen = {};
+    const defs = [];
+    practice.pool.forEach(entry => {
+      if (!seen[entry.id]) {
+        seen[entry.id] = true;
+        const base = INTERVAL_TYPES.find(t => t.id === entry.id);
+        if (base) defs.push(base);
+      }
+    });
+    return defs.sort((a, b) => a.semitones - b.semitones);
+  }
+
+  function buildIntervalExamQuestion(practice) {
+    if (!practice.pool.length) return null;
+    const entry = pick(practice.pool);
+    const minRoot = 48;
+    const maxRoot = 72 - entry.semitones;
+    const rootMidi = minRoot + Math.floor(Math.random() * (maxRoot - minRoot + 1));
+    const base = INTERVAL_TYPES.find(t => t.id === entry.id);
+    const choiceDefs = getIntervalChoiceDefsForPractice(practice).map(d => ({
+      id: d.id,
+      label: d.label,
+      btnClass: "interval-choice"
+    }));
+    return {
+      id: entry.id,
+      label: base ? base.label : entry.label,
+      semitones: entry.semitones,
+      direction: entry.direction,
+      rootMidi,
+      answerId: entry.id,
+      answerLabel: base ? base.label : entry.label,
+      playback: { noteLen: practice.noteLen, gap: practice.gap },
+      choiceDefs,
+      choiceLayoutClass: "interval-choice-grid",
+      promptDetail: (entry.direction === "asc" ? "Ascending" : "Descending") + " " + (base ? base.label : entry.label)
+    };
+  }
+
+  const IntervalRecognitionExam = {
+    id: "intervalRecognition",
+    label: "Interval identification",
+    sectionMode: "interval",
+    settingsSchema: EXAM_RECOGNITION_SETTINGS_SCHEMA,
+    setupHelp: "Uses intervals enabled on the Interval recognition tab (including direction filters).",
+
+    buildPaper(settings) {
+      const practice = getIntervalPracticeSettings();
+      if (!practice.pool.length) return [];
+      const questions = [];
+      for (let i = 0; i < settings.count; i++) {
+        const q = buildIntervalExamQuestion(practice);
+        if (q) questions.push(q);
+      }
+      return questions;
+    },
+
+    prepareQuestionUI(question) {
+      setExamQuestionPanels(this.id);
+      el.examRecognitionPrompt.textContent = "Which interval did you hear?";
+      renderExamRecognitionChoices(question);
+    },
+
+    async playQuestion(question, typeConfig, aborted) {
+      const notes = intervalPlaybackNotes(question);
+      const pb = question.playback;
+      await playExamRepetitions(
+        () => playExamNoteSequence(notes, pb.noteLen, pb.gap, aborted),
+        typeConfig,
+        aborted,
+        text => { el.examPhaseLabel.textContent = text; }
+      );
+    },
+
+    captureGuess(question) {
+      if (!exam.recognitionPick) {
+        if (exam.allowEmptyCapture) return { guessId: null, guessLabel: "(no answer)" };
+        return null;
+      }
+      const item = (question.choiceDefs || []).find(d => d.id === exam.recognitionPick);
+      return {
+        guessId: exam.recognitionPick,
+        guessLabel: item ? item.label : exam.recognitionPick
+      };
+    },
+
+    gradeQuestion(question, captured) {
+      return gradeRecognitionSingle(captured, question);
+    },
+
+    formatQuestionTitle(question, index, total) {
+      const dir = question.direction === "asc" ? "Ascending" : "Descending";
+      return "Question " + (index + 1) + " of " + total + " \u2014 " + this.label + " \u2014 " + dir;
+    },
+
+    formatResultHeading(question) {
+      return question.promptDetail || question.answerLabel;
+    },
+
+    renderResultBody(graded) {
+      const br = graded.barResults[0];
+      return '<div class="exam-bar-compare"><div class="exam-bar-row' + (br.match.allOk ? "" : " miss") +
+        '"><span></span><span class="you">' + br.yours + '</span><span class="actual">' + br.actual + "</span></div></div>";
+    }
+  };
+
+  ExamRegistry.register(IntervalRecognitionExam);
+
+  function intervalPlaybackNotes(q) {
+    const low = q.rootMidi;
+    const high = q.rootMidi + q.semitones;
+    if (q.direction === "asc") return [low, high];
+    return [high, low];
+  }
+
+  function clearIntervalTimers() {
+    intervalState.timers.forEach(t => clearTimeout(t));
+    intervalState.timers = [];
+  }
+
+  function stopIntervalPlayback() {
+    intervalState.playbackGen++;
+    clearRecognitionAdvance(intervalState);
+    clearIntervalTimers();
+    if (state.sampler) {
+      try { state.sampler.releaseAll(0); } catch (e) { /* noop */ }
+    }
+  }
+
+  function playIntervalQuestion(q) {
+    if (!state.audioReady || !state.sampler) {
+      setIntervalStatus("Press Initialize Audio first.", "warn");
+      return;
+    }
+    stopIntervalPlayback();
+    const s = getIntervalPracticeSettings();
+    const notes = intervalPlaybackNotes(q);
+    const playGen = intervalState.playbackGen;
+    const timers = intervalState.timers;
+    const dur = s.noteLen;
+    const gap = s.gap;
+    let cursor = Tone.now() + 0.12;
+    notes.forEach((midi, i) => {
+      const note = midiToNoteName(midi);
+      scheduleSamplerTrigger(playGen, false, cursor, note, dur, 0.88, timers, intervalState);
+      cursor += dur + gap;
+    });
+    setIntervalStatus("Listen\u2026");
+  }
+
+  function updateIntervalSessionScoreDisplay() {
+    intervalEl.sessionScore.textContent = "Session: " + intervalState.session.correct + " / " +
+      intervalState.session.total + " (first-guess correct)";
+  }
+
+  function finalizeIntervalQuestion(solved, firstGuessCorrect) {
+    const q = intervalState.question;
+    if (!q) return;
+    intervalState.answered = true;
+    intervalState.session.total++;
+    if (firstGuessCorrect) intervalState.session.correct++;
+    updateIntervalSessionScoreDisplay();
+
+    const dirLabel = q.direction === "asc" ? "Ascending" : "Descending";
+    const actualLabel = INTERVAL_TYPES.find(t => t.id === q.id).label;
+    const answerText = dirLabel + " " + actualLabel;
+
+    intervalEl.choices.querySelectorAll(".interval-choice").forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.intervalId === q.id) btn.classList.add("correct", "reveal-actual");
+    });
+
+    if (solved && firstGuessCorrect) {
+      intervalEl.prompt.textContent = "\u2713 Correct on your first guess \u2014 " + answerText + ".";
+      setIntervalStatus("Correct! Point added.");
+    } else if (solved) {
+      intervalEl.prompt.textContent = "\u2713 Correct \u2014 " + answerText +
+        ". (No score point; only the first guess counts.)";
+      setIntervalStatus("Correct, but not on your first try \u2014 no point added.");
+    } else {
+      intervalEl.prompt.textContent = "\u2717 Out of guesses \u2014 it was " + answerText + ".";
+      setIntervalStatus("Incorrect \u2014 see highlighted answer.");
+    }
+
+    syncIntervalQuestionUi();
+    scheduleRecognitionAdvance(intervalState, intervalEl.autoAdvance, startIntervalRound);
+  }
+
+  function submitIntervalGuess(intervalId) {
+    const q = intervalState.question;
+    if (!q || intervalState.answered) return;
+
+    const btn = intervalEl.choices.querySelector('[data-interval-id="' + intervalId + '"]');
+    if (!btn || btn.disabled) return;
+
+    intervalState.guessesUsed++;
+    const correct = intervalId === q.id;
+    const firstGuess = intervalState.guessesUsed === 1;
+
+    if (correct) {
+      btn.classList.add("correct");
+      finalizeIntervalQuestion(true, firstGuess);
+      return;
+    }
+
+    btn.classList.add("wrong");
+    btn.disabled = true;
+
+    if (intervalState.guessesUsed >= RECOGNITION_MAX_GUESSES) {
+      finalizeIntervalQuestion(false, false);
+      return;
+    }
+
+    const left = RECOGNITION_MAX_GUESSES - intervalState.guessesUsed;
+    intervalEl.prompt.textContent = "Not quite \u2014 " + left + " guess" + (left === 1 ? "" : "es") + " left.";
+    setIntervalStatus("Try again.", "warn");
+  }
+
+  function startIntervalRound() {
+    const s = getIntervalPracticeSettings();
+    if (!s.pool.length) {
+      setIntervalStatus("Enable at least one interval for the selected direction.", "warn");
+      return;
+    }
+    clearRecognitionAdvance(intervalState);
+    intervalState.question = pickIntervalQuestion();
+    intervalState.answered = false;
+    intervalState.guessesUsed = 0;
+    syncIntervalQuestionUi();
+    intervalEl.prompt.textContent = "Which interval did you hear? (3 guesses; first guess counts for score)";
+    renderIntervalChoiceButtons();
+    intervalEl.choices.querySelectorAll(".interval-choice").forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("correct", "wrong", "reveal-actual");
+    });
+    playIntervalQuestion(intervalState.question);
+  }
+
+  function resetIntervalSessionScore() {
+    intervalState.session.correct = 0;
+    intervalState.session.total = 0;
+    updateIntervalSessionScoreDisplay();
+    setIntervalStatus("Interval session score reset.");
+  }
+
+  function wireIntervalRecognition() {
+    renderIntervalSettingsMatrix();
+    syncIntervalLabels();
+    renderIntervalChoiceButtons();
+    updateIntervalSessionScoreDisplay();
+
+    intervalEl.noteLen.addEventListener("input", syncIntervalLabels);
+    intervalEl.gap.addEventListener("input", syncIntervalLabels);
+    intervalEl.direction.addEventListener("change", onIntervalSettingsChange);
+
+    intervalEl.initBtn.addEventListener("click", () => initAudio({ source: "interval" }));
+    intervalEl.playBtn.addEventListener("click", startIntervalRound);
+    intervalEl.replayBtn.addEventListener("click", replayIntervalQuestion);
+    intervalEl.nextBtn.addEventListener("click", startIntervalRound);
+    intervalEl.stopBtn.addEventListener("click", () => {
+      stopIntervalPlayback();
+      setIntervalStatus("Stopped.");
+    });
+    intervalEl.resetScoreBtn.addEventListener("click", resetIntervalSessionScore);
+    intervalEl.autoAdvance.addEventListener("change", syncIntervalQuestionUi);
+  }
+
+  // ============================================================================
+  // CHORD RECOGNITION (self-contained; separate from progression & intervals)
+  // ============================================================================
+  const CHORD_RECOGNITION_RECIPES = {
+    maj: [0, 4, 7],
+    m: [0, 3, 7],
+    aug: [0, 4, 8],
+    dim: [0, 3, 6],
+    sus4: [0, 5, 7],
+    maj6: [0, 4, 7, 9],
+    m6: [0, 3, 7, 9],
+    maj7: [0, 4, 7, 11],
+    m7: [0, 3, 7, 10],
+    "7": [0, 4, 7, 10],
+    dim7: [0, 3, 6, 9],
+    "7sus4": [0, 5, 7, 10],
+    mMaj7: [0, 3, 7, 11],
+    m7b5: [0, 3, 6, 10],
+    maj7s5: [0, 4, 8, 11],
+    maj7b5: [0, 4, 6, 11],
+    "7s5": [0, 4, 8, 10],
+    "7b5": [0, 4, 6, 10],
+    "7s9": [0, 4, 7, 10, 15],
+    "7b9": [0, 4, 7, 10, 13],
+    "7alt": [0, 4, 8, 10, 13, 15],
+    "7sus4b9": [0, 5, 7, 10, 13],
+    maj9: [0, 4, 7, 11, 14],
+    m9: [0, 3, 7, 10, 14],
+    "9": [0, 4, 7, 10, 14],
+    "9sus4": [0, 5, 7, 10, 14],
+    maj69: [0, 4, 7, 9, 14],
+    m69: [0, 3, 7, 9, 14],
+    majadd9: [0, 4, 7, 14],
+    madd9: [0, 3, 7, 14],
+    m9b5: [0, 3, 6, 10, 14],
+    "13": [0, 4, 7, 10, 14, 21]
+  };
+
+  const CHORD_RECOGNITION_GROUPS = [
+    { id: "triads", title: "Triads" },
+    { id: "sixths", title: "Sixths" },
+    { id: "sevenths", title: "Sevenths" },
+    { id: "altered", title: "Altered &amp; sus dominants" },
+    { id: "ninths", title: "Ninths &amp; extensions" }
+  ];
+
+  const CHORD_RECOGNITION_TYPES = [
+    { id: "maj", group: "triads", label: "Major triad", quality: "maj", default: true },
+    { id: "m", group: "triads", label: "Minor triad", quality: "m", default: true },
+    { id: "aug", group: "triads", label: "Augmented", quality: "aug", default: false },
+    { id: "dim", group: "triads", label: "Diminished", quality: "dim", default: false },
+    { id: "sus4", group: "triads", label: "Sus4", quality: "sus4", default: false },
+    { id: "maj6", group: "sixths", label: "Major 6", quality: "maj6", default: false },
+    { id: "m6", group: "sixths", label: "Minor 6", quality: "m6", default: false },
+    { id: "maj69", group: "sixths", label: "Major 6/9", quality: "maj69", default: false },
+    { id: "m69", group: "sixths", label: "Minor 6/9", quality: "m69", default: false },
+    { id: "maj7", group: "sevenths", label: "Major 7", quality: "maj7", default: true },
+    { id: "m7", group: "sevenths", label: "Minor 7", quality: "m7", default: true },
+    { id: "7", group: "sevenths", label: "Dominant 7", quality: "7", default: true },
+    { id: "dim7", group: "sevenths", label: "Diminished 7", quality: "dim7", default: false },
+    { id: "mMaj7", group: "sevenths", label: "Minor\u2013major 7", quality: "mMaj7", default: false },
+    { id: "m7b5", group: "sevenths", label: "Minor 7 \u266d5", quality: "m7b5", default: false },
+    { id: "7sus4", group: "altered", label: "Dominant 7 sus4", quality: "7sus4", default: false },
+    { id: "maj7s5", group: "altered", label: "Major 7 \u266f5", quality: "maj7s5", default: false },
+    { id: "maj7b5", group: "altered", label: "Major 7 \u266d5", quality: "maj7b5", default: false },
+    { id: "7s5", group: "altered", label: "Dominant 7 \u266f5", quality: "7s5", default: false },
+    { id: "7b5", group: "altered", label: "Dominant 7 \u266d5", quality: "7b5", default: false },
+    { id: "7s9", group: "altered", label: "Dominant 7 \u266f9", quality: "7s9", default: false },
+    { id: "7b9", group: "altered", label: "Dominant 7 \u266d9", quality: "7b9", default: false },
+    { id: "7alt", group: "altered", label: "Dominant 7 alt", quality: "7alt", default: false },
+    { id: "7sus4b9", group: "altered", label: "7 sus4 \u266d9", quality: "7sus4b9", default: false },
+    { id: "maj9", group: "ninths", label: "Major 9", quality: "maj9", default: false },
+    { id: "m9", group: "ninths", label: "Minor 9", quality: "m9", default: false },
+    { id: "9", group: "ninths", label: "Dominant 9", quality: "9", default: false },
+    { id: "9sus4", group: "ninths", label: "Dominant 9 sus4", quality: "9sus4", default: false },
+    { id: "majadd9", group: "ninths", label: "Major add9", quality: "majadd9", default: false },
+    { id: "madd9", group: "ninths", label: "Minor add9", quality: "madd9", default: false },
+    { id: "m9b5", group: "ninths", label: "Minor 9 \u266d5", quality: "m9b5", default: false },
+    { id: "13", group: "ninths", label: "Dominant 13", quality: "13", default: false }
+  ];
+
+  const chordEl = {
+    typeSettings: document.getElementById("chordTypeSettings"),
+    playbackStyle: document.getElementById("chordPlaybackStyle"),
+    blockTiming: document.getElementById("chordBlockTiming"),
+    arpTiming: document.getElementById("chordArpTiming"),
+    holdLen: document.getElementById("chordHoldLen"),
+    holdLenValue: document.getElementById("chordHoldLenValue"),
+    arpNoteLen: document.getElementById("chordArpNoteLen"),
+    arpNoteLenValue: document.getElementById("chordArpNoteLenValue"),
+    arpGap: document.getElementById("chordArpGap"),
+    arpGapValue: document.getElementById("chordArpGapValue"),
+    initBtn: document.getElementById("chordInitBtn"),
+    playBtn: document.getElementById("chordPlayBtn"),
+    replayBtn: document.getElementById("chordReplayBtn"),
+    stopBtn: document.getElementById("chordStopBtn"),
+    nextBtn: document.getElementById("chordNextBtn"),
+    loadBadge: document.getElementById("chordLoadBadge"),
+    status: document.getElementById("chordStatus"),
+    prompt: document.getElementById("chordPrompt"),
+    choices: document.getElementById("chordChoices"),
+    sessionScore: document.getElementById("chordSessionScore"),
+    resetScoreBtn: document.getElementById("chordResetScoreBtn"),
+    autoAdvance: document.getElementById("chordAutoAdvance")
+  };
+
+  const chordState = {
+    question: null,
+    answered: false,
+    guessesUsed: 0,
+    advanceTimer: null,
+    timers: [],
+    playbackGen: 0,
+    session: { correct: 0, total: 0 }
+  };
+
+  function setChordStatus(text, kind) {
+    chordEl.status.textContent = text;
+    chordEl.status.classList.remove("error", "warn");
+    if (kind) chordEl.status.classList.add(kind);
+  }
+
+  function chordTypeById(id) {
+    return CHORD_RECOGNITION_TYPES.find(t => t.id === id);
+  }
+
+  function syncChordLabels() {
+    chordEl.holdLenValue.textContent = Number(chordEl.holdLen.value).toFixed(1);
+    chordEl.arpNoteLenValue.textContent = Number(chordEl.arpNoteLen.value).toFixed(2);
+    chordEl.arpGapValue.textContent = Number(chordEl.arpGap.value).toFixed(2);
+  }
+
+  function syncChordPlaybackSettingsUi() {
+    const arp = chordEl.playbackStyle.value === "arp";
+    chordEl.blockTiming.classList.toggle("settings-hidden", arp);
+    chordEl.arpTiming.classList.toggle("settings-hidden", !arp);
+  }
+
+  function syncChordAudioUi() {
+    if (state.audioReady) {
+      chordEl.initBtn.classList.add("view-hidden");
+      chordEl.playBtn.classList.remove("view-hidden");
+    } else {
+      chordEl.initBtn.classList.remove("view-hidden");
+      chordEl.playBtn.classList.add("view-hidden");
+    }
+  }
+
+  function getEnabledChordTypeIds() {
+    const ids = [];
+    chordEl.typeSettings.querySelectorAll('input[type="checkbox"][data-chord-id]:checked').forEach(cb => {
+      ids.push(cb.dataset.chordId);
+    });
+    return ids;
+  }
+
+  function renderChordTypeSettings() {
+    chordEl.typeSettings.innerHTML = "";
+    CHORD_RECOGNITION_GROUPS.forEach(grp => {
+      const types = CHORD_RECOGNITION_TYPES.filter(t => t.group === grp.id);
+      if (!types.length) return;
+      const wrap = document.createElement("div");
+      wrap.className = "chord-type-group";
+      const header = document.createElement("div");
+      header.className = "chord-type-group-header";
+      const title = document.createElement("h3");
+      title.className = "chord-type-group-title";
+      title.innerHTML = grp.title;
+      const checks = document.createElement("div");
+      checks.className = "chord-type-checks";
+      types.forEach(def => {
+        const lab = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.dataset.chordId = def.id;
+        cb.checked = !!def.default;
+        cb.addEventListener("change", onChordSettingsChange);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(def.label));
+        checks.appendChild(lab);
+      });
+      header.appendChild(title);
+      header.appendChild(createToggleAllButton(
+        "Toggle all in " + grp.title.replace(/<[^>]+>/g, ""),
+        () => checks.querySelectorAll('input[type="checkbox"]'),
+        onChordSettingsChange
+      ));
+      wrap.appendChild(header);
+      wrap.appendChild(checks);
+      chordEl.typeSettings.appendChild(wrap);
+    });
+  }
+
+  const CHORD_ROOT_MIDI_MIN = 36; // C2
+  const CHORD_ROOT_MIDI_MAX = 72; // C5
+
+  function pickChordRootMidi(pitchClass) {
+    const pc = mod12(pitchClass);
+    const choices = [];
+    for (let m = CHORD_ROOT_MIDI_MIN; m <= CHORD_ROOT_MIDI_MAX; m++) {
+      if (mod12(m) === pc) choices.push(m);
+    }
+    return choices.length ? pick(choices) : 48;
+  }
+
+  function getChordRecognitionMidis(rootMidi, quality) {
+    const recipe = CHORD_RECOGNITION_RECIPES[quality] || CHORD_RECOGNITION_RECIPES.maj7;
+    return recipe.map(iv => rootMidi + iv).sort((a, b) => a - b);
+  }
+
+  function buildChordRecognitionVoicing(rootMidi, quality) {
+    const midis = getChordRecognitionMidis(rootMidi, quality);
+    const chord = midis.map(m => Tone.Frequency(m, "midi").toNote());
+    return { chord, bass: null };
+  }
+
+  function chordAnswerLabel(id) {
+    const t = chordTypeById(id);
+    return t ? t.label : id;
+  }
+
+  function renderChordChoiceButtons() {
+    const enabledIds = getEnabledChordTypeIds();
+    chordEl.choices.innerHTML = "";
+    if (!enabledIds.length) {
+      chordEl.choices.innerHTML = '<p class="help" style="margin:0;">Enable at least one chord type above.</p>';
+      return;
+    }
+    CHORD_RECOGNITION_GROUPS.forEach(grp => {
+      const types = CHORD_RECOGNITION_TYPES.filter(t => t.group === grp.id && enabledIds.indexOf(t.id) >= 0);
+      if (!types.length) return;
+      const section = document.createElement("div");
+      section.className = "chord-answer-group";
+      section.innerHTML = '<h3 class="chord-answer-group-title">' + grp.title.replace(/&amp;/g, "&") + "</h3>";
+      const grid = document.createElement("div");
+      grid.className = "chord-choice-grid";
+      types.forEach(def => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chord-choice";
+        btn.dataset.chordId = def.id;
+        btn.textContent = def.label;
+        btn.disabled = !chordState.question || chordState.answered;
+        btn.addEventListener("click", () => submitChordGuess(def.id));
+        grid.appendChild(btn);
+      });
+      section.appendChild(grid);
+      chordEl.choices.appendChild(section);
+    });
+  }
+
+  function syncChordQuestionUi() {
+    chordEl.replayBtn.classList.toggle("view-hidden", !chordState.question);
+    syncRecognitionNextButton(chordEl.nextBtn, chordState.answered, chordEl.autoAdvance);
+  }
+
+  function onChordSettingsChange() {
+    clearRecognitionAdvance(chordState);
+    renderChordChoiceButtons();
+    chordState.question = null;
+    chordState.answered = false;
+    chordState.guessesUsed = 0;
+    syncChordQuestionUi();
+    chordEl.prompt.textContent = "Settings updated. Press Play chord for a new question.";
+  }
+
+  function pickChordQuestion() {
+    const ids = getEnabledChordTypeIds();
+    if (!ids.length) return null;
+    return buildChordExamQuestion(ids);
+  }
+
+  function buildChordExamChoiceGrouped(enabledIds) {
+    const grouped = [];
+    CHORD_RECOGNITION_GROUPS.forEach(grp => {
+      const types = CHORD_RECOGNITION_TYPES.filter(t => t.group === grp.id && enabledIds.indexOf(t.id) >= 0);
+      if (!types.length) return;
+      grouped.push({
+        title: grp.title.replace(/<[^>]+>/g, ""),
+        items: types.map(def => ({ id: def.id, label: def.label, btnClass: "chord-choice" }))
+      });
+    });
+    return grouped;
+  }
+
+  function buildChordExamQuestion(enabledIds) {
+    const ids = enabledIds || getEnabledChordTypeIds();
+    if (!ids.length) return null;
+    const id = pick(ids);
+    const def = chordTypeById(id);
+    const rootPc = Math.floor(Math.random() * 12);
+    const rootMidi = pickChordRootMidi(rootPc);
+    const arp = chordEl.playbackStyle.value === "arp";
+    return {
+      id: def.id,
+      label: def.label,
+      quality: def.quality,
+      rootPc,
+      rootMidi,
+      rootName: midiToNoteName(rootMidi),
+      answerId: def.id,
+      answerLabel: def.label,
+      choiceGrouped: buildChordExamChoiceGrouped(ids),
+      playback: {
+        style: arp ? "arp" : "block",
+        holdLen: Number(chordEl.holdLen.value),
+        arpNoteLen: Number(chordEl.arpNoteLen.value),
+        arpGap: Number(chordEl.arpGap.value)
+      },
+      promptDetail: def.label
+    };
+  }
+
+  const ChordRecognitionExam = {
+    id: "chordRecognition",
+    label: "Chord quality identification",
+    sectionMode: "chord",
+    settingsSchema: EXAM_RECOGNITION_SETTINGS_SCHEMA,
+    setupHelp: "Uses chord types and block/arpeggio playback from the Chord recognition tab.",
+
+    buildPaper(settings) {
+      const ids = getEnabledChordTypeIds();
+      if (!ids.length) return [];
+      const questions = [];
+      for (let i = 0; i < settings.count; i++) {
+        const q = buildChordExamQuestion(ids);
+        if (q) questions.push(q);
+      }
+      return questions;
+    },
+
+    prepareQuestionUI(question) {
+      setExamQuestionPanels(this.id);
+      el.examRecognitionPrompt.textContent = "Which chord quality did you hear?";
+      renderExamRecognitionChoices(question);
+    },
+
+    async playQuestion(question, typeConfig, aborted) {
+      const midis = getChordRecognitionMidis(question.rootMidi, question.quality);
+      const pb = question.playback;
+      await playExamRepetitions(async () => {
+        if (pb.style === "arp") {
+          await playExamNoteSequence(midis, pb.arpNoteLen, pb.arpGap, aborted);
+        } else {
+          const notes = midis.map(m => Tone.Frequency(m, "midi").toNote());
+          await playExamChordBlock(notes, pb.holdLen, aborted);
+        }
+      }, typeConfig, aborted, text => { el.examPhaseLabel.textContent = text; });
+    },
+
+    captureGuess(question) {
+      if (!exam.recognitionPick) {
+        if (exam.allowEmptyCapture) return { guessId: null, guessLabel: "(no answer)" };
+        return null;
+      }
+      let label = exam.recognitionPick;
+      (question.choiceGrouped || []).forEach(grp => {
+        grp.items.forEach(item => {
+          if (item.id === exam.recognitionPick) label = item.label;
+        });
+      });
+      return { guessId: exam.recognitionPick, guessLabel: label };
+    },
+
+    gradeQuestion(question, captured) {
+      return gradeRecognitionSingle(captured, question);
+    },
+
+    formatQuestionTitle(question, index, total) {
+      return "Question " + (index + 1) + " of " + total + " \u2014 " + this.label;
+    },
+
+    formatResultHeading(question) {
+      return question.answerLabel;
+    },
+
+    renderResultBody(graded) {
+      const br = graded.barResults[0];
+      return '<div class="exam-bar-compare"><div class="exam-bar-row' + (br.match.allOk ? "" : " miss") +
+        '"><span></span><span class="you">' + br.yours + '</span><span class="actual">' + br.actual + "</span></div></div>";
+    }
+  };
+
+  ExamRegistry.register(ChordRecognitionExam);
+
+  function clearChordTimers() {
+    chordState.timers.forEach(t => clearTimeout(t));
+    chordState.timers = [];
+  }
+
+  function stopChordPlayback() {
+    chordState.playbackGen++;
+    clearRecognitionAdvance(chordState);
+    clearChordTimers();
+    if (state.sampler) {
+      try { state.sampler.releaseAll(0); } catch (e) { /* noop */ }
+    }
+  }
+
+  function playChordQuestion(q) {
+    if (!state.audioReady || !state.sampler) {
+      setChordStatus("Press Initialize Audio first.", "warn");
+      return;
+    }
+    stopChordPlayback();
+    const midis = getChordRecognitionMidis(q.rootMidi, q.quality);
+    const playGen = chordState.playbackGen;
+    const timers = chordState.timers;
+    let cursor = Tone.now() + 0.1;
+
+    if (chordEl.playbackStyle.value === "arp") {
+      const noteLen = Number(chordEl.arpNoteLen.value);
+      const gap = Number(chordEl.arpGap.value);
+      midis.forEach(midi => {
+        const note = midiToNoteName(midi);
+        scheduleSamplerTrigger(playGen, false, cursor, note, noteLen, 0.88, timers, chordState);
+        cursor += noteLen + gap;
+      });
+    } else {
+      const notes = midis.map(m => Tone.Frequency(m, "midi").toNote());
+      const dur = Number(chordEl.holdLen.value);
+      scheduleSamplerTrigger(playGen, false, cursor, notes, dur, 0.9, timers, chordState);
+    }
+    setChordStatus("Listen\u2026");
+  }
+
+  function replayChordQuestion() {
+    if (!chordState.question) return;
+    playChordQuestion(chordState.question);
+  }
+
+  function updateChordSessionScoreDisplay() {
+    chordEl.sessionScore.textContent = "Session: " + chordState.session.correct + " / " +
+      chordState.session.total + " (first-guess correct)";
+  }
+
+  function finalizeChordQuestion(solved, firstGuessCorrect) {
+    const q = chordState.question;
+    if (!q) return;
+    chordState.answered = true;
+    chordState.session.total++;
+    if (firstGuessCorrect) chordState.session.correct++;
+    updateChordSessionScoreDisplay();
+
+    const sym = q.rootName + " " + q.label;
+
+    chordEl.choices.querySelectorAll(".chord-choice").forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.chordId === q.id) btn.classList.add("correct", "reveal-actual");
+    });
+
+    if (solved && firstGuessCorrect) {
+      chordEl.prompt.textContent = "\u2713 Correct on your first guess \u2014 " + sym + ".";
+      setChordStatus("Correct! Point added.");
+    } else if (solved) {
+      chordEl.prompt.textContent = "\u2713 Correct \u2014 " + sym +
+        ". (No score point; only the first guess counts.)";
+      setChordStatus("Correct, but not on your first try \u2014 no point added.");
+    } else {
+      chordEl.prompt.textContent = "\u2717 Out of guesses \u2014 it was " + sym + ".";
+      setChordStatus("Incorrect \u2014 see highlighted answer.");
+    }
+
+    syncChordQuestionUi();
+    scheduleRecognitionAdvance(chordState, chordEl.autoAdvance, startChordRound);
+  }
+
+  function submitChordGuess(chordId) {
+    const q = chordState.question;
+    if (!q || chordState.answered) return;
+
+    const btn = chordEl.choices.querySelector('[data-chord-id="' + chordId + '"]');
+    if (!btn || btn.disabled) return;
+
+    chordState.guessesUsed++;
+    const correct = chordId === q.id;
+    const firstGuess = chordState.guessesUsed === 1;
+
+    if (correct) {
+      btn.classList.add("correct");
+      finalizeChordQuestion(true, firstGuess);
+      return;
+    }
+
+    btn.classList.add("wrong");
+    btn.disabled = true;
+
+    if (chordState.guessesUsed >= RECOGNITION_MAX_GUESSES) {
+      finalizeChordQuestion(false, false);
+      return;
+    }
+
+    const left = RECOGNITION_MAX_GUESSES - chordState.guessesUsed;
+    chordEl.prompt.textContent = "Not quite \u2014 " + left + " guess" + (left === 1 ? "" : "es") + " left.";
+    setChordStatus("Try again.", "warn");
+  }
+
+  function startChordRound() {
+    if (!getEnabledChordTypeIds().length) {
+      setChordStatus("Enable at least one chord type.", "warn");
+      return;
+    }
+    clearRecognitionAdvance(chordState);
+    chordState.question = pickChordQuestion();
+    chordState.answered = false;
+    chordState.guessesUsed = 0;
+    syncChordQuestionUi();
+    chordEl.prompt.textContent = "Which chord quality did you hear? (3 guesses; first guess counts for score)";
+    renderChordChoiceButtons();
+    chordEl.choices.querySelectorAll(".chord-choice").forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("correct", "wrong", "reveal-actual");
+    });
+    playChordQuestion(chordState.question);
+  }
+
+  function resetChordSessionScore() {
+    chordState.session.correct = 0;
+    chordState.session.total = 0;
+    updateChordSessionScoreDisplay();
+    setChordStatus("Chord session score reset.");
+  }
+
+  function wireChordRecognition() {
+    renderChordTypeSettings();
+    syncChordLabels();
+    renderChordChoiceButtons();
+    updateChordSessionScoreDisplay();
+
+    syncChordPlaybackSettingsUi();
+    chordEl.holdLen.addEventListener("input", syncChordLabels);
+    chordEl.arpNoteLen.addEventListener("input", syncChordLabels);
+    chordEl.arpGap.addEventListener("input", syncChordLabels);
+    chordEl.playbackStyle.addEventListener("change", syncChordPlaybackSettingsUi);
+    chordEl.initBtn.addEventListener("click", () => initAudio({ source: "chord" }));
+    chordEl.playBtn.addEventListener("click", startChordRound);
+    chordEl.replayBtn.addEventListener("click", replayChordQuestion);
+    chordEl.nextBtn.addEventListener("click", startChordRound);
+    chordEl.stopBtn.addEventListener("click", () => {
+      stopChordPlayback();
+      setChordStatus("Stopped.");
+    });
+    chordEl.resetScoreBtn.addEventListener("click", resetChordSessionScore);
+    chordEl.autoAdvance.addEventListener("change", syncChordQuestionUi);
+  }
+
+  // ============================================================================
+  // SCALE RECOGNITION (self-contained)
+  // ============================================================================
+  const SCALE_RECOGNITION_GROUPS = [
+    { id: "majorModes", title: "Major modes" },
+    { id: "melodicMinorModes", title: "Melodic minor modes" },
+    { id: "minorScales", title: "Minor scales" },
+    { id: "fiveSixNote", title: "5 &amp; 6 note scales" },
+    { id: "eightNote", title: "8 note scales" }
+  ];
+
+  const SCALE_RECOGNITION_TYPES = [
+    { id: "ionian", group: "majorModes", label: "Ionian (major)", intervals: [0, 2, 4, 5, 7, 9, 11], default: true },
+    { id: "dorian", group: "majorModes", label: "Dorian", intervals: [0, 2, 3, 5, 7, 9, 10], default: true },
+    { id: "phrygian", group: "majorModes", label: "Phrygian", intervals: [0, 1, 3, 5, 7, 8, 10], default: false },
+    { id: "lydian", group: "majorModes", label: "Lydian", intervals: [0, 2, 4, 6, 7, 9, 11], default: false },
+    { id: "mixolydian", group: "majorModes", label: "Mixolydian", intervals: [0, 2, 4, 5, 7, 9, 10], default: true },
+    { id: "aeolian", group: "majorModes", label: "Aeolian", intervals: [0, 2, 3, 5, 7, 8, 10], default: true },
+    { id: "locrian", group: "majorModes", label: "Locrian", intervals: [0, 1, 3, 5, 6, 8, 10], default: false },
+    { id: "locrianSharp2", group: "melodicMinorModes", label: "Locrian \u266f2", intervals: [0, 2, 3, 5, 6, 8, 10], default: false },
+    { id: "dorianFlat2", group: "melodicMinorModes", label: "Dorian \u266d2", intervals: [0, 1, 3, 5, 7, 9, 10], default: false },
+    { id: "altered", group: "melodicMinorModes", label: "Altered scale", intervals: [0, 1, 3, 4, 6, 8, 10], default: false },
+    { id: "lydianDominant", group: "melodicMinorModes", label: "Lydian dominant", intervals: [0, 2, 4, 6, 7, 9, 10], default: false },
+    { id: "mixolydianFlat6", group: "melodicMinorModes", label: "Mixolydian \u266d6", intervals: [0, 2, 4, 5, 7, 8, 10], default: false },
+    { id: "harmonicMinor", group: "minorScales", label: "Harmonic minor", intervals: [0, 2, 3, 5, 7, 8, 11], default: false },
+    { id: "jazzMinor", group: "minorScales", label: "Jazz minor", intervals: [0, 2, 3, 5, 7, 9, 11], default: false },
+    { id: "majPent", group: "fiveSixNote", label: "Major pentatonic", intervals: [0, 2, 4, 7, 9], default: false },
+    { id: "minPent", group: "fiveSixNote", label: "Minor pentatonic", intervals: [0, 3, 5, 7, 10], default: false },
+    { id: "blues", group: "fiveSixNote", label: "Blues scale", intervals: [0, 3, 5, 6, 7, 10], default: false },
+    { id: "majBebop", group: "eightNote", label: "Major bebop", intervals: [0, 2, 4, 5, 7, 8, 9, 11], default: false },
+    { id: "domBebop", group: "eightNote", label: "Dominant bebop", intervals: [0, 2, 4, 5, 7, 9, 10, 11], default: false },
+    { id: "dom8", group: "eightNote", label: "Dominant 8-note", intervals: [0, 2, 4, 5, 7, 9, 10, 11], default: false },
+    { id: "diminished", group: "eightNote", label: "Diminished (whole\u2013half)", intervals: [0, 2, 3, 5, 6, 8, 9, 11], default: false }
+  ];
+
+  const scaleEl = {
+    typeSettings: document.getElementById("scaleTypeSettings"),
+    noteLen: document.getElementById("scaleNoteLen"),
+    noteLenValue: document.getElementById("scaleNoteLenValue"),
+    noteGap: document.getElementById("scaleNoteGap"),
+    noteGapValue: document.getElementById("scaleNoteGapValue"),
+    initBtn: document.getElementById("scaleInitBtn"),
+    playBtn: document.getElementById("scalePlayBtn"),
+    replayBtn: document.getElementById("scaleReplayBtn"),
+    stopBtn: document.getElementById("scaleStopBtn"),
+    nextBtn: document.getElementById("scaleNextBtn"),
+    loadBadge: document.getElementById("scaleLoadBadge"),
+    status: document.getElementById("scaleStatus"),
+    prompt: document.getElementById("scalePrompt"),
+    choices: document.getElementById("scaleChoices"),
+    sessionScore: document.getElementById("scaleSessionScore"),
+    resetScoreBtn: document.getElementById("scaleResetScoreBtn"),
+    autoAdvance: document.getElementById("scaleAutoAdvance"),
+    descend: document.getElementById("scaleDescend")
+  };
+
+  const scaleState = {
+    question: null,
+    answered: false,
+    guessesUsed: 0,
+    advanceTimer: null,
+    timers: [],
+    playbackGen: 0,
+    session: { correct: 0, total: 0 }
+  };
+
+  function setScaleStatus(text, kind) {
+    scaleEl.status.textContent = text;
+    scaleEl.status.classList.remove("error", "warn");
+    if (kind) scaleEl.status.classList.add(kind);
+  }
+
+  function scaleTypeById(id) {
+    return SCALE_RECOGNITION_TYPES.find(t => t.id === id);
+  }
+
+  function syncScaleLabels() {
+    scaleEl.noteLenValue.textContent = Number(scaleEl.noteLen.value).toFixed(2);
+    scaleEl.noteGapValue.textContent = Number(scaleEl.noteGap.value).toFixed(2);
+  }
+
+  function syncScaleAudioUi() {
+    if (state.audioReady) {
+      scaleEl.initBtn.classList.add("view-hidden");
+      scaleEl.playBtn.classList.remove("view-hidden");
+    } else {
+      scaleEl.initBtn.classList.remove("view-hidden");
+      scaleEl.playBtn.classList.add("view-hidden");
+    }
+  }
+
+  function scaleIntervalsWithOctave(intervals) {
+    const steps = intervals.slice();
+    if (steps[steps.length - 1] !== 12) steps.push(12);
+    return steps;
+  }
+
+  function buildScalePlaybackMidis(rootMidi, intervals, descend) {
+    const steps = scaleIntervalsWithOctave(intervals);
+    const up = steps.map(iv => rootMidi + iv);
+    if (!descend) return up;
+    const down = [];
+    for (let i = up.length - 2; i >= 0; i--) down.push(up[i]);
+    return up.concat(down);
+  }
+
+  function pickScaleRootMidi(intervals) {
+    const steps = scaleIntervalsWithOctave(intervals);
+    const span = steps[steps.length - 1];
+    const maxRoot = Math.min(RECOGNITION_ROOT_MIDI_MAX, RECOGNITION_MAX_TOP_MIDI - span);
+    const choices = [];
+    for (let m = RECOGNITION_ROOT_MIDI_MIN; m <= maxRoot; m++) choices.push(m);
+    return choices.length ? pick(choices) : RECOGNITION_ROOT_MIDI_MIN;
+  }
+
+  function getEnabledScaleTypeIds() {
+    const ids = [];
+    scaleEl.typeSettings.querySelectorAll('input[type="checkbox"][data-scale-id]:checked').forEach(cb => {
+      ids.push(cb.dataset.scaleId);
+    });
+    return ids;
+  }
+
+  function renderScaleTypeSettings() {
+    scaleEl.typeSettings.innerHTML = "";
+    SCALE_RECOGNITION_GROUPS.forEach(grp => {
+      const types = SCALE_RECOGNITION_TYPES.filter(t => t.group === grp.id);
+      if (!types.length) return;
+      const wrap = document.createElement("div");
+      wrap.className = "chord-type-group";
+      const header = document.createElement("div");
+      header.className = "chord-type-group-header";
+      const title = document.createElement("h3");
+      title.className = "chord-type-group-title";
+      title.innerHTML = grp.title;
+      const checks = document.createElement("div");
+      checks.className = "chord-type-checks";
+      types.forEach(def => {
+        const lab = document.createElement("label");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.dataset.scaleId = def.id;
+        cb.checked = !!def.default;
+        cb.addEventListener("change", onScaleSettingsChange);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(def.label));
+        checks.appendChild(lab);
+      });
+      header.appendChild(title);
+      header.appendChild(createToggleAllButton(
+        "Toggle all in " + grp.title.replace(/<[^>]+>/g, ""),
+        () => checks.querySelectorAll('input[type="checkbox"]'),
+        onScaleSettingsChange
+      ));
+      wrap.appendChild(header);
+      wrap.appendChild(checks);
+      scaleEl.typeSettings.appendChild(wrap);
+    });
+  }
+
+  function renderScaleChoiceButtons() {
+    const enabledIds = getEnabledScaleTypeIds();
+    scaleEl.choices.innerHTML = "";
+    if (!enabledIds.length) {
+      scaleEl.choices.innerHTML = '<p class="help" style="margin:0;">Enable at least one scale above.</p>';
+      return;
+    }
+    SCALE_RECOGNITION_GROUPS.forEach(grp => {
+      const types = SCALE_RECOGNITION_TYPES.filter(t => t.group === grp.id && enabledIds.indexOf(t.id) >= 0);
+      if (!types.length) return;
+      const section = document.createElement("div");
+      section.className = "chord-answer-group";
+      section.innerHTML = '<h3 class="chord-answer-group-title">' + grp.title.replace(/&amp;/g, "&") + "</h3>";
+      const grid = document.createElement("div");
+      grid.className = "chord-choice-grid";
+      types.forEach(def => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chord-choice";
+        btn.dataset.scaleId = def.id;
+        btn.textContent = def.label;
+        btn.disabled = !scaleState.question || scaleState.answered;
+        btn.addEventListener("click", () => submitScaleGuess(def.id));
+        grid.appendChild(btn);
+      });
+      section.appendChild(grid);
+      scaleEl.choices.appendChild(section);
+    });
+  }
+
+  function syncScaleQuestionUi() {
+    scaleEl.replayBtn.classList.toggle("view-hidden", !scaleState.question);
+    syncRecognitionNextButton(scaleEl.nextBtn, scaleState.answered, scaleEl.autoAdvance);
+  }
+
+  function onScaleSettingsChange() {
+    clearRecognitionAdvance(scaleState);
+    renderScaleChoiceButtons();
+    scaleState.question = null;
+    scaleState.answered = false;
+    scaleState.guessesUsed = 0;
+    syncScaleQuestionUi();
+    scaleEl.prompt.textContent = "Settings updated. Press Play scale for a new question.";
+  }
+
+  function pickScaleQuestion() {
+    const ids = getEnabledScaleTypeIds();
+    if (!ids.length) return null;
+    return buildScaleExamQuestion(ids);
+  }
+
+  function buildScaleExamChoiceGrouped(enabledIds) {
+    const grouped = [];
+    SCALE_RECOGNITION_GROUPS.forEach(grp => {
+      const types = SCALE_RECOGNITION_TYPES.filter(t => t.group === grp.id && enabledIds.indexOf(t.id) >= 0);
+      if (!types.length) return;
+      grouped.push({
+        title: grp.title.replace(/<[^>]+>/g, ""),
+        items: types.map(def => ({ id: def.id, label: def.label, btnClass: "chord-choice" }))
+      });
+    });
+    return grouped;
+  }
+
+  function buildScaleExamQuestion(enabledIds) {
+    const ids = enabledIds || getEnabledScaleTypeIds();
+    if (!ids.length) return null;
+    const id = pick(ids);
+    const def = scaleTypeById(id);
+    const rootMidi = pickScaleRootMidi(def.intervals);
+    return {
+      id: def.id,
+      label: def.label,
+      intervals: def.intervals,
+      rootMidi,
+      rootName: midiToNoteName(rootMidi),
+      answerId: def.id,
+      answerLabel: def.label,
+      choiceGrouped: buildScaleExamChoiceGrouped(ids),
+      playback: {
+        noteLen: Number(scaleEl.noteLen.value),
+        gap: Number(scaleEl.noteGap.value),
+        descend: scaleEl.descend.checked
+      },
+      promptDetail: def.label
+    };
+  }
+
+  const ScaleRecognitionExam = {
+    id: "scaleRecognition",
+    label: "Scale identification",
+    sectionMode: "scale",
+    settingsSchema: EXAM_RECOGNITION_SETTINGS_SCHEMA,
+    setupHelp: "Uses scale types and playback options from the Scales tab.",
+
+    buildPaper(settings) {
+      const ids = getEnabledScaleTypeIds();
+      if (!ids.length) return [];
+      const questions = [];
+      for (let i = 0; i < settings.count; i++) {
+        const q = buildScaleExamQuestion(ids);
+        if (q) questions.push(q);
+      }
+      return questions;
+    },
+
+    prepareQuestionUI(question) {
+      setExamQuestionPanels(this.id);
+      el.examRecognitionPrompt.textContent = "Which scale did you hear?";
+      renderExamRecognitionChoices(question);
+    },
+
+    async playQuestion(question, typeConfig, aborted) {
+      const pb = question.playback;
+      const midis = buildScalePlaybackMidis(question.rootMidi, question.intervals, pb.descend);
+      await playExamRepetitions(
+        () => playExamNoteSequence(midis, pb.noteLen, pb.gap, aborted),
+        typeConfig,
+        aborted,
+        text => { el.examPhaseLabel.textContent = text; }
+      );
+    },
+
+    captureGuess(question) {
+      if (!exam.recognitionPick) {
+        if (exam.allowEmptyCapture) return { guessId: null, guessLabel: "(no answer)" };
+        return null;
+      }
+      let label = exam.recognitionPick;
+      (question.choiceGrouped || []).forEach(grp => {
+        grp.items.forEach(item => {
+          if (item.id === exam.recognitionPick) label = item.label;
+        });
+      });
+      return { guessId: exam.recognitionPick, guessLabel: label };
+    },
+
+    gradeQuestion(question, captured) {
+      return gradeRecognitionSingle(captured, question);
+    },
+
+    formatQuestionTitle(question, index, total) {
+      return "Question " + (index + 1) + " of " + total + " \u2014 " + this.label;
+    },
+
+    formatResultHeading(question) {
+      return question.answerLabel;
+    },
+
+    renderResultBody(graded) {
+      const br = graded.barResults[0];
+      return '<div class="exam-bar-compare"><div class="exam-bar-row' + (br.match.allOk ? "" : " miss") +
+        '"><span></span><span class="you">' + br.yours + '</span><span class="actual">' + br.actual + "</span></div></div>";
+    }
+  };
+
+  ExamRegistry.register(ScaleRecognitionExam);
+
+  function clearScaleTimers() {
+    scaleState.timers.forEach(t => clearTimeout(t));
+    scaleState.timers = [];
+  }
+
+  function stopScalePlayback() {
+    scaleState.playbackGen++;
+    clearRecognitionAdvance(scaleState);
+    clearScaleTimers();
+    if (state.sampler) {
+      try { state.sampler.releaseAll(0); } catch (e) { /* noop */ }
+    }
+  }
+
+  function playScaleQuestion(q) {
+    if (!state.audioReady || !state.sampler) {
+      setScaleStatus("Press Initialize Audio first.", "warn");
+      return;
+    }
+    stopScalePlayback();
+    const midis = buildScalePlaybackMidis(q.rootMidi, q.intervals, scaleEl.descend.checked);
+    const noteLen = Number(scaleEl.noteLen.value);
+    const gap = Number(scaleEl.noteGap.value);
+    const playGen = scaleState.playbackGen;
+    const timers = scaleState.timers;
+    let cursor = Tone.now() + 0.1;
+    midis.forEach(midi => {
+      const note = midiToNoteName(midi);
+      scheduleSamplerTrigger(playGen, false, cursor, note, noteLen, 0.88, timers, scaleState);
+      cursor += noteLen + gap;
+    });
+    setScaleStatus("Listen\u2026");
+  }
+
+  function replayScaleQuestion() {
+    if (!scaleState.question) return;
+    playScaleQuestion(scaleState.question);
+  }
+
+  function updateScaleSessionScoreDisplay() {
+    scaleEl.sessionScore.textContent = "Session: " + scaleState.session.correct + " / " +
+      scaleState.session.total + " (first-guess correct)";
+  }
+
+  function finalizeScaleQuestion(solved, firstGuessCorrect) {
+    const q = scaleState.question;
+    if (!q) return;
+    scaleState.answered = true;
+    scaleState.session.total++;
+    if (firstGuessCorrect) scaleState.session.correct++;
+    updateScaleSessionScoreDisplay();
+
+    const answerText = q.rootName + " " + q.label;
+
+    scaleEl.choices.querySelectorAll(".chord-choice").forEach(btn => {
+      btn.disabled = true;
+      if (btn.dataset.scaleId === q.id) btn.classList.add("correct", "reveal-actual");
+    });
+
+    if (solved && firstGuessCorrect) {
+      scaleEl.prompt.textContent = "\u2713 Correct on your first guess \u2014 " + answerText + ".";
+      setScaleStatus("Correct! Point added.");
+    } else if (solved) {
+      scaleEl.prompt.textContent = "\u2713 Correct \u2014 " + answerText +
+        ". (No score point; only the first guess counts.)";
+      setScaleStatus("Correct, but not on your first try \u2014 no point added.");
+    } else {
+      scaleEl.prompt.textContent = "\u2717 Out of guesses \u2014 it was " + answerText + ".";
+      setScaleStatus("Incorrect \u2014 see highlighted answer.");
+    }
+
+    syncScaleQuestionUi();
+    scheduleRecognitionAdvance(scaleState, scaleEl.autoAdvance, startScaleRound);
+  }
+
+  function submitScaleGuess(scaleId) {
+    const q = scaleState.question;
+    if (!q || scaleState.answered) return;
+
+    const btn = scaleEl.choices.querySelector('[data-scale-id="' + scaleId + '"]');
+    if (!btn || btn.disabled) return;
+
+    scaleState.guessesUsed++;
+    const correct = scaleId === q.id;
+    const firstGuess = scaleState.guessesUsed === 1;
+
+    if (correct) {
+      btn.classList.add("correct");
+      finalizeScaleQuestion(true, firstGuess);
+      return;
+    }
+
+    btn.classList.add("wrong");
+    btn.disabled = true;
+
+    if (scaleState.guessesUsed >= RECOGNITION_MAX_GUESSES) {
+      finalizeScaleQuestion(false, false);
+      return;
+    }
+
+    const left = RECOGNITION_MAX_GUESSES - scaleState.guessesUsed;
+    scaleEl.prompt.textContent = "Not quite \u2014 " + left + " guess" + (left === 1 ? "" : "es") + " left.";
+    setScaleStatus("Try again.", "warn");
+  }
+
+  function startScaleRound() {
+    if (!getEnabledScaleTypeIds().length) {
+      setScaleStatus("Enable at least one scale.", "warn");
+      return;
+    }
+    clearRecognitionAdvance(scaleState);
+    scaleState.question = pickScaleQuestion();
+    scaleState.answered = false;
+    scaleState.guessesUsed = 0;
+    syncScaleQuestionUi();
+    scaleEl.prompt.textContent = "Which scale did you hear? (3 guesses; first guess counts for score)";
+    renderScaleChoiceButtons();
+    scaleEl.choices.querySelectorAll(".chord-choice").forEach(btn => {
+      btn.disabled = false;
+      btn.classList.remove("correct", "wrong", "reveal-actual");
+    });
+    playScaleQuestion(scaleState.question);
+  }
+
+  function resetScaleSessionScore() {
+    scaleState.session.correct = 0;
+    scaleState.session.total = 0;
+    updateScaleSessionScoreDisplay();
+    setScaleStatus("Scale session score reset.");
+  }
+
+  function wireScaleRecognition() {
+    renderScaleTypeSettings();
+    syncScaleLabels();
+    renderScaleChoiceButtons();
+    updateScaleSessionScoreDisplay();
+
+    scaleEl.noteLen.addEventListener("input", syncScaleLabels);
+    scaleEl.noteGap.addEventListener("input", syncScaleLabels);
+    scaleEl.initBtn.addEventListener("click", () => initAudio({ source: "scale" }));
+    scaleEl.playBtn.addEventListener("click", startScaleRound);
+    scaleEl.replayBtn.addEventListener("click", replayScaleQuestion);
+    scaleEl.nextBtn.addEventListener("click", startScaleRound);
+    scaleEl.stopBtn.addEventListener("click", () => {
+      stopScalePlayback();
+      setScaleStatus("Stopped.");
+    });
+    scaleEl.resetScoreBtn.addEventListener("click", resetScaleSessionScore);
+    scaleEl.autoAdvance.addEventListener("change", syncScaleQuestionUi);
+  }
+
+  // ============================================================================
+  // APP SHELL: mode tabs & shared navigation
+  // ============================================================================
+  function setAppMode(mode) {
+    if (mode !== "progression" && mode !== "interval" && mode !== "chord" && mode !== "scale") return;
+    AppMode.current = mode;
+    el.progressionView.classList.toggle("view-hidden", mode !== "progression");
+    el.intervalView.classList.toggle("view-hidden", mode !== "interval");
+    el.chordView.classList.toggle("view-hidden", mode !== "chord");
+    el.scaleView.classList.toggle("view-hidden", mode !== "scale");
+    el.modeTabProgression.classList.toggle("active", mode === "progression");
+    el.modeTabInterval.classList.toggle("active", mode === "interval");
+    el.modeTabChord.classList.toggle("active", mode === "chord");
+    el.modeTabScale.classList.toggle("active", mode === "scale");
+    el.appSubtitle.textContent = AppMode.SUBTITLES[mode];
+
+    stopPlayback();
+    stopIntervalPlayback();
+    stopChordPlayback();
+    stopScalePlayback();
+
+    if (mode === "interval") {
+      clearRecognitionAdvance(chordState);
+      clearRecognitionAdvance(scaleState);
+      renderIntervalChoiceButtons();
+    } else if (mode === "chord") {
+      clearRecognitionAdvance(intervalState);
+      clearRecognitionAdvance(scaleState);
+      renderChordChoiceButtons();
+    } else if (mode === "scale") {
+      clearRecognitionAdvance(intervalState);
+      clearRecognitionAdvance(chordState);
+      renderScaleChoiceButtons();
+    }
+  }
+
+  function wireAppModeTabs() {
+    el.modeTabProgression.addEventListener("click", () => setAppMode("progression"));
+    el.modeTabInterval.addEventListener("click", () => setAppMode("interval"));
+    el.modeTabChord.addEventListener("click", () => setAppMode("chord"));
+    el.modeTabScale.addEventListener("click", () => setAppMode("scale"));
+  }
+
+  // ----- Wiring (chord progression + global init) -----
   el.initBtn.addEventListener("click", initAudio);
   el.generateBtn.addEventListener("click", () => generateNew(true));
   el.playBtn.addEventListener("click", play);
@@ -2643,7 +5069,9 @@
   });
   el.chromaticRange.addEventListener("change", () => generateNew(false));
 
-  el.examModeBtn.addEventListener("click", () => ExamController.openSetup());
+  el.examModeBtn.addEventListener("click", () => {
+    if (!exam.active) ExamController.openSetup();
+  });
   el.examSetupCancelBtn.addEventListener("click", () => ExamController.closeSetup());
   el.examBeginBtn.addEventListener("click", () => ExamController.begin());
   el.examSubmitBtn.addEventListener("click", () => ExamController.submitAnswer());
@@ -2659,7 +5087,11 @@
   syncLabels();
   syncExtensionSettingsUi();
   syncPracticeSettingsVisibility();
-  syncSessionAudioUi();
+  wireIntervalRecognition();
+  wireChordRecognition();
+  wireScaleRecognition();
+  wireAppModeTabs();
+  syncAllAudioUi();
   renderSessionScore();
   generateNew(false);
   setStatus("Press Initialize Audio to begin.");
