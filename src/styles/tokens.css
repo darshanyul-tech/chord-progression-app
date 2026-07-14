@@ -1,0 +1,23 @@
+/* Ported verbatim from legacy/jazz-progression-trainer-rhythm.html :root (00-overview §3 D8, 02-ui-shell §5) */
+:root {
+  color-scheme: light;
+  --ecu-teal: #005f6b;
+  --ecu-teal-light: #e8f0f1;
+  --ecu-teal-dark: #004a54;
+  --ecu-black: #000000;
+  --ecu-white: #ffffff;
+  --bg-1: #ffffff;
+  --bg-2: #f7f7f7;
+  --panel: #ffffff;
+  --panel-2: #fafafa;
+  --text: #000000;
+  --muted: #5a5a5a;
+  --accent: #005f6b;
+  --accent-2: #004a54;
+  --accent-outer: #000000;
+  --danger: #c0392b;
+  --warn: #9a6b00;
+  --border: #d8d8d8;
+  --bar: #f0f0f0;
+  --bar-active: #005f6b;
+}
