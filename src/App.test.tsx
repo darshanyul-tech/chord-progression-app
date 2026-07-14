@@ -7,8 +7,8 @@ describe('App shell', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: 'Ear Trainer' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
-    // Default topic (chord-progressions) is still a placeholder in Phase 1.
-    expect(screen.getByRole('heading', { name: 'Chord Progressions' })).toBeInTheDocument();
+    // Default topic is chord-progressions; its Settings card confirms it rendered.
+    expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();
   });
 
   it('marks exactly one syllabus entry as the active topic', () => {

@@ -2,6 +2,7 @@ import type { ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
+import { ProgressionTopic } from './progression/ProgressionTopic';
 import { ScaleTopic } from './scale/ScaleTopic';
 
 export type CategoryId =
@@ -89,7 +90,13 @@ export const TOPICS: TopicDefinition[] = [
   { id: 'two-part-rhythm-dictation', title: 'Two-Part Rhythm Dictation', category: 'rhythm', status: 'placeholder' },
 
   // Harmony & Form
-  { id: 'chord-progressions', title: 'Chord Progressions', category: 'harmony-form', status: 'placeholder' },
+  {
+    id: 'chord-progressions',
+    title: 'Chord Progressions',
+    category: 'harmony-form',
+    status: 'active',
+    Component: ProgressionTopic,
+  },
   { id: 'nashville-numbers', title: 'Nashville Numbers', category: 'harmony-form', status: 'placeholder' },
   { id: 'modulation', title: 'Modulation', category: 'harmony-form', status: 'placeholder' },
   { id: 'phrase-structure-form', title: 'Phrase Structure & Form', category: 'harmony-form', status: 'placeholder' },
