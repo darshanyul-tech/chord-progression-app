@@ -13,10 +13,13 @@ body {
   min-height: 100vh;
 }
 
-/* generalized from legacy body.rhythm-active (02-ui-shell §6) */
+/* generalized from legacy body.rhythm-active (02-ui-shell §6).
+   Only the page background flips — every topic's actual content lives
+   inside .card (always white) or shell chrome that sets its own explicit
+   colors (header/footer below), so cascading `color` from body here would
+   turn card text invisible (white-on-white) for no reason. */
 body.theme-dark {
   background: #000000;
-  color: var(--ecu-white);
 }
 
 .container {

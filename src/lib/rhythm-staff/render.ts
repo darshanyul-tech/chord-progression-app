@@ -1,9 +1,13 @@
-import { BAR_BOTTOM, BAR_TOP, LINE_Y, NOTE_Y, STAFF_LEFT, STAFF_RIGHT, measureWidth, noteX, sortNotes, type Measure } from '../rhythm/time';
-import { RD_COL, drawNotehead, drawRest, svgEl } from './glyphs';
+import { Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow';
+import { sortNotes, type Measure } from '../rhythm/time';
+import { vexDurationFor } from './vexDuration';
 
-// Ported verbatim from legacy renderStaff()/drawMeasureNotes()
-// (lines ~6211-6310, docs/04-notation-engine.md Part A). Parameterized
-// into an explicit model per the doc's allowance (only Tier-1 change).
+// Rhythm staff rendering via VexFlow (replaces the legacy hand-drawn SVG
+// glyphs — professional engraving instead of hand-built ellipse/line paths).
+// Model-parameterized imperative render: renderStaff(container, model)
+// rebuilds the whole scene from scratch each call (04-notation-engine.md
+// Part A's imperative-island pattern; Part B4's reveal-as-second-voice
+// convention reused here for consistency).
 
 export interface RhythmStaffModel {
   beatsPerBar: number;
@@ -18,95 +22,130 @@ export interface RhythmStaffModel {
   playbackFraction: number | null;
 }
 
-export function drawMeasureNotes(
-  g: SVGElement,
-  notes: Measure,
-  measureIndex: number,
-  numMeasures: number,
-  measureTotalBeats: number,
-  color: string,
-  yOffset: number,
-): void {
-  const y = NOTE_Y + (yOffset || 0);
-  sortNotes(notes).forEach((n) => {
-    const x = noteX(measureIndex, n.beat, numMeasures, measureTotalBeats);
-    if (n.isRest) drawRest(g, x, y, n.duration, color);
-    else drawNotehead(g, x, y, n.duration, color);
+const CANVAS_WIDTH = 1000;
+const CANVAS_HEIGHT = 200;
+const MARGIN_LEFT = 10;
+const MARGIN_RIGHT = 10;
+const STAVE_Y = 40;
+const REST_KEY = 'b/4';
+
+export const WRONG_COLOR = '#b3261e';
+export const OK_COLOR = '#000000';
+export const CURSOR_COLOR = '#005f6b';
+
+function buildStaveNotes(notes: Measure): StaveNote[] {
+  const sorted = sortNotes(notes);
+  return sorted.map((n) => {
+    const { duration, dots } = vexDurationFor(n.duration);
+    const note = new StaveNote({
+      keys: [REST_KEY],
+      duration: n.isRest ? `${duration}r` : duration,
+      autoStem: !n.isRest,
+    });
+    if (dots > 0) Dot.buildAndAttach([note], { all: true });
+    return note;
   });
 }
 
-export function renderStaff(svg: SVGSVGElement, model: RhythmStaffModel): void {
-  while (svg.firstChild) svg.removeChild(svg.firstChild);
+function drawMeasureVoice(
+  context: ReturnType<Renderer['getContext']>,
+  stave: Stave,
+  notes: Measure,
+  measureTotalBeats: number,
+  style?: { fillStyle: string; strokeStyle: string },
+): void {
+  if (!notes.length) return;
+  const staveNotes = buildStaveNotes(notes);
+  if (style) staveNotes.forEach((n) => n.setStyle(style));
+  const voice = new Voice({ numBeats: measureTotalBeats, beatValue: 4 });
+  voice.setMode(Voice.Mode.SOFT);
+  voice.addTickables(staveNotes);
+  new Formatter().joinVoices([voice]).format([voice], Math.max(20, stave.getNoteEndX() - stave.getNoteStartX() - 20));
+  voice.draw(context, stave);
+  const beamable = staveNotes.filter((n) => !n.isRest());
+  if (beamable.length > 1) {
+    Beam.generateBeams(beamable).forEach((b) => {
+      if (style) b.setStyle(style);
+      b.setContext(context).draw();
+    });
+  }
+}
 
+export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel): void {
+  container.innerHTML = '';
   const { beatsPerBar, beatValue, numMeasures, measures, hasSubmitted, measureResults, correctPattern, flashMeasure, playbackFraction } =
     model;
   const measureTotalBeats = beatsPerBar * (4 / beatValue);
 
-  svg.appendChild(svgEl('rect', { x: 46, y: BAR_TOP, width: 6, height: BAR_BOTTOM - BAR_TOP, fill: RD_COL.ink }));
-  svg.appendChild(svgEl('rect', { x: 56, y: BAR_TOP, width: 6, height: BAR_BOTTOM - BAR_TOP, fill: RD_COL.ink }));
+  const renderer = new Renderer(container, Renderer.Backends.SVG);
+  renderer.resize(CANVAS_WIDTH, CANVAS_HEIGHT);
+  const context = renderer.getContext();
 
-  const numText = svgEl('text', {
-    x: 92, y: LINE_Y - 4, 'font-size': 38, 'font-family': "Georgia, 'Times New Roman', serif",
-    fill: RD_COL.ink, 'text-anchor': 'middle', 'font-weight': '700',
-  });
-  numText.textContent = String(beatsPerBar);
-  svg.appendChild(numText);
-  const denText = svgEl('text', {
-    x: 92, y: LINE_Y + 30, 'font-size': 38, 'font-family': "Georgia, 'Times New Roman', serif",
-    fill: RD_COL.ink, 'text-anchor': 'middle', 'font-weight': '700',
-  });
-  denText.textContent = String(beatValue);
-  svg.appendChild(denText);
+  const staveWidth = (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) / numMeasures;
+  const staves: Stave[] = [];
 
-  svg.appendChild(svgEl('line', { x1: 72, y1: LINE_Y, x2: STAFF_RIGHT, y2: LINE_Y, stroke: RD_COL.staff, 'stroke-width': 2 }));
-
-  const mw = measureWidth(numMeasures);
-  for (let m = 0; m <= numMeasures; m++) {
-    const x = STAFF_LEFT + m * mw;
-    const isFinal = m === numMeasures;
-    svg.appendChild(svgEl('line', { x1: x, y1: BAR_TOP, x2: x, y2: BAR_BOTTOM, stroke: RD_COL.line, 'stroke-width': isFinal ? 3 : 1.2 }));
-    if (isFinal) {
-      svg.appendChild(svgEl('line', { x1: x - 5, y1: BAR_TOP, x2: x - 5, y2: BAR_BOTTOM, stroke: RD_COL.line, 'stroke-width': 1.2 }));
+  for (let mi = 0; mi < numMeasures; mi++) {
+    const x = MARGIN_LEFT + mi * staveWidth;
+    const stave = new Stave(x, STAVE_Y, staveWidth, { numLines: 1 });
+    if (mi === 0) {
+      stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
     }
-  }
+    if (flashMeasure === mi) {
+      stave.setStyle({ fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR });
+    }
+    stave.setContext(context).draw();
+    staves.push(stave);
 
-  if (flashMeasure !== null) {
-    const fx = STAFF_LEFT + flashMeasure * mw;
-    svg.appendChild(svgEl('rect', { x: fx, y: BAR_TOP - 4, width: mw, height: BAR_BOTTOM - BAR_TOP + 8, fill: RD_COL.wrong, opacity: 0.08, rx: 2 }));
+    const userNotes = measures[mi] ?? [];
+    const ok = hasSubmitted ? measureResults[mi] : undefined;
+
+    if (hasSubmitted && !ok) {
+      // Reveal: user's answer (black) + correct pattern (contrasting red),
+      // both on the same stave (Part B4's two-voice reveal convention).
+      drawMeasureVoice(context, stave, userNotes, measureTotalBeats);
+      drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, {
+        fillStyle: WRONG_COLOR,
+        strokeStyle: WRONG_COLOR,
+      });
+    } else {
+      drawMeasureVoice(context, stave, userNotes, measureTotalBeats);
+    }
+
+    if (hasSubmitted && ok) {
+      const cx = stave.getNoteEndX() - 10;
+      context.save();
+      context.setFillStyle(OK_COLOR);
+      context.beginPath();
+      context.arc(cx, STAVE_Y - 14, 7, 0, Math.PI * 2, false);
+      context.fill();
+      context.setFillStyle('#fff');
+      context.setFont('Arial', 10, 'bold');
+      context.fillText('✓', cx - 4, STAVE_Y - 10);
+      context.restore();
+    }
   }
 
   if (playbackFraction !== null) {
-    const cx = STAFF_LEFT + playbackFraction * (STAFF_RIGHT - STAFF_LEFT);
-    svg.appendChild(svgEl('line', { x1: cx, y1: BAR_TOP - 6, x2: cx, y2: BAR_BOTTOM + 6, stroke: RD_COL.cursor, 'stroke-width': 1.5, opacity: 0.75 }));
+    const cx = MARGIN_LEFT + playbackFraction * (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT);
+    context.save();
+    context.setStrokeStyle(CURSOR_COLOR);
+    context.setLineWidth(1.5);
+    context.beginPath();
+    context.moveTo(cx, STAVE_Y - 10);
+    context.lineTo(cx, STAVE_Y + 50);
+    context.stroke();
+    context.restore();
   }
 
-  if (!hasSubmitted) {
-    for (let mi = 0; mi < numMeasures; mi++) {
-      if (!(measures[mi] || []).length) {
-        const cx = STAFF_LEFT + mi * mw + mw / 2;
-        svg.appendChild(svgEl('rect', { x: cx - 8, y: LINE_Y - 22, width: 16, height: 5, fill: RD_COL.ink, opacity: 0.22, rx: 0.5 }));
-      }
-    }
-  }
-
-  measures.forEach((notes, mi) => {
-    drawMeasureNotes(svg, notes, mi, numMeasures, measureTotalBeats, RD_COL.ink, 0);
-  });
-
-  if (hasSubmitted) {
-    measures.forEach((_notes, mi) => {
-      const ok = measureResults[mi];
-      const mx = STAFF_LEFT + mi * mw + mw - 16;
-      if (ok) {
-        const tickG = svgEl('g', {});
-        tickG.appendChild(svgEl('circle', { cx: mx, cy: LINE_Y - 14, r: 7, fill: RD_COL.ok }));
-        const t = svgEl('text', { x: mx, y: LINE_Y - 10, 'text-anchor': 'middle', fill: '#fff', 'font-size': 10, 'font-weight': '700' });
-        t.textContent = '✓';
-        tickG.appendChild(t);
-        svg.appendChild(tickG);
-      } else {
-        drawMeasureNotes(svg, correctPattern[mi] || [], mi, numMeasures, measureTotalBeats, RD_COL.wrong, -16);
-      }
-    });
+  const svg = container.querySelector('svg');
+  if (svg) {
+    svg.setAttribute('viewBox', `0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`);
+    svg.removeAttribute('width');
+    svg.removeAttribute('height');
+    // VexFlow's Renderer.resize() sets inline width/height styles, which
+    // beat any external stylesheet rule regardless of specificity — clear
+    // them so the CSS responsive sizing (width:100%; height:auto) applies.
+    svg.style.removeProperty('width');
+    svg.style.removeProperty('height');
   }
 }

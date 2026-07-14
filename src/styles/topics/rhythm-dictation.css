@@ -77,9 +77,13 @@
 }
 #rhythm-dictation-app #rd-staff-svg {
   width: 100%;
-  height: auto;
   min-height: 72px;
   cursor: crosshair;
+  display: block;
+}
+#rhythm-dictation-app #rd-staff-svg svg {
+  width: 100%;
+  height: auto;
   display: block;
 }
 #rhythm-dictation-app .rd-bottom-bar {
@@ -186,6 +190,12 @@
 #rhythm-dictation-app .rd-note-btn .rd-glyph {
   width: 34px;
   height: 46px;
+  display: block;
+  overflow: visible;
+}
+#rhythm-dictation-app .rd-glyph svg {
+  width: 100%;
+  height: 100%;
   display: block;
   overflow: visible;
 }

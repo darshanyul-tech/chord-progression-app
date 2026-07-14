@@ -18,7 +18,6 @@ import {
   measuresEqual,
   metricPulseBeats,
   metricPulseCount,
-  noteOverlaps,
   parseTimeSig,
   type Measure,
   type TimeSigInfo,
@@ -261,14 +260,27 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     const measure = userMeasures[measureIndex];
     if (!measure) return;
     const cap = timeSig.measureBeats;
-    if (!durationFitsBar(dur, cap) || beat + dur > cap + 0.001 || noteOverlaps(measure, beat, dur)) {
+    if (!durationFitsBar(dur, cap) || beat + dur > cap + 0.001) {
       setFlashMeasure(measureIndex);
       if (channelRef.current.flashTimer !== null) clearTimeout(channelRef.current.flashTimer);
       channelRef.current.flashTimer = window.setTimeout(() => setFlashMeasure(null), 280);
       return;
     }
-    setUserMeasures((prev) => prev.map((m, i) => (i === measureIndex ? [...m, { duration: dur, isRest: !!isRest, beat }] : m)));
-    setPlacementHistory((prev) => [...prev, { measureIndex, beat }]);
+    // Placing a note over existing ones replaces them — no need to
+    // backspace first (user-requested UX change from legacy's reject-and-
+    // flash-on-overlap behavior).
+    const end = beat + dur;
+    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
+    const replacedBeats = measure.filter(overlaps).map((n) => n.beat);
+    setUserMeasures((prev) =>
+      prev.map((m, i) =>
+        i === measureIndex ? [...m.filter((n) => !overlaps(n)), { duration: dur, isRest: !!isRest, beat }] : m,
+      ),
+    );
+    setPlacementHistory((prev) => [
+      ...prev.filter((p) => !(p.measureIndex === measureIndex && replacedBeats.some((b) => durationClose(b, p.beat)))),
+      { measureIndex, beat },
+    ]);
     setActiveMeasureIndex(measureIndex);
   }
 
