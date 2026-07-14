@@ -1,19 +1,31 @@
-import type { ComponentType } from 'react';
+import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
 import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { IntervalRecognitionExam } from './interval/examType';
-import { MelodicDictationTopic } from './melodic-dictation/MelodicDictationTopic';
 import { MelodicDictationExam } from './melodic-dictation/examType';
 import { MeterTopic } from './meter/MeterTopic';
 import { MeterRecognitionExam } from './meter/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
 import { ProgressionRecognitionExam } from './progression/examType';
-import { RhythmDictationTopic } from './rhythm-dictation/RhythmDictationTopic';
 import { RhythmDictationExam } from './rhythm-dictation/examType';
 import { ScaleTopic } from './scale/ScaleTopic';
 import { ScaleRecognitionExam } from './scale/examType';
+
+// Splits each topic's Tier-2 UI (React/CSS) into its own chunk. Note this
+// does NOT move VexFlow itself out of the main bundle — both topics' exam
+// types are still imported eagerly below (registry.examTypes needs them
+// synchronously for ExamSetup), and those pull in VexStaffHost/
+// RhythmStaffHost regardless of whether the topic Component is lazy.
+// Deferring VexFlow fully would require making examTypes itself async,
+// which is a larger change than Phase 9's bundle check calls for here.
+const MelodicDictationTopic = lazy(() =>
+  import('./melodic-dictation/MelodicDictationTopic').then((m) => ({ default: m.MelodicDictationTopic })),
+);
+const RhythmDictationTopic = lazy(() =>
+  import('./rhythm-dictation/RhythmDictationTopic').then((m) => ({ default: m.RhythmDictationTopic })),
+);
 
 export type CategoryId =
   | 'intervals-scales'

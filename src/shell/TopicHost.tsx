@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { getTopic, TOPICS } from '../topics/registry';
 import { useUIStore } from '../state/ui';
 import { PlaceholderView } from './PlaceholderView';
@@ -32,7 +32,11 @@ export function TopicHost({ activeId }: { activeId: string }) {
           className="topic-view"
           style={{ display: t.id === activeId ? undefined : 'none' }}
         >
-          {t.Component ? <t.Component /> : null}
+          {t.Component ? (
+            <Suspense fallback={<p className="sub">Loading…</p>}>
+              <t.Component />
+            </Suspense>
+          ) : null}
         </div>
       ))}
       {currentTopic?.status === 'placeholder' && (
