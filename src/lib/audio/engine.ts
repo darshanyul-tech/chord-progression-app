@@ -65,4 +65,12 @@ export const audio = {
   now(): number {
     return Tone.now();
   },
+  /**
+   * The single shared raw AudioContext. Rhythm/meter percussion synthesis
+   * schedules directly on this (not a second `new AudioContext()`) so a
+   * single user-gesture unlock covers the whole app (03-audio-engine.md §4).
+   */
+  rawContext(): BaseAudioContext {
+    return Tone.getContext().rawContext as unknown as BaseAudioContext;
+  },
 };

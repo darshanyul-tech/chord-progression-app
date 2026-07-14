@@ -3,6 +3,7 @@ import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { ProgressionTopic } from './progression/ProgressionTopic';
+import { RhythmDictationTopic } from './rhythm-dictation/RhythmDictationTopic';
 import { ScaleTopic } from './scale/ScaleTopic';
 
 export type CategoryId =
@@ -83,7 +84,14 @@ export const TOPICS: TopicDefinition[] = [
 
   // Rhythm
   { id: 'meter-recognition', title: 'Meter Recognition', category: 'rhythm', status: 'placeholder', theme: 'light' },
-  { id: 'rhythm-dictation', title: 'Rhythm Dictation', category: 'rhythm', status: 'placeholder', theme: 'dark' },
+  {
+    id: 'rhythm-dictation',
+    title: 'Rhythm Dictation',
+    category: 'rhythm',
+    status: 'active',
+    theme: 'dark',
+    Component: RhythmDictationTopic,
+  },
   { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder' },
   { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder' },
   { id: 'rhythm-styles', title: 'Rhythm Styles', category: 'rhythm', status: 'placeholder' },
