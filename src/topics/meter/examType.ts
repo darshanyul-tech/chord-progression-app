@@ -25,48 +25,29 @@ function buildPaper(settings: Record<string, number>): RecognitionExamQuestion[]
   return questions;
 }
 
-async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
   const q = question as unknown as MeterQuestion;
-  await playRepetitions(
-    () =>
-      withEarlyAbort(ctx.channel, ctx.aborted, () => {
-        return new Promise((resolve) => {
-          if (audio.status !== 'ready') {
-            resolve();
-            return;
-          }
-          const rawCtx = audio.rawContext();
-          if (rawCtx.state === 'suspended' && 'resume' in rawCtx) (rawCtx as AudioContext).resume();
-          const pulse = metricPulseBeats(q.timeSig.beatValue, q.timeSig.beatsPerBar);
-          const { events, totalDuration } = buildPlaybackEvents(
-            q.pattern,
-            q.tempo,
-            q.timeSig.measureBeats,
-            pulse,
-            q.numMeasures,
-          );
-          const startAt = rawCtx.currentTime + SILENT_LEAD_IN_SEC;
-          events.forEach((ev) => {
-            scheduleNote(
-              rawCtx,
-              startAt + ev.time,
-              ev.duration,
-              ev.isRest,
-              ev.isBeat1,
-              q.sound,
-              q.tempo,
-              q.emphasisValue,
-              ctx.channel.scheduledNodes,
-            );
-          });
-          window.setTimeout(() => resolve(), (SILENT_LEAD_IN_SEC + totalDuration + 0.15) * 1000);
-        });
-      }),
-    ctx.typeConfig.reps,
-    ctx.typeConfig.spacingSec,
-    ctx.aborted,
-    ctx.onPhase,
-  );
+  return withEarlyAbort(ctx.channel, ctx.aborted, () => {
+    return new Promise((resolve) => {
+      if (audio.status !== 'ready') {
+        resolve();
+        return;
+      }
+      const rawCtx = audio.rawContext();
+      if (rawCtx.state === 'suspended' && 'resume' in rawCtx) (rawCtx as AudioContext).resume();
+      const pulse = metricPulseBeats(q.timeSig.beatValue, q.timeSig.beatsPerBar);
+      const { events, totalDuration } = buildPlaybackEvents(q.pattern, q.tempo, q.timeSig.measureBeats, pulse, q.numMeasures);
+      const startAt = rawCtx.currentTime + SILENT_LEAD_IN_SEC;
+      events.forEach((ev) => {
+        scheduleNote(rawCtx, startAt + ev.time, ev.duration, ev.isRest, ev.isBeat1, q.sound, q.tempo, q.emphasisValue, ctx.channel.scheduledNodes);
+      });
+      window.setTimeout(() => resolve(), (SILENT_LEAD_IN_SEC + totalDuration + 0.15) * 1000);
+    });
+  });
+}
+
+async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+  await playRepetitions(() => playOnce(question, ctx), ctx.typeConfig.reps, ctx.typeConfig.spacingSec, ctx.aborted, ctx.onPhase);
 }
 
 export const MeterRecognitionExam: ExamTypeDefinition = {
@@ -79,6 +60,7 @@ export const MeterRecognitionExam: ExamTypeDefinition = {
   buildPaper,
   ChoicesComponent: ExamChoicePicker,
   playQuestion,
+  replayQuestion: playOnce,
   gradeQuestion(question, answer) {
     return gradeRecognitionSingle(question, answer as { guessId: string | null; guessLabel: string } | null);
   },

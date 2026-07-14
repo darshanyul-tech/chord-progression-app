@@ -18,18 +18,16 @@ function buildPaper(settings: Record<string, number>): RecognitionExamQuestion[]
   return questions;
 }
 
-async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
   const rootMidi = question.rootMidi as number;
   const intervals = question.intervals as number[];
   const playback = question.playback as { noteLen: number; gap: number; descend: boolean };
   const midis = buildScalePlaybackMidis(rootMidi, intervals, playback.descend);
-  await playRepetitions(
-    () => playNoteSequence(audio.sampler, ctx.channel, audio.now(), midis, playback.noteLen, playback.gap, ctx.aborted),
-    ctx.typeConfig.reps,
-    ctx.typeConfig.spacingSec,
-    ctx.aborted,
-    ctx.onPhase,
-  );
+  return playNoteSequence(audio.sampler, ctx.channel, audio.now(), midis, playback.noteLen, playback.gap, ctx.aborted);
+}
+
+async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+  await playRepetitions(() => playOnce(question, ctx), ctx.typeConfig.reps, ctx.typeConfig.spacingSec, ctx.aborted, ctx.onPhase);
 }
 
 export const ScaleRecognitionExam: ExamTypeDefinition = {
@@ -42,6 +40,7 @@ export const ScaleRecognitionExam: ExamTypeDefinition = {
   buildPaper,
   ChoicesComponent: ExamChoicePicker,
   playQuestion,
+  replayQuestion: playOnce,
   gradeQuestion(question, answer) {
     return gradeRecognitionSingle(question, answer as { guessId: string | null; guessLabel: string } | null);
   },

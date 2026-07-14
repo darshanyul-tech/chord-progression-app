@@ -19,7 +19,7 @@ function buildPaper(settings: Record<string, number>): RecognitionExamQuestion[]
   return questions;
 }
 
-async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+async function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
   const rootMidi = question.rootMidi as number;
   const quality = question.quality as string;
   const playback = question.playback as {
@@ -29,34 +29,15 @@ async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayCont
     arpGap: number;
   };
   const midis = getChordRecognitionMidis(rootMidi, quality);
-  await playRepetitions(
-    async () => {
-      if (playback.style === 'arp') {
-        await playNoteSequence(
-          audio.sampler,
-          ctx.channel,
-          audio.now(),
-          midis,
-          playback.arpNoteLen,
-          playback.arpGap,
-          ctx.aborted,
-        );
-      } else {
-        await playChordBlock(
-          audio.sampler,
-          ctx.channel,
-          audio.now(),
-          midis.map(midiToNoteName),
-          playback.holdLen,
-          ctx.aborted,
-        );
-      }
-    },
-    ctx.typeConfig.reps,
-    ctx.typeConfig.spacingSec,
-    ctx.aborted,
-    ctx.onPhase,
-  );
+  if (playback.style === 'arp') {
+    await playNoteSequence(audio.sampler, ctx.channel, audio.now(), midis, playback.arpNoteLen, playback.arpGap, ctx.aborted);
+  } else {
+    await playChordBlock(audio.sampler, ctx.channel, audio.now(), midis.map(midiToNoteName), playback.holdLen, ctx.aborted);
+  }
+}
+
+async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+  await playRepetitions(() => playOnce(question, ctx), ctx.typeConfig.reps, ctx.typeConfig.spacingSec, ctx.aborted, ctx.onPhase);
 }
 
 export const ChordRecognitionExam: ExamTypeDefinition = {
@@ -69,6 +50,7 @@ export const ChordRecognitionExam: ExamTypeDefinition = {
   buildPaper,
   ChoicesComponent: ExamChoicePicker,
   playQuestion,
+  replayQuestion: playOnce,
   gradeQuestion(question, answer) {
     return gradeRecognitionSingle(question, answer as { guessId: string | null; guessLabel: string } | null);
   },

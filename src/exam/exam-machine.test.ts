@@ -4,11 +4,42 @@ import {
   delaySec,
   gradeRecognitionSingle,
   playRepetitions,
+  summarizeDictationResults,
   summarizeExamResults,
+  type DictationExamType,
   type EnabledExamType,
   type ExamAnswerRecord,
 } from './exam-machine';
 import type { ExamTypeDefinition, RecognitionExamQuestion } from './types';
+
+function record(typeId: string, perfect: boolean): ExamAnswerRecord {
+  return {
+    kind: 'recognition',
+    question: { typeId },
+    type: makeType(typeId, 1),
+    answer: null,
+    graded: { correctUnits: perfect ? 1 : 0, totalUnits: 1, perfect, results: [] },
+    timedOut: false,
+    submittedEarly: false,
+  };
+}
+
+function makeDictationType(id: string): DictationExamType {
+  return {
+    kind: 'dictation',
+    id,
+    label: `${id} label`,
+    originTopicId: id,
+    settingsSchema: [],
+    buildPaper: () => [{ typeId: id }],
+    AnswerComponent: () => null,
+    ResultComponent: () => null,
+    playQuestion: async () => {},
+    replayQuestion: async () => {},
+    gradeQuestion: () => ({ matched: false }),
+    formatQuestionTitle: (_q, i, total) => `Q${i + 1}/${total}`,
+  };
+}
 
 function makeType(id: string, count: number): ExamTypeDefinition & { kind: 'recognition' } {
   return {
@@ -25,6 +56,7 @@ function makeType(id: string, count: number): ExamTypeDefinition & { kind: 'reco
       })),
     ChoicesComponent: () => null,
     playQuestion: async () => {},
+    replayQuestion: async () => {},
     gradeQuestion: (question, answer) =>
       gradeRecognitionSingle(question, answer as { guessId: string | null; guessLabel: string } | null),
     formatQuestionTitle: (_q, i, total) => `Q${i + 1}/${total}`,
@@ -35,8 +67,8 @@ function makeType(id: string, count: number): ExamTypeDefinition & { kind: 'reco
 describe('buildMixedExamPaper', () => {
   it('builds every enabled type paper and merges them', () => {
     const enabled: EnabledExamType[] = [
-      { type: makeType('a', 3), settings: { count: 3 } },
-      { type: makeType('b', 2), settings: { count: 2 } },
+      { kind: 'recognition', type: makeType('a', 3), settings: { count: 3 } },
+      { kind: 'recognition', type: makeType('b', 2), settings: { count: 2 } },
     ];
     const paper = buildMixedExamPaper(enabled);
     expect(paper).toHaveLength(5);
@@ -50,7 +82,7 @@ describe('buildMixedExamPaper', () => {
 
   it('stamps each question with the type and settings that built it', () => {
     const type = makeType('a', 2);
-    const paper = buildMixedExamPaper([{ type, settings: { count: 2 } }]);
+    const paper = buildMixedExamPaper([{ kind: 'recognition', type, settings: { count: 2 } }]);
     paper.forEach((entry) => {
       expect(entry.type).toBe(type);
       expect(entry.typeSettings).toEqual({ count: 2 });
@@ -82,16 +114,6 @@ describe('gradeRecognitionSingle', () => {
 });
 
 describe('summarizeExamResults', () => {
-  function record(typeId: string, perfect: boolean): ExamAnswerRecord {
-    return {
-      question: { typeId },
-      type: makeType(typeId, 1),
-      graded: { correctUnits: perfect ? 1 : 0, totalUnits: 1, perfect, results: [] },
-      timedOut: false,
-      submittedEarly: false,
-    };
-  }
-
   it('aggregates overall and per-type stats, preserving first-seen type order', () => {
     const answers = [record('b', true), record('a', false), record('a', true)];
     const summary = summarizeExamResults(answers);
@@ -105,6 +127,45 @@ describe('summarizeExamResults', () => {
   it('handles an empty exam without dividing by zero', () => {
     const summary = summarizeExamResults([]);
     expect(summary).toEqual({ perfectQuestions: 0, totalQuestions: 0, qPct: 0, byType: [] });
+  });
+
+  it('excludes dictation answers entirely — they never blend into recognition accuracy (§B3)', () => {
+    const dictationRecord: ExamAnswerRecord = {
+      kind: 'dictation',
+      question: { typeId: 'd' },
+      type: makeDictationType('d'),
+      answer: null,
+      graded: { matched: true },
+      timedOut: false,
+      submittedEarly: false,
+    };
+    const summary = summarizeExamResults([record('a', true), dictationRecord]);
+    expect(summary.totalQuestions).toBe(1);
+    expect(summary.byType.map((t) => t.label)).toEqual(['a label']);
+  });
+});
+
+describe('summarizeDictationResults', () => {
+  function dictationRecord(typeId: string, matched: boolean): ExamAnswerRecord {
+    return {
+      kind: 'dictation',
+      question: { typeId },
+      type: makeDictationType(typeId),
+      answer: null,
+      graded: { matched },
+      timedOut: false,
+      submittedEarly: false,
+    };
+  }
+
+  it('counts matched/total across dictation answers only, ignoring recognition ones', () => {
+    const answers = [dictationRecord('rhythmDictation', true), dictationRecord('rhythmDictation', false), record('a', true)];
+    const summary = summarizeDictationResults(answers);
+    expect(summary).toEqual({ matched: 1, total: 2 });
+  });
+
+  it('handles no dictation answers without dividing by zero', () => {
+    expect(summarizeDictationResults([record('a', true)])).toEqual({ matched: 0, total: 0 });
   });
 });
 

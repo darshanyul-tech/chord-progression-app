@@ -49,9 +49,12 @@ export function ExamRoute() {
         phaseLabel={machine.phaseLabel}
         remainingSec={machine.remainingSec}
         canSubmit={machine.canSubmit}
+        remainingReplays={machine.remainingReplays}
+        isReplaying={machine.isReplaying}
         answer={machine.currentAnswer}
         onAnswer={machine.setAnswer}
         onSubmit={machine.submitAnswer}
+        onReplay={machine.replay}
         onLeave={() => {
           machine.leave();
           goToLastTopic();
@@ -60,10 +63,11 @@ export function ExamRoute() {
     );
   }
 
-  if (machine.summary) {
+  if (machine.summary && machine.dictationSummary) {
     return (
       <ExamResults
         summary={machine.summary}
+        dictationSummary={machine.dictationSummary}
         answers={machine.answers}
         onRepeat={machine.repeat}
         onLeave={() => {

@@ -5,11 +5,13 @@ import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { IntervalRecognitionExam } from './interval/examType';
 import { MelodicDictationTopic } from './melodic-dictation/MelodicDictationTopic';
+import { MelodicDictationExam } from './melodic-dictation/examType';
 import { MeterTopic } from './meter/MeterTopic';
 import { MeterRecognitionExam } from './meter/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
 import { ProgressionRecognitionExam } from './progression/examType';
 import { RhythmDictationTopic } from './rhythm-dictation/RhythmDictationTopic';
+import { RhythmDictationExam } from './rhythm-dictation/examType';
 import { ScaleTopic } from './scale/ScaleTopic';
 import { ScaleRecognitionExam } from './scale/examType';
 
@@ -114,6 +116,7 @@ export const TOPICS: TopicDefinition[] = [
     status: 'active',
     theme: 'dark',
     Component: RhythmDictationTopic,
+    examTypes: [RhythmDictationExam],
   },
   { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder' },
   { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder' },
@@ -141,6 +144,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'pitch-melody',
     status: 'active',
     Component: MelodicDictationTopic,
+    examTypes: [MelodicDictationExam],
   },
   { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder' },
   { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder' },

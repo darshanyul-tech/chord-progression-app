@@ -33,19 +33,16 @@ function buildPaper(settings: Record<string, number>): RecognitionExamQuestion[]
   return questions;
 }
 
-async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
   const resolvedSettings = question.settings as ResolvedProgressionSettings;
   const progression = question.progression as ProgChord[];
-  await playRepetitions(
-    () =>
-      withEarlyAbort(ctx.channel, ctx.aborted, () =>
-        schedulePlayback(audio.sampler, ctx.channel, audio.now(), resolvedSettings, progression, {}),
-      ),
-    ctx.typeConfig.reps,
-    ctx.typeConfig.spacingSec,
-    ctx.aborted,
-    ctx.onPhase,
+  return withEarlyAbort(ctx.channel, ctx.aborted, () =>
+    schedulePlayback(audio.sampler, ctx.channel, audio.now(), resolvedSettings, progression, {}),
   );
+}
+
+async function playQuestion(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
+  await playRepetitions(() => playOnce(question, ctx), ctx.typeConfig.reps, ctx.typeConfig.spacingSec, ctx.aborted, ctx.onPhase);
 }
 
 function gradeQuestion(question: RecognitionExamQuestion, answer: unknown): GradedAnswer {
@@ -85,11 +82,13 @@ export const ProgressionRecognitionExam: ExamTypeDefinition = {
     { key: 'bars', label: 'Bars per progression', min: 2, max: 12, step: 1, default: 4 },
     { key: 'reps', label: 'Repetitions per question', min: 1, max: 5, step: 1, default: 2 },
     { key: 'spacingSec', label: 'Spacing between repetitions', min: 0, max: 15, step: 1, default: 3, suffix: 's' },
+    { key: 'replays', label: 'Replays after hearings', min: 0, max: 3, step: 1, default: 0 },
   ],
   setupHelp: 'Uses harmony and progression options from the Settings panel on the Chord Progressions topic.',
   buildPaper,
   ChoicesComponent: ProgressionExamAnswer,
   playQuestion,
+  replayQuestion: playOnce,
   gradeQuestion,
   formatQuestionTitle(question, index, total) {
     const s = question.settings as ResolvedProgressionSettings;

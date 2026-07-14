@@ -2,10 +2,13 @@ import { useRef, useState } from 'react';
 import {
   buildMixedExamPaper,
   EXAM_ANSWER_LIMIT_SEC,
+  EXAM_DICTATION_LIMIT_SEC,
+  summarizeDictationResults,
   summarizeExamResults,
+  type DictationSummary,
   type EnabledExamType,
   type ExamAnswerRecord,
-  type ExamPaperQuestion,
+  type ExamPaperEntry,
   type ExamSummary,
 } from './exam-machine';
 import { abortExamPlayback, createExamPlaybackChannel } from './playback';
@@ -17,25 +20,31 @@ import { audio } from '../lib/audio/engine';
 // non-reactive (question token, finalizing flag, channel, timers) lives in
 // refs, mirrored alongside the useState twins so async continuations never
 // read stale values (same "ref twin" pattern as topics/progression/usePractice.ts).
+// Phase 8 (§B3/B4) adds: dictation-kind questions (single hearing, 120s
+// answer window, matched/not-matched grading) and a shared replay budget
+// for both kinds during the answer window.
 export type ExamPhase = 'setup' | 'active' | 'results';
 
 export function useExamMachine() {
   const [phase, setPhase] = useState<ExamPhase>('setup');
-  const [paper, setPaper] = useState<ExamPaperQuestion[]>([]);
+  const [paper, setPaper] = useState<ExamPaperEntry[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<ExamAnswerRecord[]>([]);
   const [currentAnswer, setCurrentAnswer] = useState<unknown>(null);
   const [phaseLabel, setPhaseLabel] = useState('Preparing…');
   const [remainingSec, setRemainingSec] = useState<number | null>(null);
   const [canSubmit, setCanSubmit] = useState(false);
+  const [remainingReplays, setRemainingReplays] = useState(0);
+  const [isReplaying, setIsReplaying] = useState(false);
   const [setupError, setSetupError] = useState('');
   const [summary, setSummary] = useState<ExamSummary | null>(null);
+  const [dictationSummary, setDictationSummary] = useState<DictationSummary | null>(null);
 
   const channelRef = useRef(createExamPlaybackChannel());
   const questionTokenRef = useRef(0);
   const finalizingRef = useRef(false);
   const answerTimerRef = useRef<number | null>(null);
-  const paperRef = useRef<ExamPaperQuestion[]>([]);
+  const paperRef = useRef<ExamPaperEntry[]>([]);
   const answersRef = useRef<ExamAnswerRecord[]>([]);
   const currentAnswerRef = useRef<unknown>(null);
   const currentIndexRef = useRef(0);
@@ -53,11 +62,11 @@ export function useExamMachine() {
     setCurrentAnswer(value);
   }
 
-  function startAnswerTimer(token: number) {
+  function startAnswerTimer(token: number, limitSec: number) {
     stopAnswerTimer();
     setCanSubmit(true);
     finalizingRef.current = false;
-    let remaining = EXAM_ANSWER_LIMIT_SEC;
+    let remaining = limitSec;
     setRemainingSec(remaining);
     setPhaseLabel(`Submit your answer — ${remaining}s remaining (no feedback until the exam ends).`);
     answerTimerRef.current = window.setInterval(() => {
@@ -87,27 +96,42 @@ export function useExamMachine() {
     setCurrentIndex(index);
     setAnswer(null);
     setRemainingSec(null);
+    setRemainingReplays(0);
     const entry = p[index]!;
     const aborted = () => finalizingRef.current || questionTokenRef.current !== token;
+    const ctx = { typeConfig: entry.typeSettings, channel: channelRef.current, aborted, onPhase: setPhaseLabel };
 
-    setPhaseLabel(entry.type.formatQuestionTitle(entry.question, index, p.length));
     setCanSubmit(true);
+    setPhaseLabel(entry.type.formatQuestionTitle(entry.question, index, p.length));
+    await entry.type.playQuestion(entry.question, ctx);
 
-    await entry.type.playQuestion(entry.question, {
+    if (aborted()) return;
+    setRemainingReplays(entry.typeSettings.replays ?? 0);
+    startAnswerTimer(token, entry.kind === 'dictation' ? EXAM_DICTATION_LIMIT_SEC : EXAM_ANSWER_LIMIT_SEC);
+  }
+
+  async function replay(): Promise<void> {
+    if (remainingReplays <= 0 || isReplaying || finalizingRef.current) return;
+    const token = questionTokenRef.current;
+    const entry = paperRef.current[currentIndexRef.current];
+    if (!entry) return;
+    setIsReplaying(true);
+    setRemainingReplays((n) => n - 1);
+    const aborted = () => finalizingRef.current || questionTokenRef.current !== token;
+    await entry.type.replayQuestion(entry.question, {
       typeConfig: entry.typeSettings,
       channel: channelRef.current,
       aborted,
-      onPhase: setPhaseLabel,
+      onPhase: () => {},
     });
-
-    if (aborted()) return;
-    startAnswerTimer(token);
+    setIsReplaying(false);
   }
 
   function finish(finalAnswers: ExamAnswerRecord[]) {
     stopAnswerTimer();
     abortExamPlayback(channelRef.current, audio.sampler);
     setSummary(summarizeExamResults(finalAnswers));
+    setDictationSummary(summarizeDictationResults(finalAnswers));
     setPhase('results');
   }
 
@@ -123,14 +147,27 @@ export function useExamMachine() {
     const index = currentIndexRef.current;
     const p = paperRef.current;
     const entry = p[index]!;
-    const graded = entry.type.gradeQuestion(entry.question, currentAnswerRef.current);
-    const record: ExamAnswerRecord = {
-      question: entry.question,
-      type: entry.type,
-      graded,
-      timedOut: opts.timedOut,
-      submittedEarly: opts.submittedEarly,
-    };
+    const capturedAnswer = currentAnswerRef.current;
+    const record: ExamAnswerRecord =
+      entry.kind === 'recognition'
+        ? {
+            kind: 'recognition',
+            question: entry.question,
+            type: entry.type,
+            answer: capturedAnswer,
+            graded: entry.type.gradeQuestion(entry.question, capturedAnswer),
+            timedOut: opts.timedOut,
+            submittedEarly: opts.submittedEarly,
+          }
+        : {
+            kind: 'dictation',
+            question: entry.question,
+            type: entry.type,
+            answer: capturedAnswer,
+            graded: entry.type.gradeQuestion(entry.question, capturedAnswer),
+            timedOut: opts.timedOut,
+            submittedEarly: opts.submittedEarly,
+          };
     const nextAnswers = [...answersRef.current, record];
     answersRef.current = nextAnswers;
     setAnswers(nextAnswers);
@@ -174,6 +211,7 @@ export function useExamMachine() {
     answersRef.current = [];
     setAnswers([]);
     setSummary(null);
+    setDictationSummary(null);
     setPhase('active');
     await runQuestion(0);
   }
@@ -188,6 +226,7 @@ export function useExamMachine() {
     setPaper([]);
     setAnswers([]);
     setSummary(null);
+    setDictationSummary(null);
     setPhase('setup');
   }
 
@@ -203,12 +242,16 @@ export function useExamMachine() {
     phaseLabel,
     remainingSec,
     canSubmit,
+    remainingReplays,
+    isReplaying,
     setupError,
     summary,
+    dictationSummary,
     answers,
     setAnswer,
     begin,
     submitAnswer,
+    replay,
     leave,
     repeat,
   };
