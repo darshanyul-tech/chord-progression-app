@@ -1,4 +1,5 @@
 import type { Sampler } from 'tone';
+import { disconnectScheduled, type ScheduledNode } from '../lib/audio/percussion';
 import { scheduleSamplerTrigger, stopChannel, type PlaybackChannel } from '../lib/audio/playback';
 import { midiToNoteName } from '../lib/theory';
 
@@ -6,17 +7,21 @@ import { midiToNoteName } from '../lib/theory';
 // (docs/06-exam-mode.md §A). Exam mode gets its own PlaybackChannel instance
 // (per 03-audio-engine.md's channel pattern) plus a "pendingResolve" escape
 // hatch so "submit early" can resolve an in-flight hearing immediately
-// instead of waiting out its full duration.
+// instead of waiting out its full duration. `scheduledNodes` is only used by
+// raw-AudioContext exam types (meter recognition's percussion synthesis);
+// sampler-based types leave it empty.
 export interface ExamPlaybackChannel extends PlaybackChannel {
   pendingResolve: (() => void) | null;
+  scheduledNodes: ScheduledNode[];
 }
 
 export function createExamPlaybackChannel(): ExamPlaybackChannel {
-  return { playbackGen: 0, timers: [], isPlaying: false, pendingResolve: null };
+  return { playbackGen: 0, timers: [], isPlaying: false, pendingResolve: null, scheduledNodes: [] };
 }
 
 export function abortExamPlayback(channel: ExamPlaybackChannel, sampler: Sampler | null): void {
   stopChannel(channel, sampler);
+  disconnectScheduled(channel.scheduledNodes);
   const resolve = channel.pendingResolve;
   channel.pendingResolve = null;
   if (resolve) resolve();

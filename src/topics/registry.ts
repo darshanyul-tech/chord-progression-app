@@ -4,6 +4,8 @@ import { ChordTopic } from './chord/ChordTopic';
 import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { IntervalRecognitionExam } from './interval/examType';
+import { MeterTopic } from './meter/MeterTopic';
+import { MeterRecognitionExam } from './meter/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
 import { ProgressionRecognitionExam } from './progression/examType';
 import { RhythmDictationTopic } from './rhythm-dictation/RhythmDictationTopic';
@@ -96,7 +98,14 @@ export const TOPICS: TopicDefinition[] = [
   { id: 'chord-singing', title: 'Chord Singing', category: 'chords', status: 'placeholder' },
 
   // Rhythm
-  { id: 'meter-recognition', title: 'Meter Recognition', category: 'rhythm', status: 'placeholder', theme: 'light' },
+  {
+    id: 'meter-recognition',
+    title: 'Meter Recognition',
+    category: 'rhythm',
+    status: 'active',
+    Component: MeterTopic,
+    examTypes: [MeterRecognitionExam],
+  },
   {
     id: 'rhythm-dictation',
     title: 'Rhythm Dictation',

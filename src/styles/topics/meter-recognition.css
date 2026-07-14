@@ -1,0 +1,39 @@
+/* New topic (docs/05-topics/04-meter-recognition.md) — the answer grid and
+   prompt/score line reuse interval-recognition.css's classes wholesale (§5);
+   only the settings-panel controls below are specific to this topic. */
+
+.meter-sig-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.35rem;
+}
+.meter-sig-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-weight: 500;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.meter-sound-btn {
+  padding: 0.35rem 0.7rem;
+  margin: 0 0.4rem 0.4rem 0;
+  font-size: 0.85rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  cursor: pointer;
+  font-family: inherit;
+}
+.meter-sound-btn:hover {
+  border-color: var(--accent);
+}
+.meter-sound-btn.meter-sound-active {
+  background: var(--ecu-teal-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
