@@ -1,0 +1,15 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/samples/*", "/assets/*", "*.{css,js,map,mp3,svg,png,ico,txt}"]
+  },
+  "globalHeaders": {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin"
+  },
+  "routes": [
+    { "route": "/samples/*", "headers": { "Cache-Control": "public, max-age=31536000, immutable" } },
+    { "route": "/assets/*",  "headers": { "Cache-Control": "public, max-age=31536000, immutable" } }
+  ],
+  "mimeTypes": { ".mp3": "audio/mpeg" }
+}
