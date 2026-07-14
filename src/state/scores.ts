@@ -5,7 +5,9 @@ export interface TopicScore {
   total: number;
 }
 
-const EMPTY_SCORE: TopicScore = { correct: 0, total: 0 };
+// Stable reference — selectors must never fall back to a fresh object literal
+// (breaks useSyncExternalStore's reference-equality check -> infinite loop).
+export const EMPTY_SCORE: TopicScore = { correct: 0, total: 0 };
 
 interface ScoresState {
   scores: Record<string, TopicScore>;

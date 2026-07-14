@@ -8,6 +8,11 @@ export default mergeConfig(
       environment: 'happy-dom',
       globals: true,
       setupFiles: ['./src/test/setup.ts'],
+      server: {
+        // tone's ESM build uses extension-less relative imports; force it
+        // through Vite's resolver instead of Node's native ESM loader.
+        deps: { inline: ['tone'] },
+      },
     },
   }),
 )

@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
+import { IntervalTopic } from './interval/IntervalTopic';
 
 export type CategoryId =
   | 'intervals-scales'
@@ -51,7 +52,13 @@ export interface TopicDefinition {
 // implementation phase completes — see docs/08-implementation-plan.md.
 export const TOPICS: TopicDefinition[] = [
   // Intervals & Scales
-  { id: 'interval-recognition', title: 'Interval Recognition', category: 'intervals-scales', status: 'placeholder' },
+  {
+    id: 'interval-recognition',
+    title: 'Interval Recognition',
+    category: 'intervals-scales',
+    status: 'active',
+    Component: IntervalTopic,
+  },
   { id: 'scales', title: 'Scales', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
