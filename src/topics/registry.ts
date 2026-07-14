@@ -1,10 +1,14 @@
 import type { ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
+import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
+import { IntervalRecognitionExam } from './interval/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
+import { ProgressionRecognitionExam } from './progression/examType';
 import { RhythmDictationTopic } from './rhythm-dictation/RhythmDictationTopic';
 import { ScaleTopic } from './scale/ScaleTopic';
+import { ScaleRecognitionExam } from './scale/examType';
 
 export type CategoryId =
   | 'intervals-scales'
@@ -62,8 +66,16 @@ export const TOPICS: TopicDefinition[] = [
     category: 'intervals-scales',
     status: 'active',
     Component: IntervalTopic,
+    examTypes: [IntervalRecognitionExam],
   },
-  { id: 'scales', title: 'Scales', category: 'intervals-scales', status: 'active', Component: ScaleTopic },
+  {
+    id: 'scales',
+    title: 'Scales',
+    category: 'intervals-scales',
+    status: 'active',
+    Component: ScaleTopic,
+    examTypes: [ScaleRecognitionExam],
+  },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
   { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder' },
@@ -76,6 +88,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'chords',
     status: 'active',
     Component: ChordTopic,
+    examTypes: [ChordRecognitionExam],
   },
   { id: 'chord-comparison', title: 'Chord Comparison', category: 'chords', status: 'placeholder' },
   { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder' },
@@ -104,6 +117,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'harmony-form',
     status: 'active',
     Component: ProgressionTopic,
+    examTypes: [ProgressionRecognitionExam],
   },
   { id: 'nashville-numbers', title: 'Nashville Numbers', category: 'harmony-form', status: 'placeholder' },
   { id: 'modulation', title: 'Modulation', category: 'harmony-form', status: 'placeholder' },

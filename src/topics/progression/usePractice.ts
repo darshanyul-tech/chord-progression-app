@@ -31,7 +31,7 @@ interface BarResult {
   ok: boolean;
 }
 
-function defaultGuessRow(resolved: ResolvedProgressionSettings): GuessRowState {
+export function defaultGuessRow(resolved: ResolvedProgressionSettings): GuessRowState {
   const deg = degreeOptions(resolved)[0]!;
   const fam = familyOptions(resolved)[0]!;
   const ext = extensionOptions(resolved)[0]!;

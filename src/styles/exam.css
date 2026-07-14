@@ -1,0 +1,211 @@
+/* Ported from legacy .exam-* rules (docs/06-exam-mode.md §A). Legacy rendered
+   these as fixed-position modal overlays; here /exam is its own route
+   rendered in-flow inside <main>, so the overlay/backdrop rules are dropped
+   but the panel/content styling is kept faithful. */
+
+.exam-panel.wide {
+  max-width: 920px;
+}
+.exam-panel.exam-panel-setup {
+  max-width: 920px;
+}
+
+.exam-setup-grid {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+.exam-type-settings-grid.exam-setup-grid {
+  grid-template-columns: 1fr;
+}
+.exam-setup-grid .field {
+  min-width: 0;
+}
+.exam-types-container {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+@media (max-width: 640px) {
+  .exam-types-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+.exam-type-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.exam-type-block {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem 0.95rem;
+}
+.exam-type-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin: 0 0 0.65rem 0;
+  line-height: 1.35;
+}
+.exam-type-toggle input {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+}
+.exam-type-settings-wrap {
+  transition: opacity 0.15s ease;
+}
+.exam-type-settings-wrap.is-disabled {
+  opacity: 0.42;
+  pointer-events: none;
+}
+.exam-type-settings-grid {
+  margin-top: 0.15rem;
+}
+
+.exam-timer {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--warn);
+  font-variant-numeric: tabular-nums;
+  margin: 0.5rem 0 0.75rem 0;
+}
+.exam-progress {
+  color: var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin: 0 0 0.5rem 0;
+}
+.exam-phase {
+  color: var(--muted);
+  font-size: 0.92rem;
+  margin: 0 0 0.75rem 0;
+  min-height: 1.3rem;
+}
+
+.exam-summary-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.exam-stat {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  min-width: 120px;
+}
+.exam-stat .label {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.2rem;
+}
+.exam-stat .value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+
+.exam-result-list {
+  display: grid;
+  gap: 0.75rem;
+}
+.exam-result-card {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+.exam-result-card.perfect {
+  border-color: var(--accent);
+}
+.exam-result-card.partial {
+  border-color: var(--warn);
+}
+.exam-result-card.fail {
+  border-color: var(--danger);
+}
+.exam-result-card h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.95rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.exam-badge {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 6px;
+  font-weight: 700;
+}
+.exam-badge.ok {
+  background: var(--ecu-teal-light);
+  color: var(--accent);
+}
+.exam-badge.bad {
+  background: #fdecea;
+  color: var(--danger);
+}
+.exam-bar-compare {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+}
+.exam-bar-row {
+  display: grid;
+  grid-template-columns: 52px 1fr 1fr;
+  gap: 0.5rem;
+  align-items: start;
+}
+.exam-bar-row .hdr {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.72rem;
+}
+.exam-bar-row .you {
+  color: var(--text);
+}
+.exam-bar-row .actual {
+  color: var(--accent-2);
+}
+.exam-bar-row.miss .you {
+  color: var(--danger);
+}
+@media (max-width: 560px) {
+  .exam-bar-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.exam-rec-choice {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.exam-rec-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.exam-rec-choice.exam-pick-selected {
+  outline: 2px solid var(--accent);
+  background: var(--ecu-teal-light);
+}
