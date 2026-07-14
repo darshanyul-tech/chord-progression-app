@@ -1,6 +1,8 @@
 import type { ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
+import { ChordTopic } from './chord/ChordTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
+import { ScaleTopic } from './scale/ScaleTopic';
 
 export type CategoryId =
   | 'intervals-scales'
@@ -59,14 +61,20 @@ export const TOPICS: TopicDefinition[] = [
     status: 'active',
     Component: IntervalTopic,
   },
-  { id: 'scales', title: 'Scales', category: 'intervals-scales', status: 'placeholder' },
+  { id: 'scales', title: 'Scales', category: 'intervals-scales', status: 'active', Component: ScaleTopic },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
   { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder' },
   { id: 'tuning', title: 'Tuning', category: 'intervals-scales', status: 'placeholder' },
 
   // Chords
-  { id: 'chord-recognition', title: 'Chord Recognition', category: 'chords', status: 'placeholder' },
+  {
+    id: 'chord-recognition',
+    title: 'Chord Recognition',
+    category: 'chords',
+    status: 'active',
+    Component: ChordTopic,
+  },
   { id: 'chord-comparison', title: 'Chord Comparison', category: 'chords', status: 'placeholder' },
   { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder' },
   { id: 'jazz-chords', title: 'Jazz Chords', category: 'chords', status: 'placeholder' },

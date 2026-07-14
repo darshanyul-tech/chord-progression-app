@@ -1,0 +1,129 @@
+/* Ported from legacy <style> block (docs/05-topics/03-chord-recognition.md). */
+
+.chord-type-groups {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+.chord-type-group {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+.chord-type-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+.chord-type-group-header .chord-type-group-title {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+.chord-type-group-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.chord-type-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+}
+.chord-type-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.chord-answer-groups {
+  display: grid;
+  gap: 1rem;
+  margin-top: 0.65rem;
+}
+.chord-answer-group-title {
+  margin: 0 0 0.45rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.chord-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+.chord-choice {
+  flex: 1 1 118px;
+  min-width: 100px;
+  max-width: 200px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.25;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.chord-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.chord-choice:disabled {
+  cursor: default;
+  opacity: 0.88;
+}
+.chord-choice.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-2);
+}
+.chord-choice.wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
+.chord-choice.reveal-actual {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.chord-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+button.toggle-all-btn {
+  flex-shrink: 0;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+button.toggle-all-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
