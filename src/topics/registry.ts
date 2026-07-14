@@ -4,6 +4,7 @@ import { ChordTopic } from './chord/ChordTopic';
 import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { IntervalRecognitionExam } from './interval/examType';
+import { MelodicDictationTopic } from './melodic-dictation/MelodicDictationTopic';
 import { MeterTopic } from './meter/MeterTopic';
 import { MeterRecognitionExam } from './meter/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
@@ -134,7 +135,13 @@ export const TOPICS: TopicDefinition[] = [
   { id: 'jazz-forms', title: 'Jazz Forms', category: 'harmony-form', status: 'placeholder' },
 
   // Pitch & Melody
-  { id: 'melodic-dictation', title: 'Melodic Dictation', category: 'pitch-melody', status: 'placeholder', theme: 'light' },
+  {
+    id: 'melodic-dictation',
+    title: 'Melodic Dictation',
+    category: 'pitch-melody',
+    status: 'active',
+    Component: MelodicDictationTopic,
+  },
   { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder' },
   { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder' },
   { id: 'note-recognition', title: 'Note Recognition', category: 'pitch-melody', status: 'placeholder' },
