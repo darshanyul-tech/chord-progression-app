@@ -42,9 +42,11 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
     });
     return out;
   });
+  const [perTypeErrors, setPerTypeErrors] = useState<Record<string, string>>({});
 
   function toggle(id: string, enabled: boolean) {
     setConfigs((prev) => ({ ...prev, [id]: { ...prev[id]!, enabled } }));
+    setPerTypeErrors((prev) => (prev[id] ? { ...prev, [id]: '' } : prev));
   }
 
   function updateField(id: string, key: string, value: number) {
@@ -52,17 +54,32 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
       ...prev,
       [id]: { ...prev[id]!, settings: { ...prev[id]!.settings, [key]: value } },
     }));
+    setPerTypeErrors((prev) => (prev[id] ? { ...prev, [id]: '' } : prev));
   }
 
   function handleBegin() {
     setPersisted({ types: configs });
-    const enabled: EnabledExamType[] = examTypes
-      .filter((t) => configs[t.id]?.enabled)
-      .map((t) =>
-        t.kind === 'recognition'
-          ? { kind: 'recognition' as const, type: t, settings: configs[t.id]!.settings }
-          : { kind: 'dictation' as const, type: t, settings: configs[t.id]!.settings },
-      );
+    const enabledTypes = examTypes.filter((t) => configs[t.id]?.enabled);
+
+    // Probe each enabled type's own buildPaper before committing to the run
+    // (§B1) — an empty-settings topic (e.g. no time signatures enabled)
+    // used to only surface as a generic "could not build any questions"
+    // message at the bottom; this names which type(s) need attention.
+    const errors: Record<string, string> = {};
+    enabledTypes.forEach((t) => {
+      if (!t.buildPaper(configs[t.id]!.settings).length) {
+        const topicTitle = TOPICS.find((topic) => topic.id === t.originTopicId)?.title ?? t.label;
+        errors[t.id] = `${t.label} produced no questions — check its settings on the ${topicTitle} practice topic (e.g. at least one option enabled) and try again.`;
+      }
+    });
+    setPerTypeErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    const enabled: EnabledExamType[] = enabledTypes.map((t) =>
+      t.kind === 'recognition'
+        ? { kind: 'recognition' as const, type: t, settings: configs[t.id]!.settings }
+        : { kind: 'dictation' as const, type: t, settings: configs[t.id]!.settings },
+    );
     onBegin(enabled);
   }
 
@@ -108,6 +125,11 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
                   {t.setupHelp && (
                     <p className="help" style={{ marginTop: '0.45rem' }}>
                       {t.setupHelp}
+                    </p>
+                  )}
+                  {perTypeErrors[t.id] && (
+                    <p className="status error" style={{ marginTop: '0.45rem' }}>
+                      {perTypeErrors[t.id]}
                     </p>
                   )}
                 </div>

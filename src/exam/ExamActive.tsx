@@ -49,6 +49,9 @@ export function ExamActive({
       <p className="exam-progress">
         Question {index + 1} of {total}
       </p>
+      <div className="exam-progress-bar" role="progressbar" aria-valuenow={index + 1} aria-valuemin={1} aria-valuemax={total}>
+        <div className="exam-progress-bar-fill" style={{ width: `${((index + 1) / total) * 100}%` }} />
+      </div>
       <p className="exam-phase">{phaseLabel}</p>
       {remainingSec !== null && <p className="exam-timer">{formatCountdown(remainingSec)}</p>}
 

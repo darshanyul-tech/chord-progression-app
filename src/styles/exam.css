@@ -82,6 +82,19 @@
   font-variant-numeric: tabular-nums;
   margin: 0 0 0.5rem 0;
 }
+.exam-progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+  margin: 0 0 0.6rem 0;
+}
+.exam-progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
 .exam-phase {
   color: var(--muted);
   font-size: 0.92rem;
@@ -139,6 +152,11 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
+}
+.exam-result-replay {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.55rem;
+  margin-left: auto;
 }
 .exam-badge {
   font-size: 0.72rem;
