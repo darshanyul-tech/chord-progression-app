@@ -41,6 +41,9 @@ describe('buildVexScore smoke test', () => {
           revealMeasures: null,
           flashMeasure: i % 3 === 0 ? i % settings.measures : null,
           playbackFraction: i % 2 === 0 ? (i % 100) / 100 : null,
+          cursorMeasureIndex: 0,
+          cursorBeat: i % 4 === 0 ? (i % 4) : null,
+          cursorMidi: i % 5 === 0 ? 60 + (i % 12) : null,
         }),
       ).not.toThrow();
 
@@ -57,6 +60,9 @@ describe('buildVexScore smoke test', () => {
           revealMeasures: generated.measures,
           flashMeasure: null,
           playbackFraction: null,
+          cursorMeasureIndex: 0,
+          cursorBeat: null,
+          cursorMidi: null,
         }),
       ).not.toThrow();
     }
@@ -77,6 +83,9 @@ describe('buildVexScore smoke test', () => {
       revealMeasures: null,
       flashMeasure: null,
       playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
     });
     expect(geometry).toHaveLength(4);
     expect(geometry.map((g) => g.index)).toEqual([0, 1, 2, 3]);
@@ -97,6 +106,9 @@ describe('buildVexScore smoke test', () => {
       revealMeasures: null,
       flashMeasure: null,
       playbackFraction: 0.5,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
     });
     const svg = container.querySelector('svg')!;
     const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
@@ -118,6 +130,9 @@ describe('buildVexScore smoke test', () => {
       revealMeasures: null,
       flashMeasure: null,
       playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
     });
     const svg = container.querySelector('svg')!;
     const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
@@ -139,6 +154,9 @@ describe('buildVexScore smoke test', () => {
       revealMeasures: null,
       flashMeasure: 0,
       playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
     });
     const svg = container.querySelector('svg')!;
     // The color lands on the enclosing <g> (SVG stroke/fill are inherited by

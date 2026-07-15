@@ -61,6 +61,9 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
             revealMeasures: null,
             flashMeasure: null,
             playbackFraction: null,
+            cursorMeasureIndex: 0,
+            cursorBeat: null,
+            cursorMidi: null,
           }}
           gridStepVal={gridStepVal}
           armedDuration={armedDuration}
@@ -113,6 +116,9 @@ export function MelodicDictationResult({ question, answer }: ExamDictationResult
           revealMeasures: isCorrect ? null : q.measures,
           flashMeasure: null,
           playbackFraction: null,
+          cursorMeasureIndex: 0,
+          cursorBeat: null,
+          cursorMidi: null,
         }}
         gridStepVal={0.25}
         armedDuration={1}

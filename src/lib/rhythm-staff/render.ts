@@ -20,6 +20,10 @@ export interface RhythmStaffModel {
   flashMeasure: number | null;
   /** 0..1 playback cursor position across the whole staff, or null when not playing. */
   playbackFraction: number | null;
+  /** Measure the keyboard insertion cursor is in (usually the active measure). */
+  cursorMeasureIndex: number;
+  /** Beat position of the keyboard insertion cursor within cursorMeasureIndex, or null when the staff doesn't have keyboard focus (04-accessibility §14.1). */
+  cursorBeat: number | null;
 }
 
 const CANVAS_WIDTH = 1000;
@@ -34,6 +38,8 @@ export const OK_COLOR = '#000000';
 export const CURSOR_COLOR = '#005f6b';
 /** User's own (wrong) notes in a reveal, greyed so the red correct pattern reads as the answer, not a competing voice at the same y. */
 export const MUTED_COLOR = '#8a8a8a';
+/** Keyboard insertion-cursor highlight (distinct from the teal playback cursor). */
+export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
 
 function buildStaveNotes(notes: Measure): StaveNote[] {
   const sorted = sortNotes(notes);
@@ -75,8 +81,19 @@ function drawMeasureVoice(
 
 export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel): void {
   container.innerHTML = '';
-  const { beatsPerBar, beatValue, numMeasures, measures, hasSubmitted, measureResults, correctPattern, flashMeasure, playbackFraction } =
-    model;
+  const {
+    beatsPerBar,
+    beatValue,
+    numMeasures,
+    measures,
+    hasSubmitted,
+    measureResults,
+    correctPattern,
+    flashMeasure,
+    playbackFraction,
+    cursorMeasureIndex,
+    cursorBeat,
+  } = model;
   const measureTotalBeats = beatsPerBar * (4 / beatValue);
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
@@ -137,6 +154,21 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       context.fillText(ok ? '✓' : '✗', cx - 4, STAVE_Y - 10);
       context.restore();
     }
+  }
+
+  if (cursorBeat !== null && staves[cursorMeasureIndex]) {
+    const stave = staves[cursorMeasureIndex]!;
+    const rel = Math.max(0, Math.min(1, cursorBeat / measureTotalBeats));
+    const cx = stave.getNoteStartX() + rel * (stave.getNoteEndX() - stave.getNoteStartX());
+    context.save();
+    context.setFillStyle(KEYBOARD_CURSOR_COLOR);
+    context.beginPath();
+    context.moveTo(cx - 5, STAVE_Y - 12);
+    context.lineTo(cx + 5, STAVE_Y - 12);
+    context.lineTo(cx, STAVE_Y - 4);
+    context.closePath();
+    context.fill();
+    context.restore();
   }
 
   if (playbackFraction !== null) {

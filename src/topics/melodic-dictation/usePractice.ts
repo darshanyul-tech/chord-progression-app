@@ -75,6 +75,8 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [activeMeasureIndex, setActiveMeasureIndex] = useState(0);
+  const [cursorBeat, setCursorBeat] = useState<number | null>(null);
+  const [cursorMidi, setCursorMidi] = useState<number | null>(null);
   const [flashMeasure, setFlashMeasure] = useState<number | null>(null);
   const [placementHistory, setPlacementHistory] = useState<PlacementRecord[]>([]);
   const [armedDuration, setArmedDuration] = useState(1);
@@ -319,6 +321,64 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     if (!isRest && placedMidi !== null) previewPitch(placedMidi);
   }
 
+  // Keyboard placement fallback (09-improvement-plan.md §14.1): mirrors
+  // rhythm-dictation's insertion cursor, plus a pitch dimension (Up/Down
+  // select a staff line before Enter commits, per the plan's melodic note).
+  function moveCursorBeat(delta: number) {
+    if (hasSubmitted) return;
+    setCursorBeat((prev) => {
+      const cur = prev ?? 0;
+      const cap = timeSig.measureBeats;
+      const next = cur + delta * gridStepVal;
+      if (next < -0.001) {
+        const prevIndex = activeMeasureIndex - 1;
+        if (prevIndex >= 0) {
+          setActiveMeasureIndex(prevIndex);
+          return Math.max(0, cap - gridStepVal);
+        }
+        return 0;
+      }
+      if (next > cap - gridStepVal + 0.001) {
+        const nextIndex = activeMeasureIndex + 1;
+        if (nextIndex < numMeasures) {
+          setActiveMeasureIndex(nextIndex);
+          return 0;
+        }
+        return Math.max(0, cap - gridStepVal);
+      }
+      return next;
+    });
+  }
+
+  function moveCursorPitch(delta: number) {
+    if (hasSubmitted) return;
+    setCursorMidi((prev) => {
+      const rangeWindow = resolveRangeWindow(key, clef, settings.range);
+      const cur = prev ?? rangeWindow.lowMidi;
+      const next = Math.max(rangeWindow.lowMidi, Math.min(rangeWindow.highMidi, cur + delta));
+      previewPitch(next);
+      return next;
+    });
+  }
+
+  function placeAtCursor() {
+    if (cursorBeat === null) return;
+    placeNoteAt(activeMeasureIndex, cursorBeat, armedDuration, armedIsRest, armedIsRest ? null : cursorMidi);
+  }
+
+  function focusCursor() {
+    if (hasSubmitted) return;
+    setCursorBeat(0);
+    setCursorMidi((prev) => {
+      if (prev !== null) return prev;
+      return resolveRangeWindow(key, clef, settings.range).lowMidi;
+    });
+  }
+
+  function blurCursor() {
+    setCursorBeat(null);
+  }
+
   function removeLastNote() {
     if (hasSubmitted) return;
     setPlacementHistory((prev) => {
@@ -428,6 +488,13 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     isCorrect,
     activeMeasureIndex,
     setActiveMeasureIndex,
+    cursorBeat,
+    cursorMidi,
+    moveCursorBeat,
+    moveCursorPitch,
+    placeAtCursor,
+    focusCursor,
+    blurCursor,
     flashMeasure,
     playbackFraction,
     isPlaying,

@@ -153,11 +153,19 @@ export function MelodicDictationTopic() {
                 revealMeasures: practice.hasSubmitted && !practice.isCorrect ? practice.correctMeasures : null,
                 flashMeasure: practice.flashMeasure,
                 playbackFraction: practice.playbackFraction,
+                cursorMeasureIndex: practice.activeMeasureIndex,
+                cursorBeat: practice.cursorBeat,
+                cursorMidi: practice.cursorMidi,
               }}
               gridStepVal={practice.gridStepVal}
               armedDuration={practice.effectiveDuration(practice.armedDuration)}
               armedAccidental={practice.armedAccidental}
               onPlace={handlePlace}
+              onCursorMoveBeat={practice.moveCursorBeat}
+              onCursorMovePitch={practice.moveCursorPitch}
+              onPlaceAtCursor={practice.placeAtCursor}
+              onCursorFocus={practice.focusCursor}
+              onCursorBlur={practice.blurCursor}
             />
             <p className="md-capacity-hint" aria-live="polite">
               {practice.capacityHint}

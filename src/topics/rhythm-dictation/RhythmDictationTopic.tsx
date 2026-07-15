@@ -150,8 +150,14 @@ export function RhythmDictationTopic() {
                   correctPattern: practice.correctPattern,
                   flashMeasure: practice.flashMeasure,
                   playbackFraction: practice.playbackFraction,
+                  cursorMeasureIndex: practice.activeMeasureIndex,
+                  cursorBeat: practice.cursorBeat,
                 }}
                 onClick={handleStaffClick}
+                onCursorMove={practice.moveCursor}
+                onPlaceAtCursor={practice.placeAtCursor}
+                onCursorFocus={practice.focusCursor}
+                onCursorBlur={practice.blurCursor}
               />
             </div>
             <p className="rd-capacity-hint" aria-live="polite">

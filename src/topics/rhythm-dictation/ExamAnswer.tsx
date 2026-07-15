@@ -55,6 +55,8 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
             correctPattern: [],
             flashMeasure: null,
             playbackFraction: null,
+            cursorMeasureIndex: 0,
+            cursorBeat: null,
           }}
           onClick={(measureIndex, clickX) => {
             const beat = beatFromClickX(clickX, measureIndex, armedDuration, q.numMeasures, q.timeSig.measureBeats, gridStepVal);
@@ -90,6 +92,8 @@ export function RhythmDictationResult({ question, answer }: ExamDictationResultP
           correctPattern: q.pattern,
           flashMeasure: null,
           playbackFraction: null,
+          cursorMeasureIndex: 0,
+          cursorBeat: null,
         }}
         onClick={() => {}}
       />

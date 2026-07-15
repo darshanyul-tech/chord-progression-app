@@ -9,6 +9,11 @@ interface VexStaffHostProps {
   armedDuration: number;
   armedAccidental: '' | '#' | 'b';
   onPlace(measureIndex: number, beat: number, midi: number): void;
+  onCursorMoveBeat?(delta: number): void;
+  onCursorMovePitch?(delta: number): void;
+  onPlaceAtCursor?(): void;
+  onCursorFocus?(): void;
+  onCursorBlur?(): void;
 }
 
 // Imperative island (docs/04-notation-engine.md Part B4/B5): owns the
@@ -17,7 +22,25 @@ interface VexStaffHostProps {
 // hit-testing math (x→beat, y→pitch) lives here, self-contained, using only
 // the returned geometry numbers + lib/melody/theory's pure staff-geometry
 // helpers — no VexFlow internals beyond what buildVexScore already read.
-export function VexStaffHost({ model, gridStepVal, armedDuration, armedAccidental, onPlace }: VexStaffHostProps) {
+//
+// Keyboard placement fallback (09-improvement-plan.md §14.1): focusable
+// widget with its own scoped keydown handler. Left/Right move the beat
+// cursor, Up/Down move the pitch cursor (stopping propagation so the
+// document-level nudgeLastNote shortcut in MelodicDictationTopic doesn't
+// also fire while the staff has focus), Enter places the armed
+// duration/rest/pitch at the cursor.
+export function VexStaffHost({
+  model,
+  gridStepVal,
+  armedDuration,
+  armedAccidental,
+  onPlace,
+  onCursorMoveBeat,
+  onCursorMovePitch,
+  onPlaceAtCursor,
+  onCursorFocus,
+  onCursorBlur,
+}: VexStaffHostProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const geometryRef = useRef<MeasureGeometry[]>([]);
 
@@ -65,7 +88,41 @@ export function VexStaffHost({ model, gridStepVal, armedDuration, armedAccidenta
     onPlace(geo.index, beat, midi);
   }
 
+  function handleKeyDown(evt: React.KeyboardEvent<HTMLDivElement>) {
+    if (evt.key === 'ArrowLeft') {
+      evt.preventDefault();
+      evt.stopPropagation();
+      onCursorMoveBeat?.(-1);
+    } else if (evt.key === 'ArrowRight') {
+      evt.preventDefault();
+      evt.stopPropagation();
+      onCursorMoveBeat?.(1);
+    } else if (evt.key === 'ArrowUp') {
+      evt.preventDefault();
+      evt.stopPropagation();
+      onCursorMovePitch?.(1);
+    } else if (evt.key === 'ArrowDown') {
+      evt.preventDefault();
+      evt.stopPropagation();
+      onCursorMovePitch?.(-1);
+    } else if (evt.key === 'Enter') {
+      evt.preventDefault();
+      evt.stopPropagation();
+      onPlaceAtCursor?.();
+    }
+  }
+
   return (
-    <div ref={containerRef} id="md-staff-svg" role="img" aria-label="Melody staff" onClick={handleClick} />
+    <div
+      ref={containerRef}
+      id="md-staff-svg"
+      role="application"
+      aria-label="Melody staff. Left and right arrow keys move the beat cursor, up and down arrow keys move the pitch cursor, and Enter places the armed note or rest at the cursor."
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      onFocus={onCursorFocus}
+      onBlur={onCursorBlur}
+    />
   );
 }

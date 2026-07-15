@@ -67,6 +67,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [measureResults, setMeasureResults] = useState<boolean[]>([]);
   const [activeMeasureIndex, setActiveMeasureIndex] = useState(0);
+  const [cursorBeat, setCursorBeat] = useState<number | null>(null);
   const [flashMeasure, setFlashMeasure] = useState<number | null>(null);
   const [, setPlacementHistory] = useState<PlacementRecord[]>([]);
   const [armedDuration, setArmedDuration] = useState(1);
@@ -289,6 +290,49 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     setActiveMeasureIndex(measureIndex);
   }
 
+  // Keyboard placement fallback (09-improvement-plan.md §14.1): an
+  // insertion cursor that moves by the same grid step as click placement,
+  // wrapping to the adjacent measure at either edge so Left/Right alone
+  // covers the whole exercise without a modifier key.
+  function moveCursor(delta: number) {
+    if (hasSubmitted) return;
+    setCursorBeat((prev) => {
+      const cur = prev ?? 0;
+      const cap = timeSig.measureBeats;
+      const next = cur + delta * gridStepVal;
+      if (next < -0.001) {
+        const prevIndex = activeMeasureIndex - 1;
+        if (prevIndex >= 0) {
+          setActiveMeasureIndex(prevIndex);
+          return Math.max(0, cap - gridStepVal);
+        }
+        return 0;
+      }
+      if (next > cap - gridStepVal + 0.001) {
+        const nextIndex = activeMeasureIndex + 1;
+        if (nextIndex < numMeasures) {
+          setActiveMeasureIndex(nextIndex);
+          return 0;
+        }
+        return Math.max(0, cap - gridStepVal);
+      }
+      return next;
+    });
+  }
+
+  function placeAtCursor() {
+    if (cursorBeat === null) return;
+    placeNoteAt(activeMeasureIndex, cursorBeat, armedDuration, armedIsRest);
+  }
+
+  function focusCursor() {
+    if (!hasSubmitted) setCursorBeat(0);
+  }
+
+  function blurCursor() {
+    setCursorBeat(null);
+  }
+
   function removeLastNote() {
     if (hasSubmitted) return;
     setPlacementHistory((prev) => {
@@ -397,6 +441,11 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     measureResults,
     activeMeasureIndex,
     setActiveMeasureIndex,
+    cursorBeat,
+    moveCursor,
+    placeAtCursor,
+    focusCursor,
+    blurCursor,
     flashMeasure,
     playbackFraction,
     isPlaying,

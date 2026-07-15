@@ -16,6 +16,8 @@ function baseModel(overrides: Partial<RhythmStaffModel>): RhythmStaffModel {
     correctPattern: [correctMeasure],
     flashMeasure: null,
     playbackFraction: null,
+    cursorMeasureIndex: 0,
+    cursorBeat: null,
     ...overrides,
   };
 }

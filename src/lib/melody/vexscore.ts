@@ -1,8 +1,8 @@
 import { Accidental, Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow';
 import { vexDurationFor } from '../rhythm-staff/vexDuration';
 import type { TimeSigInfo } from '../rhythm/time';
-import { midiToVexKey } from './spelling';
-import type { Clef, KeyDef, PitchedMeasure, PitchedNote } from './theory';
+import { midiToVexKey, spellMidi } from './spelling';
+import { NATURAL_LETTERS, staffLineFor, type Clef, type KeyDef, type PitchedMeasure, type PitchedNote } from './theory';
 
 // Pure builder (docs/04-notation-engine.md §B4) — VexFlow is display-only;
 // grading/storage/playback never read these objects. Renders a fresh scene
@@ -23,6 +23,12 @@ export interface MelodyStaffModel {
   flashMeasure: number | null;
   /** 0..1 playback cursor position across the whole melody, or null when not playing. */
   playbackFraction: number | null;
+  /** Measure the keyboard insertion cursor is in (usually the active measure). */
+  cursorMeasureIndex: number;
+  /** Beat position of the keyboard insertion cursor within cursorMeasureIndex, or null when the staff doesn't have keyboard focus (04-accessibility §14.1). */
+  cursorBeat: number | null;
+  /** Pitch the keyboard cursor would place at Enter, or null while armed for a rest. */
+  cursorMidi: number | null;
 }
 
 /** Everything the input overlay needs to hit-test clicks, without holding onto VexFlow objects. */
@@ -44,6 +50,8 @@ const REST_KEY = 'b/4';
 
 export const WRONG_COLOR = '#b3261e';
 export const CURSOR_COLOR = '#005f6b';
+/** Keyboard insertion-cursor highlight (distinct from the teal playback cursor). */
+export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
 
 function buildStaveNote(note: PitchedNote, key: KeyDef, clef: Clef): StaveNote {
   const { duration, dots } = vexDurationFor(note.duration);
@@ -84,7 +92,21 @@ function drawMeasureVoice(
 
 export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel): MeasureGeometry[] {
   container.innerHTML = '';
-  const { key, clef, timeSig, numMeasures, measures, hasSubmitted, isCorrect, revealMeasures, flashMeasure, playbackFraction } = model;
+  const {
+    key,
+    clef,
+    timeSig,
+    numMeasures,
+    measures,
+    hasSubmitted,
+    isCorrect,
+    revealMeasures,
+    flashMeasure,
+    playbackFraction,
+    cursorMeasureIndex,
+    cursorBeat,
+    cursorMidi,
+  } = model;
   const measureTotalBeats = timeSig.measureBeats;
   const numRows = Math.max(1, Math.ceil(numMeasures / MAX_MEASURES_PER_ROW));
   const canvasHeight = numRows * ROW_HEIGHT + 20;
@@ -140,6 +162,33 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
         topLineY: stave.getYForLine(0),
         spacing: stave.getSpacingBetweenLines(),
       });
+    }
+  }
+
+  if (cursorBeat !== null) {
+    const geo = geometry.find((g) => g.index === cursorMeasureIndex);
+    if (geo) {
+      const rel = Math.max(0, Math.min(1, cursorBeat / measureTotalBeats));
+      const cx = geo.noteStartX + rel * (geo.noteEndX - geo.noteStartX);
+      // Invert the same getYForNote(kpLine) === getYForLine(5 - kpLine)
+      // relationship VexStaffHost's click hit-testing uses, so the cursor
+      // marker lands on the exact line the placed note would occupy.
+      let cy = geo.topLineY + 2 * geo.spacing;
+      if (cursorMidi !== null) {
+        const spelled = spellMidi(cursorMidi, key);
+        const letterIndex = NATURAL_LETTERS.indexOf(spelled.letter);
+        const kpLine = staffLineFor(letterIndex, spelled.octave, clef);
+        cy = geo.topLineY + (5 - kpLine) * geo.spacing;
+      }
+      context.save();
+      context.setFillStyle(KEYBOARD_CURSOR_COLOR);
+      context.beginPath();
+      context.moveTo(cx - 5, cy - 16);
+      context.lineTo(cx + 5, cy - 16);
+      context.lineTo(cx, cy - 8);
+      context.closePath();
+      context.fill();
+      context.restore();
     }
   }
 
