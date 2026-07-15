@@ -175,6 +175,7 @@ export function RhythmDictationTopic() {
                     type="button"
                     className={`rd-note-btn${armed ? ' rd-btn-armed' : ''}${disabled ? ' rd-dur-disabled' : ''}`}
                     title={btn.title}
+                    aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
                   >
                     <NoteGlyphIcon duration={btn.duration} />
@@ -187,6 +188,7 @@ export function RhythmDictationTopic() {
                 type="button"
                 className={`rd-mod-btn rd-rest-btn${practice.armedIsRest ? ' rd-mod-active' : ''}`}
                 title="Rest mode (R)"
+                aria-pressed={practice.armedIsRest}
                 onClick={practice.toggleRest}
               >
                 <RestGlyphIcon />
@@ -195,6 +197,7 @@ export function RhythmDictationTopic() {
                 type="button"
                 className={`rd-mod-btn${practice.isDotActive ? ' rd-mod-active' : ''}`}
                 title="Dot (D)"
+                aria-pressed={practice.isDotActive}
                 onClick={practice.toggleDot}
               >
                 &#183;

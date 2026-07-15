@@ -177,6 +177,7 @@ export function MelodicDictationTopic() {
                     type="button"
                     className={`md-note-btn${armed ? ' md-btn-armed' : ''}${disabled ? ' md-dur-disabled' : ''}`}
                     title={btn.title}
+                    aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
                   >
                     <NoteGlyphIcon duration={btn.duration} />
@@ -189,6 +190,7 @@ export function MelodicDictationTopic() {
                 type="button"
                 className={`md-mod-btn md-rest-btn${practice.armedIsRest ? ' md-mod-active' : ''}`}
                 title="Rest mode (R)"
+                aria-pressed={practice.armedIsRest}
                 onClick={practice.toggleRest}
               >
                 <RestGlyphIcon />
@@ -197,6 +199,7 @@ export function MelodicDictationTopic() {
                 type="button"
                 className={`md-mod-btn${practice.isDotActive ? ' md-mod-active' : ''}`}
                 title="Dot (D)"
+                aria-pressed={practice.isDotActive}
                 onClick={practice.toggleDot}
               >
                 &#183;
@@ -205,6 +208,7 @@ export function MelodicDictationTopic() {
                 type="button"
                 className={`md-mod-btn${practice.armedAccidental === '#' ? ' md-mod-active' : ''}`}
                 title="Sharp (S)"
+                aria-pressed={practice.armedAccidental === '#'}
                 onClick={practice.toggleSharp}
               >
                 &#9839;
@@ -213,6 +217,7 @@ export function MelodicDictationTopic() {
                 type="button"
                 className={`md-mod-btn${practice.armedAccidental === 'b' ? ' md-mod-active' : ''}`}
                 title="Flat (F)"
+                aria-pressed={practice.armedAccidental === 'b'}
                 onClick={practice.toggleFlat}
               >
                 &#9837;

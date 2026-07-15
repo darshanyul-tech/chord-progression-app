@@ -18,6 +18,7 @@ export function NotePalette({
           type="button"
           className={`note-palette-btn${armedDuration === entry.duration ? ' armed' : ''}`}
           title={entry.title}
+          aria-pressed={armedDuration === entry.duration}
           onClick={() => onArm(entry.duration)}
         >
           <NoteGlyphIcon duration={entry.duration} />
@@ -34,6 +35,7 @@ export function NotePaletteRestToggle({ active, onToggle }: { active: boolean; o
       type="button"
       className={`note-palette-btn note-palette-rest${active ? ' armed' : ''}`}
       title="Rest"
+      aria-pressed={active}
       onClick={onToggle}
     >
       <RestGlyphIcon />

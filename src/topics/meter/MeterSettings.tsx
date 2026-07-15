@@ -45,10 +45,11 @@ export function MeterSettings() {
         </div>
 
         <div className="field">
-          <label style={{ marginBottom: '0.35rem' }}>
+          <label htmlFor="meterTempo" style={{ marginBottom: '0.35rem' }}>
             Tempo &#9833; = <span>{settings.tempo}</span>
           </label>
           <input
+            id="meterTempo"
             type="range"
             min={40}
             max={200}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { EnabledExamType } from './exam-machine';
 import type { ExamTypeDefinition } from './types';
 import { useExamSettings, type ExamTypeConfig } from '../state/settings/exam';
@@ -38,6 +38,14 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
   const [examTypes, setExamTypes] = useState<ExamTypeDefinition[] | null>(null);
   const [configs, setConfigs] = useState<Record<string, ExamTypeConfig>>({});
   const [perTypeErrors, setPerTypeErrors] = useState<Record<string, string>>({});
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Focus management (09-improvement-plan.md §14.3): opening exam mode
+  // moves focus to this screen's own heading, not left wherever it was on
+  // the topic the user came from.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +113,9 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
   if (!examTypes) {
     return (
       <section className="card exam-panel exam-panel-setup">
-        <h2>Exam mode setup</h2>
+        <h2 ref={headingRef} tabIndex={-1}>
+          Exam mode setup
+        </h2>
         <p className="sub">Loading question types…</p>
       </section>
     );
@@ -113,7 +123,9 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
 
   return (
     <section className="card exam-panel exam-panel-setup">
-      <h2>Exam mode setup</h2>
+      <h2 ref={headingRef} tabIndex={-1}>
+        Exam mode setup
+      </h2>
       <p className="sub">
         Simulated exam conditions: limited hearings, and no feedback until the end. Enable one or more question
         types below — each uses the enabled options and playback settings from its own topic.
@@ -130,25 +142,29 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
                 </label>
                 <div className={`exam-type-settings-wrap${cfg.enabled ? '' : ' is-disabled'}`}>
                   <div className="grid exam-setup-grid exam-type-settings-grid">
-                    {t.settingsSchema.map((field) => (
-                      <div className="field" key={field.key}>
-                        <label>
-                          {field.label}:{' '}
-                          <span className="valtag">
-                            {cfg.settings[field.key]}
-                            {field.suffix ?? ''}
-                          </span>
-                        </label>
-                        <input
-                          type="range"
-                          min={field.min}
-                          max={field.max}
-                          step={field.step}
-                          value={cfg.settings[field.key]}
-                          onChange={(e) => updateField(t.id, field.key, Number(e.target.value))}
-                        />
-                      </div>
-                    ))}
+                    {t.settingsSchema.map((field) => {
+                      const inputId = `exam-${t.id}-${field.key}`;
+                      return (
+                        <div className="field" key={field.key}>
+                          <label htmlFor={inputId}>
+                            {field.label}:{' '}
+                            <span className="valtag">
+                              {cfg.settings[field.key]}
+                              {field.suffix ?? ''}
+                            </span>
+                          </label>
+                          <input
+                            id={inputId}
+                            type="range"
+                            min={field.min}
+                            max={field.max}
+                            step={field.step}
+                            value={cfg.settings[field.key]}
+                            onChange={(e) => updateField(t.id, field.key, Number(e.target.value))}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                   {t.setupHelp && (
                     <p className="help" style={{ marginTop: '0.45rem' }}>

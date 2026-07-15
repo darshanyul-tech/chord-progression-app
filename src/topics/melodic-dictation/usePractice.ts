@@ -18,6 +18,7 @@ import {
   type TimeSigInfo,
 } from '../../lib/rhythm/time';
 import { midiToNoteName } from '../../lib/theory';
+import { prefersReducedMotion, REDUCED_MOTION_INTERVAL_SEC } from '../../lib/motion';
 import type { StatusKind } from '../../components/StatusLine';
 import { EMPTY_SCORE, useScoresStore } from '../../state/scores';
 
@@ -181,11 +182,15 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     });
 
     const perfStart = performance.now();
+    let lastCursorUpdateMs = -Infinity;
     const tick = () => {
       if (channel.playbackGen !== playGen) return;
       const elapsed = performance.now() - perfStart;
       if (elapsed >= rhythmStartMs && elapsed <= totalMs) {
-        setPlaybackFraction(Math.min(1, Math.max(0, (elapsed - rhythmStartMs) / (totalMs - rhythmStartMs))));
+        if (!prefersReducedMotion() || elapsed - lastCursorUpdateMs >= REDUCED_MOTION_INTERVAL_SEC * 1000) {
+          lastCursorUpdateMs = elapsed;
+          setPlaybackFraction(Math.min(1, Math.max(0, (elapsed - rhythmStartMs) / (totalMs - rhythmStartMs))));
+        }
       } else {
         setPlaybackFraction(null);
       }

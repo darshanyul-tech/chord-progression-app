@@ -23,8 +23,12 @@ export function SyllabusMenu() {
   }
 
   // Esc-to-close + basic focus trap for the mobile drawer (02-ui-shell §8).
+  // Closing (Esc, scrim click, or picking a topic) restores focus to
+  // whatever had it before the drawer opened — normally the hamburger
+  // button, since that's what the user clicked to get here.
   useEffect(() => {
     if (!drawerOpen) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     const sidebar = sidebarRef.current;
 
     function onKeyDown(e: KeyboardEvent) {
@@ -48,7 +52,10 @@ export function SyllabusMenu() {
 
     document.addEventListener('keydown', onKeyDown);
     sidebar?.querySelector<HTMLElement>('button, a[href]')?.focus();
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [drawerOpen, closeDrawer]);
 
   return (

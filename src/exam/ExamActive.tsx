@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import type { ExamPaperEntry } from './exam-machine';
 
 interface ExamActiveProps {
@@ -44,8 +45,17 @@ export function ExamActive({
 }: ExamActiveProps) {
   const disabled = !canSubmit;
   const showReplay = remainingSec !== null;
+  const panelRef = useRef<HTMLElement>(null);
+
+  // Focus management (09-improvement-plan.md §14.3): each new question moves
+  // focus to its own panel instead of leaving it on the just-clicked Submit
+  // button from the previous question.
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, [index]);
+
   return (
-    <section className="card exam-panel wide">
+    <section className="card exam-panel wide" ref={panelRef} tabIndex={-1}>
       <p className="exam-progress">
         Question {index + 1} of {total}
       </p>
@@ -53,7 +63,11 @@ export function ExamActive({
         <div className="exam-progress-bar-fill" style={{ width: `${((index + 1) / total) * 100}%` }} />
       </div>
       <p className="exam-phase">{phaseLabel}</p>
-      {remainingSec !== null && <p className="exam-timer">{formatCountdown(remainingSec)}</p>}
+      {remainingSec !== null && (
+        <p className="exam-timer" role="timer" aria-live="off">
+          {formatCountdown(remainingSec)}
+        </p>
+      )}
 
       {entry.kind === 'recognition' ? (
         <entry.type.ChoicesComponent

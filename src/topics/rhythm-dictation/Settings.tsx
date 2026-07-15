@@ -104,10 +104,11 @@ export function RhythmSettings() {
             <option value={4}>4</option>
             <option value={8}>8</option>
           </select>
-          <label style={{ margin: '0.65rem 0 0.35rem' }}>
+          <label htmlFor="rdTempo" style={{ margin: '0.65rem 0 0.35rem' }}>
             Tempo &#9833; = <span>{settings.tempo}</span>
           </label>
           <input
+            id="rdTempo"
             type="range"
             min={40}
             max={200}
@@ -132,8 +133,11 @@ export function RhythmSettings() {
 
         <div className="field">
           <label>Playback</label>
-          <label style={{ marginBottom: '0.35rem' }}>Beat emphasis</label>
+          <label htmlFor="rdEmphasis" style={{ marginBottom: '0.35rem' }}>
+            Beat emphasis
+          </label>
           <input
+            id="rdEmphasis"
             type="range"
             min={0}
             max={100}
@@ -142,8 +146,11 @@ export function RhythmSettings() {
             onChange={(e) => setState({ emphasis: Number(e.target.value) })}
           />
           <span className="help">{settings.emphasis} — stronger downbeats</span>
-          <label style={{ margin: '0.65rem 0 0.35rem' }}>Metronome volume</label>
+          <label htmlFor="rdMetroVolume" style={{ margin: '0.65rem 0 0.35rem' }}>
+            Metronome volume
+          </label>
           <input
+            id="rdMetroVolume"
             type="range"
             min={0}
             max={100}

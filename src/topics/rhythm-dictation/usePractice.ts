@@ -23,6 +23,7 @@ import {
   type TimeSigInfo,
 } from '../../lib/rhythm/time';
 import type { RhythmDictationSettings } from '../../lib/rhythm/settings';
+import { prefersReducedMotion, REDUCED_MOTION_INTERVAL_SEC } from '../../lib/motion';
 import { EMPTY_SCORE, useScoresStore } from '../../state/scores';
 
 const TOPIC_ID = 'rhythm-dictation';
@@ -164,12 +165,16 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
       scheduleNote(ctx, abs, ev.duration, ev.isRest, ev.isBeat1, settings.sound, bpm, settings.emphasis, channelRef.current.scheduledNodes);
     });
 
+    let lastCursorUpdate = 0;
     function tick() {
       if (!channelRef.current) return;
       const now = ctx.currentTime;
       const dur = playbackEndTime - rhythmStart;
       if (dur > 0 && now >= rhythmStart) {
-        setPlaybackFraction(Math.min(1, Math.max(0, (now - rhythmStart) / dur)));
+        if (!prefersReducedMotion() || now - lastCursorUpdate >= REDUCED_MOTION_INTERVAL_SEC) {
+          lastCursorUpdate = now;
+          setPlaybackFraction(Math.min(1, Math.max(0, (now - rhythmStart) / dur)));
+        }
       }
       if (now < playbackEndTime + 0.1) {
         channelRef.current.rafId = requestAnimationFrame(tick);
