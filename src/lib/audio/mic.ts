@@ -1,3 +1,4 @@
+import * as Tone from 'tone';
 import { detectPitch } from '../pitch/detect';
 
 // Mic input singleton (docs/09-improvement-plan.md §16.3), mirroring
@@ -6,14 +7,19 @@ import { detectPitch } from '../pitch/detect';
 // applies to input too) and reuses whatever AudioContext the caller already
 // has unlocked (engine.ts's shared one), rather than opening a second one.
 //
-// Uses an AudioWorkletNode as the primary capture mechanism, falling back
-// to a ScriptProcessorNode only when AudioWorklet isn't available (old
-// Safari) — an earlier draft used ScriptProcessorNode unconditionally,
-// reasoning it "only carries a deprecation warning, not a functional gap";
-// that turned out to be wrong once browsers actually finished removing it
-// (`audioCtx.createScriptProcessor is not a function`). Detection itself
-// still runs on the main thread either way (the worklet only forwards raw
-// Float32 frames via postMessage) — cheap enough at 20-30fps per the plan.
+// Tone.js wraps the native AudioContext with the `standardized-audio-
+// context` library for cross-browser consistency (see node_modules/tone/
+// build/esm/core/context/AudioContext.js) — so `audio.rawContext()` duck-
+// types the same interface as a real BaseAudioContext for ordinary method
+// calls (createGain, createMediaStreamSource, etc.), but FAILS the native
+// global `AudioWorkletNode` constructor's strict internal-slot check, and
+// never had `createScriptProcessor` either. Two earlier drafts hit both of
+// those the hard way. The fix: Tone's own Context class already exposes
+// addAudioWorkletModule()/createAudioWorkletNode(), which route through
+// standardized-audio-context's own AudioWorkletNode implementation instead
+// of the native globals — use those rather than reaching for `new
+// AudioWorkletNode(...)` directly. Detection itself still runs on the main
+// thread (the worklet only forwards raw Float32 frames via postMessage).
 export type MicStatus = 'idle' | 'requesting' | 'ready' | 'denied' | 'error';
 
 export interface MicFrame {
@@ -32,7 +38,6 @@ let lastError: string | null = null;
 let stream: MediaStream | null = null;
 let sourceNode: MediaStreamAudioSourceNode | null = null;
 let workletNode: AudioWorkletNode | null = null;
-let processorNode: ScriptProcessorNode | null = null;
 let sinkNode: GainNode | null = null;
 const statusListeners = new Set<() => void>();
 const frameListeners = new Set<(frame: MicFrame) => void>();
@@ -56,35 +61,6 @@ function processBuffer(ctx: BaseAudioContext, buffer: Float32Array): void {
 
 function isPermissionDenied(err: unknown): boolean {
   return err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
-}
-
-async function connectViaWorklet(ctx: AudioContext): Promise<void> {
-  const workletUrl = new URL('./pitch-capture-worklet.js', import.meta.url);
-  await ctx.audioWorklet.addModule(workletUrl);
-  const node = new AudioWorkletNode(ctx, WORKLET_PROCESSOR_NAME, {
-    processorOptions: { bufferSize: BUFFER_SIZE },
-  });
-  node.port.onmessage = (event: MessageEvent<Float32Array>) => processBuffer(ctx, event.data);
-  workletNode = node;
-  sourceNode!.connect(node);
-  // A worklet node still needs to reach a destination to keep processing in
-  // some browsers — route through a muted gain so the raw mic input is
-  // never audibly monitored (feedback risk) while still firing.
-  sinkNode = ctx.createGain();
-  sinkNode.gain.value = 0;
-  node.connect(sinkNode);
-  sinkNode.connect(ctx.destination);
-}
-
-function connectViaScriptProcessor(ctx: AudioContext): void {
-  const node = ctx.createScriptProcessor(BUFFER_SIZE, 1, 1);
-  node.onaudioprocess = (event) => processBuffer(ctx, event.inputBuffer.getChannelData(0));
-  processorNode = node;
-  sourceNode!.connect(node);
-  sinkNode = ctx.createGain();
-  sinkNode.gain.value = 0;
-  node.connect(sinkNode);
-  sinkNode.connect(ctx.destination);
 }
 
 export const mic = {
@@ -116,13 +92,24 @@ export const mic = {
       });
       const audioCtx = ctx as AudioContext;
       sourceNode = audioCtx.createMediaStreamSource(stream);
-      if (audioCtx.audioWorklet) {
-        await connectViaWorklet(audioCtx);
-      } else if (typeof audioCtx.createScriptProcessor === 'function') {
-        connectViaScriptProcessor(audioCtx);
-      } else {
-        throw new Error('This browser does not support microphone capture (no AudioWorklet or ScriptProcessorNode).');
-      }
+
+      const toneContext = Tone.getContext();
+      const workletUrl = new URL('./pitch-capture-worklet.js', import.meta.url);
+      await toneContext.addAudioWorkletModule(workletUrl.href);
+      const node = toneContext.createAudioWorkletNode(WORKLET_PROCESSOR_NAME, {
+        processorOptions: { bufferSize: BUFFER_SIZE },
+      });
+      node.port.onmessage = (event: MessageEvent<Float32Array>) => processBuffer(ctx, event.data);
+      workletNode = node;
+      sourceNode.connect(node);
+      // A worklet node still needs to reach a destination to keep processing
+      // in some browsers — route through a muted gain so the raw mic input
+      // is never audibly monitored (feedback risk) while still firing.
+      sinkNode = audioCtx.createGain();
+      sinkNode.gain.value = 0;
+      node.connect(sinkNode);
+      sinkNode.connect(audioCtx.destination);
+
       status = 'ready';
     } catch (err) {
       status = isPermissionDenied(err) ? 'denied' : 'error';
@@ -136,11 +123,6 @@ export const mic = {
       workletNode.port.onmessage = null;
       workletNode.disconnect();
       workletNode = null;
-    }
-    if (processorNode) {
-      processorNode.onaudioprocess = null;
-      processorNode.disconnect();
-      processorNode = null;
     }
     if (sourceNode) {
       sourceNode.disconnect();

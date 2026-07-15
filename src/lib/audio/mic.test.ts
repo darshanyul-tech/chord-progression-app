@@ -1,47 +1,46 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Tone from 'tone';
 import { mic, type MicFrame } from './mic';
+
+vi.mock('tone', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('tone')>();
+  return { ...actual, getContext: vi.fn() };
+});
 
 function fakeStream() {
   const track = { stop: vi.fn() };
   return { getTracks: () => [track] } as unknown as MediaStream;
 }
 
-class FakeAudioWorkletNode {
-  static lastInstance: FakeAudioWorkletNode | null = null;
+class FakeWorkletNode {
+  static lastInstance: FakeWorkletNode | null = null;
   port: { onmessage: ((e: MessageEvent<Float32Array>) => void) | null } = { onmessage: null };
   connect = vi.fn();
   disconnect = vi.fn();
-  constructor(
-    public ctx: unknown,
-    public name: string,
-    public options: unknown,
-  ) {
-    FakeAudioWorkletNode.lastInstance = this;
+  constructor() {
+    FakeWorkletNode.lastInstance = this;
   }
 }
 
-function fakeAudioContext(opts: { withWorklet?: boolean; withScriptProcessor?: boolean } = {}) {
-  const { withWorklet = true, withScriptProcessor = true } = opts;
+function fakeToneContext(opts: { addModuleRejects?: unknown } = {}) {
+  return {
+    addAudioWorkletModule: opts.addModuleRejects
+      ? vi.fn().mockRejectedValue(opts.addModuleRejects)
+      : vi.fn().mockResolvedValue(undefined),
+    createAudioWorkletNode: vi.fn(() => new FakeWorkletNode()),
+  };
+}
+
+function fakeAudioContext() {
   const sourceNode = { connect: vi.fn(), disconnect: vi.fn() };
   const gainNode = { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 1 } };
-  const scriptProcessorNode: { connect: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn>; onaudioprocess: ((e: AudioProcessingEvent) => void) | null } = {
-    connect: vi.fn(),
-    disconnect: vi.fn(),
-    onaudioprocess: null,
-  };
-  const ctx: Record<string, unknown> = {
+  const ctx = {
     sampleRate: 44100,
     destination: {},
     createMediaStreamSource: vi.fn(() => sourceNode),
     createGain: vi.fn(() => gainNode),
   };
-  if (withWorklet) {
-    ctx.audioWorklet = { addModule: vi.fn().mockResolvedValue(undefined) };
-  }
-  if (withScriptProcessor) {
-    ctx.createScriptProcessor = vi.fn(() => scriptProcessorNode);
-  }
-  return { ctx: ctx as unknown as AudioContext, sourceNode, gainNode, scriptProcessorNode };
+  return { ctx: ctx as unknown as AudioContext, sourceNode, gainNode };
 }
 
 function makeSine(freq: number, sampleRate: number, length: number): Float32Array {
@@ -51,20 +50,23 @@ function makeSine(freq: number, sampleRate: number, length: number): Float32Arra
 }
 
 describe('mic', () => {
+  beforeEach(() => {
+    vi.mocked(Tone.getContext).mockReturnValue(fakeToneContext() as unknown as ReturnType<typeof Tone.getContext>);
+  });
+
   afterEach(() => {
     mic.stopMic();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
-    FakeAudioWorkletNode.lastInstance = null;
+    FakeWorkletNode.lastInstance = null;
   });
 
   it('starts idle', () => {
     expect(mic.status).toBe('idle');
   });
 
-  it('requestMic() prefers AudioWorkletNode when audioWorklet is available, and wires it up', async () => {
+  it('requestMic() routes through Tone.getContext()\'s worklet methods (not the native AudioWorkletNode global) and wires the node up', async () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     const { ctx, sourceNode, gainNode } = fakeAudioContext();
 
     const seen: string[] = [];
@@ -74,33 +76,29 @@ describe('mic', () => {
     await p;
 
     expect(mic.status).toBe('ready');
-    expect((ctx.audioWorklet as { addModule: ReturnType<typeof vi.fn> }).addModule).toHaveBeenCalled();
-    const node = FakeAudioWorkletNode.lastInstance!;
-    expect(node.name).toBe('pitch-capture-processor');
+    const toneCtx = vi.mocked(Tone.getContext).mock.results[0]!.value;
+    expect(toneCtx.addAudioWorkletModule).toHaveBeenCalled();
+    expect(toneCtx.createAudioWorkletNode).toHaveBeenCalledWith(
+      'pitch-capture-processor',
+      expect.objectContaining({ processorOptions: { bufferSize: 2048 } }),
+    );
+    const node = FakeWorkletNode.lastInstance!;
     expect(sourceNode.connect).toHaveBeenCalledWith(node);
     expect(node.connect).toHaveBeenCalledWith(gainNode);
     expect(gainNode.gain.value).toBe(0); // muted sink — never audibly monitored
     expect(seen).toEqual(['requesting', 'ready']);
   });
 
-  it('falls back to ScriptProcessorNode when AudioWorklet is unavailable (old Safari)', async () => {
+  it('sets status to "error" when the worklet module fails to load (e.g. no AudioWorklet support at all)', async () => {
+    vi.mocked(Tone.getContext).mockReturnValue(
+      fakeToneContext({ addModuleRejects: new Error('AudioWorklet not supported') }) as unknown as ReturnType<
+        typeof Tone.getContext
+      >,
+    );
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    const { ctx, sourceNode, scriptProcessorNode } = fakeAudioContext({ withWorklet: false });
-
-    await mic.requestMic(ctx);
-
-    expect(mic.status).toBe('ready');
-    expect(sourceNode.connect).toHaveBeenCalledWith(scriptProcessorNode);
-  });
-
-  it('sets status to "error" when neither AudioWorklet nor ScriptProcessorNode is available', async () => {
-    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    const { ctx } = fakeAudioContext({ withWorklet: false, withScriptProcessor: false });
-
-    await mic.requestMic(ctx);
-
+    await mic.requestMic(fakeAudioContext().ctx);
     expect(mic.status).toBe('error');
-    expect(mic.lastError).toMatch(/does not support microphone capture/);
+    expect(mic.lastError).toBe('AudioWorklet not supported');
   });
 
   it('sets status to "denied" when getUserMedia rejects with a permission error', async () => {
@@ -111,7 +109,7 @@ describe('mic', () => {
     expect(mic.lastError).toBeNull();
   });
 
-  it('sets status to "error" and records lastError for any other failure (e.g. no mic device)', async () => {
+  it('sets status to "error" and records lastError for any other getUserMedia failure (e.g. no mic device)', async () => {
     vi.stubGlobal('navigator', {
       mediaDevices: { getUserMedia: vi.fn().mockRejectedValue(new Error('Requested device not found')) },
     });
@@ -123,15 +121,13 @@ describe('mic', () => {
   it('is a no-op once already ready (getUserMedia is not called again)', async () => {
     const getUserMedia = vi.fn().mockResolvedValue(fakeStream());
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     await mic.requestMic(fakeAudioContext().ctx);
     await mic.requestMic(fakeAudioContext().ctx);
     expect(getUserMedia).toHaveBeenCalledTimes(1);
   });
 
-  it('onFrame delivers frequency/clarity/rms from AudioWorklet frames', async () => {
+  it('onFrame delivers frequency/clarity/rms computed from the raw audio buffer', async () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     const { ctx } = fakeAudioContext();
     await mic.requestMic(ctx);
 
@@ -139,7 +135,7 @@ describe('mic', () => {
     mic.onFrame((f) => frames.push(f));
 
     const sine = makeSine(220, ctx.sampleRate, 2048);
-    FakeAudioWorkletNode.lastInstance!.port.onmessage!({ data: sine } as MessageEvent<Float32Array>);
+    FakeWorkletNode.lastInstance!.port.onmessage!({ data: sine } as MessageEvent<Float32Array>);
 
     expect(frames).toHaveLength(1);
     expect(frames[0]!.frequency).not.toBeNull();
@@ -147,24 +143,8 @@ describe('mic', () => {
     expect(frames[0]!.rms).toBeGreaterThan(0);
   });
 
-  it('onFrame delivers frequency/clarity/rms from the ScriptProcessorNode fallback', async () => {
-    vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    const { ctx, scriptProcessorNode } = fakeAudioContext({ withWorklet: false });
-    await mic.requestMic(ctx);
-
-    const frames: MicFrame[] = [];
-    mic.onFrame((f) => frames.push(f));
-
-    const sine = makeSine(220, ctx.sampleRate, 2048);
-    scriptProcessorNode.onaudioprocess!({ inputBuffer: { getChannelData: () => sine } } as unknown as AudioProcessingEvent);
-
-    expect(frames).toHaveLength(1);
-    expect(frames[0]!.frequency).not.toBeNull();
-  });
-
   it('onFrame unsubscribe stops delivering further frames', async () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     const { ctx } = fakeAudioContext();
     await mic.requestMic(ctx);
 
@@ -173,17 +153,16 @@ describe('mic', () => {
     unsubscribe();
 
     const sine = makeSine(220, ctx.sampleRate, 2048);
-    FakeAudioWorkletNode.lastInstance!.port.onmessage!({ data: sine } as MessageEvent<Float32Array>);
+    FakeWorkletNode.lastInstance!.port.onmessage!({ data: sine } as MessageEvent<Float32Array>);
     expect(frames).toHaveLength(0);
   });
 
   it('stopMic() disconnects everything, stops the media stream tracks, and resets to idle', async () => {
     const stream = fakeStream();
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(stream) } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     const { ctx, sourceNode, gainNode } = fakeAudioContext();
     await mic.requestMic(ctx);
-    const node = FakeAudioWorkletNode.lastInstance!;
+    const node = FakeWorkletNode.lastInstance!;
 
     mic.stopMic();
 
@@ -196,7 +175,6 @@ describe('mic', () => {
 
   it('subscribe() returns a working unsubscribe function', async () => {
     vi.stubGlobal('navigator', { mediaDevices: { getUserMedia: vi.fn().mockResolvedValue(fakeStream()) } });
-    vi.stubGlobal('AudioWorkletNode', FakeAudioWorkletNode);
     const listener = vi.fn();
     const unsubscribe = mic.subscribe(listener);
     unsubscribe();
