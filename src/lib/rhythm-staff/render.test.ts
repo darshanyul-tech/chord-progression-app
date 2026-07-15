@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Measure } from '../rhythm/time';
-import { MUTED_COLOR, WRONG_COLOR, renderStaff, type RhythmStaffModel } from './render';
+import { CURSOR_COLOR, KEYBOARD_CURSOR_COLOR, MUTED_COLOR, WRONG_COLOR, renderStaff, type RhythmStaffModel } from './render';
 
 const userMeasure: Measure = [{ beat: 0, duration: 4, isRest: false }];
 const correctMeasure: Measure = [{ beat: 0, duration: 2, isRest: false }];
@@ -69,5 +69,42 @@ describe('renderStaff reveal styling', () => {
     const badge = [...svg.querySelectorAll('text')].map((t) => t.textContent);
     expect(badge).not.toContain('✓');
     expect(badge).not.toContain('✗');
+  });
+});
+
+// Playback cursor (04-notation-engine.md, teal) vs. keyboard insertion cursor
+// (09-improvement-plan.md §14.1, purple) — distinct markers, drawn only when
+// their respective model field is non-null.
+describe('renderStaff cursors', () => {
+  it('draws a playback cursor in CURSOR_COLOR when playbackFraction is set', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({ playbackFraction: 0.5 }));
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
+    expect(cursor).toBe(true);
+  });
+
+  it('draws no playback cursor when playbackFraction is null', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({ playbackFraction: null }));
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
+    expect(cursor).toBe(false);
+  });
+
+  it('draws a keyboard insertion cursor in KEYBOARD_CURSOR_COLOR when cursorBeat is set', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({ cursorMeasureIndex: 0, cursorBeat: 1 }));
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('fill') === KEYBOARD_CURSOR_COLOR);
+    expect(cursor).toBe(true);
+  });
+
+  it('draws no keyboard cursor when cursorBeat is null (staff doesn\'t have focus)', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({ cursorBeat: null }));
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('fill') === KEYBOARD_CURSOR_COLOR);
+    expect(cursor).toBe(false);
   });
 });

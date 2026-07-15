@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { generateProgression } from './generator';
+import { generateProgression, makeTritoneSub } from './generator';
 import { chordId } from './theory';
 import { defaultProgressionSettings, resolvePracticeSettings } from './settings';
 
@@ -60,5 +60,18 @@ describe('generateProgression', () => {
     const prog = generateProgression(resolved({ bars: 4 }));
     expect(prog[0]!.roman).toBe('I');
     expect(prog[0]!.rootPc).toBe(resolved({ bars: 4 }).keyPc);
+  });
+});
+
+// makeTritoneSub is exported but not currently wired into buildBarChord's
+// colour-choice branch (only 'secdom'/'applied'/'borrowediv' are) — direct
+// unit test since generateProgression alone can never reach it.
+describe('makeTritoneSub', () => {
+  it('builds a chromatic dominant a semitone above the target degree', () => {
+    const s = resolved();
+    const ch = makeTritoneSub(5, s); // target = V
+    expect(ch.chromatic).toBe(true);
+    expect(ch.secondary).toBe(true);
+    expect(ch.roman).toContain('subV/');
   });
 });
