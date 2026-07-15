@@ -22,6 +22,13 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
   build: {
+    // The AudioWorklet processor module (lib/audio/pitch-capture-worklet.js,
+    // referenced via `new URL(..., import.meta.url)` in mic.ts) must always
+    // ship as a real file, never inlined as a data: URL — audioWorklet.
+    // addModule()'s support for data: URLs isn't guaranteed across the
+    // plan's browser matrix (Chrome/Firefox/Safari desktop + iOS Safari/
+    // Android Chrome) the way loading a same-origin file is.
+    assetsInlineLimit: (filePath) => (filePath.endsWith('pitch-capture-worklet.js') ? false : undefined),
     rollupOptions: {
       output: {
         manualChunks(id) {
