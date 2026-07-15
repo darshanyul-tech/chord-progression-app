@@ -7,7 +7,7 @@ import { maxInversionFor, type ProgChord } from '../../lib/progression/theory';
 // Ported from legacy examProgressionPanel markup (docs/06-exam-mode.md §A) —
 // the exam's per-bar guess-row answer UI, reusing the practice-mode GuessRows
 // component. No per-row reveal during the exam (results always null/idle).
-export function ProgressionExamAnswer({ question, answer, onAnswer, disabled }: ExamChoicesProps) {
+export function ProgressionExamAnswer({ question, answer, onAnswer, disabled, activeBarIndex }: ExamChoicesProps) {
   const s = question.settings as ResolvedProgressionSettings;
   const progression = question.progression as ProgChord[];
   const rows = (answer as GuessRowState[] | null) ?? progression.map(() => defaultGuessRow(s));
@@ -26,7 +26,7 @@ export function ProgressionExamAnswer({ question, answer, onAnswer, disabled }: 
     <>
       <div className="bars">
         {progression.map((_, i) => (
-          <div className="bar" key={i}>
+          <div className={`bar${activeBarIndex === i ? ' active' : ''}`} key={i}>
             <span className="num">{i + 1}</span>?
           </div>
         ))}

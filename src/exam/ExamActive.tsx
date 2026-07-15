@@ -10,6 +10,7 @@ interface ExamActiveProps {
   remainingReplays: number;
   isReplaying: boolean;
   answer: unknown;
+  activeBarIndex: number | 'ref' | null;
   onAnswer(answer: unknown): void;
   onSubmit(): void;
   onReplay(): void;
@@ -35,6 +36,7 @@ export function ExamActive({
   remainingReplays,
   isReplaying,
   answer,
+  activeBarIndex,
   onAnswer,
   onSubmit,
   onReplay,
@@ -51,7 +53,13 @@ export function ExamActive({
       {remainingSec !== null && <p className="exam-timer">{formatCountdown(remainingSec)}</p>}
 
       {entry.kind === 'recognition' ? (
-        <entry.type.ChoicesComponent question={entry.question} answer={answer} onAnswer={onAnswer} disabled={disabled} />
+        <entry.type.ChoicesComponent
+          question={entry.question}
+          answer={answer}
+          onAnswer={onAnswer}
+          disabled={disabled}
+          activeBarIndex={activeBarIndex}
+        />
       ) : (
         <entry.type.AnswerComponent question={entry.question} answer={answer} onAnswer={onAnswer} disabled={disabled} />
       )}

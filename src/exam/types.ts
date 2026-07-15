@@ -52,6 +52,8 @@ export interface ExamChoicesProps {
   answer: unknown;
   onAnswer(answer: unknown): void;
   disabled: boolean;
+  /** Bar/index currently sounding during a hearing (progression recognition only); null when idle. */
+  activeBarIndex?: number | 'ref' | null;
 }
 
 export interface ExamDictationProps {
@@ -73,6 +75,8 @@ export interface ExamPlayContext {
   channel: ExamPlaybackChannel;
   aborted(): boolean;
   onPhase(text: string): void;
+  /** Optional per-bar/per-item highlight during a hearing (progression recognition's bar-by-bar playback). */
+  onProgress?(index: number | 'ref' | null): void;
 }
 
 export type ExamTypeDefinition =

@@ -37,7 +37,9 @@ function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Prom
   const resolvedSettings = question.settings as ResolvedProgressionSettings;
   const progression = question.progression as ProgChord[];
   return withEarlyAbort(ctx.channel, ctx.aborted, () =>
-    schedulePlayback(audio.sampler, ctx.channel, audio.now(), resolvedSettings, progression, {}),
+    schedulePlayback(audio.sampler, ctx.channel, audio.now(), resolvedSettings, progression, {
+      onBarActive: ctx.onProgress,
+    }),
   );
 }
 

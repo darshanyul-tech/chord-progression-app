@@ -39,6 +39,7 @@ export function useExamMachine() {
   const [setupError, setSetupError] = useState('');
   const [summary, setSummary] = useState<ExamSummary | null>(null);
   const [dictationSummary, setDictationSummary] = useState<DictationSummary | null>(null);
+  const [activeBarIndex, setActiveBarIndex] = useState<number | 'ref' | null>(null);
 
   const channelRef = useRef(createExamPlaybackChannel());
   const questionTokenRef = useRef(0);
@@ -97,9 +98,16 @@ export function useExamMachine() {
     setAnswer(null);
     setRemainingSec(null);
     setRemainingReplays(0);
+    setActiveBarIndex(null);
     const entry = p[index]!;
     const aborted = () => finalizingRef.current || questionTokenRef.current !== token;
-    const ctx = { typeConfig: entry.typeSettings, channel: channelRef.current, aborted, onPhase: setPhaseLabel };
+    const ctx = {
+      typeConfig: entry.typeSettings,
+      channel: channelRef.current,
+      aborted,
+      onPhase: setPhaseLabel,
+      onProgress: setActiveBarIndex,
+    };
 
     setCanSubmit(true);
     setPhaseLabel(entry.type.formatQuestionTitle(entry.question, index, p.length));
@@ -123,6 +131,7 @@ export function useExamMachine() {
       channel: channelRef.current,
       aborted,
       onPhase: () => {},
+      onProgress: setActiveBarIndex,
     });
     setIsReplaying(false);
   }
@@ -248,6 +257,7 @@ export function useExamMachine() {
     summary,
     dictationSummary,
     answers,
+    activeBarIndex,
     setAnswer,
     begin,
     submitAnswer,

@@ -52,6 +52,7 @@ export function ExamRoute() {
         remainingReplays={machine.remainingReplays}
         isReplaying={machine.isReplaying}
         answer={machine.currentAnswer}
+        activeBarIndex={machine.activeBarIndex}
         onAnswer={machine.setAnswer}
         onSubmit={machine.submitAnswer}
         onReplay={machine.replay}
