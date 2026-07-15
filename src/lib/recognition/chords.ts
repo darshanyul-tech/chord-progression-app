@@ -1,4 +1,4 @@
-import { midiToNoteName, pick } from '../theory';
+import { midiToNoteName, pick, random } from '../theory';
 
 // Ported verbatim from legacy CHORD_RECOGNITION_* tables / functions
 // (docs/05-topics/03-chord-recognition.md). "Do not confuse with the
@@ -191,7 +191,7 @@ export function buildChordQuestion(settings: ChordRecognitionSettings): ChordQue
   const id = pick(ids);
   const def = chordTypeById(id);
   if (!def) return null;
-  const rootPc = Math.floor(Math.random() * 12);
+  const rootPc = Math.floor(random() * 12);
   const rootMidi = pickChordRootMidi(rootPc);
   return {
     id: def.id,

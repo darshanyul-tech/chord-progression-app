@@ -11,6 +11,7 @@ import {
   type ExamAnswerRecord,
 } from './exam-machine';
 import type { ExamTypeDefinition, RecognitionExamQuestion } from './types';
+import { setRng } from '../lib/theory';
 
 function record(typeId: string, perfect: boolean): ExamAnswerRecord {
   return {
@@ -87,6 +88,22 @@ describe('buildMixedExamPaper', () => {
       expect(entry.type).toBe(type);
       expect(entry.typeSettings).toEqual({ count: 2 });
     });
+  });
+
+  // Seedable RNG (09-improvement-plan.md §15.1) — buildMixedExamPaper's final
+  // shuffle() is otherwise unassertable-by-order; setRng() makes the merged
+  // paper's ordering deterministic under test.
+  it('produces a stable, seedable order under setRng (paper-builder shuffle is assertable)', () => {
+    const enabled: EnabledExamType[] = [
+      { kind: 'recognition', type: makeType('a', 2), settings: { count: 2 } },
+      { kind: 'recognition', type: makeType('b', 2), settings: { count: 2 } },
+    ];
+    setRng(() => 0); // Fisher-Yates with rng()=0 always swaps a[i] with a[0] — a fixed, traceable order
+    const paper = buildMixedExamPaper(enabled);
+    setRng();
+    // Merged pre-shuffle order is [a-0, a-1, b-0, b-1]; rng()=0 swaps a[3]<->a[0],
+    // then a[2]<->a[0], then a[1]<->a[0], landing on [a-1, b-0, b-1, a-0].
+    expect(paper.map((p) => (p.question as { answerId?: string }).answerId)).toEqual(['a-1', 'b-0', 'b-1', 'a-0']);
   });
 });
 

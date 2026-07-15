@@ -1,6 +1,7 @@
 import type { SoundType } from '../audio/percussion';
 import { fillMeasure, getActiveDurations } from '../rhythm/generator';
 import { durationClose, gridStep, metricPulseBeats, metricPulseCount, parseTimeSig, type Measure, type TimeSigInfo } from '../rhythm/time';
+import { random } from '../theory';
 
 // New topic (docs/05-topics/04-meter-recognition.md) — reuses the ported
 // rhythm-dictation generator/playback engine (D12 reuse mandate) rather than
@@ -124,7 +125,7 @@ export interface MeterQuestion {
 export function buildMeterQuestion(settings: MeterRecognitionSettings): MeterQuestion | null {
   const enabled = settings.enabledSignatures;
   if (enabled.length < MIN_ENABLED_SIGNATURES) return null;
-  const sig = enabled[Math.floor(Math.random() * enabled.length)]!;
+  const sig = enabled[Math.floor(random() * enabled.length)]!;
   const timeSig = parseTimeSig(sig);
   const durs = getActiveDurations(FIXED_DURATIONS, false, timeSig.measureBeats);
   const step = gridStep(durs);

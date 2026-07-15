@@ -1,4 +1,4 @@
-import { mod12, noteName, pick } from '../theory';
+import { mod12, noteName, pick, random } from '../theory';
 
 // Ported verbatim from legacy jazz-progression-trainer-rhythm.html
 // (docs/05-topics/06-chord-progressions.md). Progression's own copy of
@@ -226,7 +226,7 @@ export function maxInversionFor(quality: string): number {
 
 export function chooseInversion(quality: string, s: Pick<HarmonySettings, 'inversions'>): number {
   if (!s.inversions) return 0;
-  return Math.floor(Math.random() * (maxInversionFor(quality) + 1));
+  return Math.floor(random() * (maxInversionFor(quality) + 1));
 }
 
 export function pitchClassSteps(fromPc: number, toPc: number): number {
@@ -247,7 +247,7 @@ export function pickByVoiceLeading<T>(
   });
   let total = 0;
   weighted.forEach((x) => { total += x.w; });
-  let r = Math.random() * total;
+  let r = random() * total;
   for (let i = 0; i < weighted.length; i++) {
     r -= weighted[i]!.w;
     if (r <= 0) return weighted[i]!.c;

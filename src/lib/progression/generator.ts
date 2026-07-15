@@ -1,4 +1,4 @@
-import { mod12, noteName, pick, shuffle } from '../theory';
+import { mod12, noteName, pick, random, shuffle } from '../theory';
 import {
   FLOW,
   FUNCTIONS,
@@ -213,7 +213,7 @@ function buildBarChord(
   }
   const degree = pickByVoiceLeading(degreePool, (d) => degreePc(s.keyPc, d, s), prevRootPc)!;
 
-  if (!s.diatonicOnly && Math.random() < 0.34) {
+  if (!s.diatonicOnly && random() < 0.34) {
     const colours = ['secdom'];
     if (s.useSubdominant && degree !== 1) colours.push('applied');
     if (s.useSubdominant) colours.push('borrowediv');

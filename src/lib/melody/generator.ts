@@ -1,4 +1,4 @@
-import { pick, shuffle } from '../theory';
+import { pick, random, shuffle } from '../theory';
 import { fillMeasure, getActiveDurations } from '../rhythm/generator';
 import { gridStep, metricPulseBeats, parseTimeSig, sortNotes, type TimeSigInfo } from '../rhythm/time';
 import type { ChromaticSetting, MelodicDictationSettings, MelodicMotion } from './settings';
@@ -38,7 +38,7 @@ export interface GeneratedMelody {
 
 function weightedPick<T>(items: readonly T[], weights: readonly number[]): T {
   const total = weights.reduce((s, w) => s + w, 0);
-  let r = Math.random() * total;
+  let r = random() * total;
   for (let i = 0; i < items.length; i++) {
     r -= weights[i]!;
     if (r <= 0) return items[i]!;
@@ -50,7 +50,7 @@ function weightedPick<T>(items: readonly T[], weights: readonly number[]): T {
 function drawDegreeMagnitude(motion: MelodicMotion): number {
   const weights = MOTION_WEIGHTS[motion];
   const bucket = weightedPick([1, 2, 3, 4], weights);
-  return bucket === 4 ? (Math.random() < 0.5 ? 4 : 5) : bucket;
+  return bucket === 4 ? (random() < 0.5 ? 4 : 5) : bucket;
 }
 
 function clampIndex(idx: number, maxIndex: number): number {
@@ -93,13 +93,13 @@ function walkPitches(onsets: PitchedNote[], pool: number[], motion: MelodicMotio
     if (recoveryDirection !== 0) direction = recoveryDirection;
     else if (nearLowEdge && !nearHighEdge) direction = 1;
     else if (nearHighEdge && !nearLowEdge) direction = -1;
-    else direction = Math.random() < 0.5 ? -1 : 1;
+    else direction = random() < 0.5 ? -1 : 1;
 
     let magnitude: number;
     let repeated = false;
     if (recoveryDirection !== 0) {
       magnitude = 1; // classic recovery rule: forced step in the opposite direction
-    } else if (Math.random() < REPEAT_CHANCE) {
+    } else if (random() < REPEAT_CHANCE) {
       magnitude = 0;
       repeated = true;
     } else {
@@ -185,7 +185,7 @@ function attemptMelody(
 }
 
 export function generateMelody(settings: MelodicDictationSettings): GeneratedMelody {
-  const clef: Clef = settings.clef === 'random' ? (Math.random() < 0.5 ? 'treble' : 'bass') : settings.clef;
+  const clef: Clef = settings.clef === 'random' ? (random() < 0.5 ? 'treble' : 'bass') : settings.clef;
   const key = settings.randomKey ? pick(MELODY_KEYS) : keyById(settings.key);
   const sig = settings.signatures.length ? pick(settings.signatures) : '4/4';
   const timeSig = parseTimeSig(sig);

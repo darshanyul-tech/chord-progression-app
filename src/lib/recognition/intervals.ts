@@ -1,4 +1,4 @@
-import { pick } from '../theory';
+import { pick, random } from '../theory';
 
 // Ported verbatim from legacy INTERVAL_TYPES / interval* functions
 // (docs/05-topics/01-interval-recognition.md).
@@ -126,7 +126,7 @@ export function buildIntervalExamQuestion(practice: IntervalPracticeSettings): I
   const entry = pick(practice.pool);
   const minRoot = 48;
   const maxRoot = 72 - entry.semitones;
-  const rootMidi = minRoot + Math.floor(Math.random() * (maxRoot - minRoot + 1));
+  const rootMidi = minRoot + Math.floor(random() * (maxRoot - minRoot + 1));
   const base = INTERVAL_TYPES.find((t) => t.id === entry.id);
   const choiceDefs = getIntervalChoiceDefsForPractice(practice).map((d) => ({
     id: d.id,

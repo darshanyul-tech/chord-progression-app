@@ -1,4 +1,4 @@
-import { shuffle } from '../theory';
+import { random, shuffle } from '../theory';
 import { durationClose, durationFitsBar, type Measure, type RhythmNote } from './time';
 
 // Ported verbatim from legacy rhythm-dictation IIFE (generator functions,
@@ -46,7 +46,7 @@ export function partitionBar(totalBeats: number, activeDurations: number[]): num
   while (rem > 0.001 && guard++ < 120) {
     const fitting = activeDurations.filter((d) => d <= rem + 0.001);
     if (!fitting.length) break;
-    const chosen = fitting[Math.floor(Math.random() * fitting.length)]!;
+    const chosen = fitting[Math.floor(random() * fitting.length)]!;
     pool.push(chosen);
     rem -= chosen;
   }
@@ -91,10 +91,10 @@ export function candidateBeats(
 export function pickWeightedBeat(candidates: number[], syncopation: SyncopationLevel, pulseBeats: number): number {
   if (!candidates.length) return 0;
   const boost = SYNCOPATION_BOOST[syncopation] || 0;
-  if (boost <= 0) return candidates[Math.floor(Math.random() * candidates.length)]!;
+  if (boost <= 0) return candidates[Math.floor(random() * candidates.length)]!;
   const weights = candidates.map((b) => 1 + beatSyncopationScore(b, pulseBeats) * boost * 0.15);
   const total = weights.reduce((s, w) => s + w, 0);
-  let r = Math.random() * total;
+  let r = random() * total;
   for (let i = 0; i < candidates.length; i++) {
     r -= weights[i]!;
     if (r <= 0) return candidates[i]!;
@@ -106,7 +106,7 @@ export function placeSequential(durations: number[], restChanceVal: number): Rhy
   const notes: RhythmNote[] = [];
   let beat = 0;
   durations.forEach((dur) => {
-    notes.push({ duration: dur, isRest: Math.random() < restChanceVal, beat });
+    notes.push({ duration: dur, isRest: random() < restChanceVal, beat });
     beat += dur;
   });
   return notes;
@@ -134,7 +134,7 @@ export function placeSyncopated(
     }
     if (!cands.length) return;
     const beat = pickWeightedBeat(cands, syncopation, pulseBeats);
-    notes.push({ duration: dur, isRest: Math.random() < restChanceVal, beat });
+    notes.push({ duration: dur, isRest: random() < restChanceVal, beat });
     placed.push({ start: beat, end: beat + dur });
     placed.sort((a, b) => a.start - b.start);
   });
@@ -159,6 +159,6 @@ export function fillMeasure(settings: RhythmGenSettings): Measure {
   if (!durations.length) return [];
   const rc = restChance(restFrequency);
   if (syncopation === 'off') return placeSequential(durations, rc);
-  if (syncopation === 'light' && Math.random() < 0.55) return placeSequential(durations, rc);
+  if (syncopation === 'light' && random() < 0.55) return placeSequential(durations, rc);
   return placeSyncopated(durations, rc, measureTotalBeats, gridStepVal, syncopation, pulseBeats);
 }
