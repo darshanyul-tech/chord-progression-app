@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { EnabledExamType } from './exam-machine';
 import type { ExamTypeDefinition } from './types';
 import { useExamSettings, type ExamTypeConfig } from '../state/settings/exam';
@@ -25,24 +25,42 @@ interface ExamSetupProps {
 // types (§B3) share the same rendering here since both are just a
 // settingsSchema of numeric sliders — only the settings VALUES differ
 // (count/reps/spacing/replays vs. count/replays).
+//
+// registry.examTypes is a loader (Phase 13 §1 — keeps VexFlow, pulled in by
+// rhythm/melodic dictation's exam Answer/Result components, out of the main
+// bundle), so this screen resolves them once on mount behind a loading state
+// instead of reading a synchronous array.
 export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
   const lastActiveTopicId = useUIStore((s) => s.lastActiveTopicId);
   const persisted = useExamSettings();
   const setPersisted = useExamSettings.setState;
 
-  const examTypes = TOPICS.flatMap((t) => t.examTypes ?? []);
-
-  const [configs, setConfigs] = useState<Record<string, ExamTypeConfig>>(() => {
-    const out: Record<string, ExamTypeConfig> = {};
-    examTypes.forEach((t) => {
-      out[t.id] = persisted.types[t.id] ?? {
-        enabled: t.originTopicId === lastActiveTopicId,
-        settings: schemaDefaults(t),
-      };
-    });
-    return out;
-  });
+  const [examTypes, setExamTypes] = useState<ExamTypeDefinition[] | null>(null);
+  const [configs, setConfigs] = useState<Record<string, ExamTypeConfig>>({});
   const [perTypeErrors, setPerTypeErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(TOPICS.map((t) => t.examTypes?.() ?? Promise.resolve([]))).then((lists) => {
+      if (cancelled) return;
+      const resolved = lists.flat();
+      setExamTypes(resolved);
+      setConfigs((prev) => {
+        const out: Record<string, ExamTypeConfig> = { ...prev };
+        resolved.forEach((t) => {
+          out[t.id] ??= persisted.types[t.id] ?? {
+            enabled: t.originTopicId === lastActiveTopicId,
+            settings: schemaDefaults(t),
+          };
+        });
+        return out;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function toggle(id: string, enabled: boolean) {
     setConfigs((prev) => ({ ...prev, [id]: { ...prev[id]!, enabled } }));
@@ -58,6 +76,7 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
   }
 
   function handleBegin() {
+    if (!examTypes) return;
     setPersisted({ types: configs });
     const enabledTypes = examTypes.filter((t) => configs[t.id]?.enabled);
 
@@ -81,6 +100,15 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
         : { kind: 'dictation' as const, type: t, settings: configs[t.id]!.settings },
     );
     onBegin(enabled);
+  }
+
+  if (!examTypes) {
+    return (
+      <section className="card exam-panel exam-panel-setup">
+        <h2>Exam mode setup</h2>
+        <p className="sub">Loading question types…</p>
+      </section>
+    );
   }
 
   return (

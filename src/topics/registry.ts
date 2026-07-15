@@ -1,31 +1,34 @@
 import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
-import { ChordRecognitionExam } from './chord/examType';
 import { IntervalTopic } from './interval/IntervalTopic';
-import { IntervalRecognitionExam } from './interval/examType';
-import { MelodicDictationExam } from './melodic-dictation/examType';
 import { MeterTopic } from './meter/MeterTopic';
-import { MeterRecognitionExam } from './meter/examType';
 import { ProgressionTopic } from './progression/ProgressionTopic';
-import { ProgressionRecognitionExam } from './progression/examType';
-import { RhythmDictationExam } from './rhythm-dictation/examType';
 import { ScaleTopic } from './scale/ScaleTopic';
-import { ScaleRecognitionExam } from './scale/examType';
 
-// Splits each topic's Tier-2 UI (React/CSS) into its own chunk. Note this
-// does NOT move VexFlow itself out of the main bundle — both topics' exam
-// types are still imported eagerly below (registry.examTypes needs them
-// synchronously for ExamSetup), and those pull in VexStaffHost/
-// RhythmStaffHost regardless of whether the topic Component is lazy.
-// Deferring VexFlow fully would require making examTypes itself async,
-// which is a larger change than Phase 9's bundle check calls for here.
+// Splits each topic's Tier-2 UI (React/CSS) into its own chunk.
 const MelodicDictationTopic = lazy(() =>
   import('./melodic-dictation/MelodicDictationTopic').then((m) => ({ default: m.MelodicDictationTopic })),
 );
 const RhythmDictationTopic = lazy(() =>
   import('./rhythm-dictation/RhythmDictationTopic').then((m) => ({ default: m.RhythmDictationTopic })),
 );
+
+// examTypes is a loader, not a static array (Phase 13 §1) — every
+// examType.ts module was previously imported eagerly here purely so
+// ExamSetup could read registry.examTypes synchronously, which pulled
+// VexFlow (via rhythm/melodic dictation's exam Answer/Result components)
+// into the main bundle regardless of whether those topics' own Components
+// were lazy. ExamSetup now resolves these with Promise.all behind a small
+// loading state; useExamMachine is unaffected since it only ever sees the
+// already-resolved EnabledExamType[].
+const intervalExamTypes = () => import('./interval/examType').then((m) => [m.IntervalRecognitionExam]);
+const scaleExamTypes = () => import('./scale/examType').then((m) => [m.ScaleRecognitionExam]);
+const chordExamTypes = () => import('./chord/examType').then((m) => [m.ChordRecognitionExam]);
+const meterExamTypes = () => import('./meter/examType').then((m) => [m.MeterRecognitionExam]);
+const rhythmDictationExamTypes = () => import('./rhythm-dictation/examType').then((m) => [m.RhythmDictationExam]);
+const progressionExamTypes = () => import('./progression/examType').then((m) => [m.ProgressionRecognitionExam]);
+const melodicDictationExamTypes = () => import('./melodic-dictation/examType').then((m) => [m.MelodicDictationExam]);
 
 export type CategoryId =
   | 'intervals-scales'
@@ -67,7 +70,7 @@ export interface TopicDefinition {
   status: 'active' | 'placeholder';
   theme?: 'light' | 'dark';
   Component?: ComponentType;
-  examTypes?: ExamTypeDefinition[];
+  examTypes?: () => Promise<ExamTypeDefinition[]>;
   /** Overrides the generic placeholder copy (02-ui-shell §4). */
   placeholderCopy?: string;
   /**
@@ -90,7 +93,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'intervals-scales',
     status: 'active',
     Component: IntervalTopic,
-    examTypes: [IntervalRecognitionExam],
+    examTypes: intervalExamTypes,
   },
   {
     id: 'scales',
@@ -98,7 +101,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'intervals-scales',
     status: 'active',
     Component: ScaleTopic,
-    examTypes: [ScaleRecognitionExam],
+    examTypes: scaleExamTypes,
   },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
@@ -112,7 +115,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'chords',
     status: 'active',
     Component: ChordTopic,
-    examTypes: [ChordRecognitionExam],
+    examTypes: chordExamTypes,
   },
   { id: 'chord-comparison', title: 'Chord Comparison', category: 'chords', status: 'placeholder' },
   { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder', hidden: true },
@@ -126,7 +129,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'rhythm',
     status: 'active',
     Component: MeterTopic,
-    examTypes: [MeterRecognitionExam],
+    examTypes: meterExamTypes,
   },
   {
     id: 'rhythm-dictation',
@@ -135,7 +138,7 @@ export const TOPICS: TopicDefinition[] = [
     status: 'active',
     theme: 'dark',
     Component: RhythmDictationTopic,
-    examTypes: [RhythmDictationExam],
+    examTypes: rhythmDictationExamTypes,
   },
   { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder', hidden: true },
   { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder', hidden: true },
@@ -155,7 +158,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'harmony-form',
     status: 'active',
     Component: ProgressionTopic,
-    examTypes: [ProgressionRecognitionExam],
+    examTypes: progressionExamTypes,
   },
   { id: 'nashville-numbers', title: 'Nashville Numbers', category: 'harmony-form', status: 'placeholder', hidden: true },
   { id: 'modulation', title: 'Modulation', category: 'harmony-form', status: 'placeholder', hidden: true },
@@ -175,7 +178,7 @@ export const TOPICS: TopicDefinition[] = [
     category: 'pitch-melody',
     status: 'active',
     Component: MelodicDictationTopic,
-    examTypes: [MelodicDictationExam],
+    examTypes: melodicDictationExamTypes,
   },
   { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder', hidden: true },
   { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder', hidden: true },
