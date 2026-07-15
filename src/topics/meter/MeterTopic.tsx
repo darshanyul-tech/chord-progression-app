@@ -14,9 +14,16 @@ function loadBadgeFor(status: string): string {
   return '';
 }
 
+const AMBIGUOUS_PAIR = ['2/4', '4/4'];
+
 export function MeterTopic() {
   const settings = useMeterRecognitionSettings();
   const practice = useMeterPractice(settings);
+
+  const isAmbiguousSetup =
+    settings.emphasis === 'neutral' &&
+    settings.enabledSignatures.length === 2 &&
+    AMBIGUOUS_PAIR.every((sig) => settings.enabledSignatures.includes(sig));
 
   return (
     <>
@@ -52,6 +59,12 @@ export function MeterTopic() {
           ariaLabel="Time signature answers"
           emptyMessage="Enable at least two time signatures in the settings above."
         />
+        {isAmbiguousSetup && (
+          <p className="status warn">
+            2/4 and 4/4 with neutral emphasis are genuinely hard to tell apart — enable emphasis or add another
+            signature in the settings above if this feels like guessing.
+          </p>
+        )}
 
         <SessionScoreLine
           className="interval-session-score"

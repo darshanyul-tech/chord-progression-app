@@ -3,7 +3,7 @@ import { useAudioReady } from '../../hooks/useAudioReady';
 import { useStopOnDeactivate } from '../../hooks/useStopOnDeactivate';
 import { audio } from '../../lib/audio/engine';
 import { buildPlaybackEvents, disconnectScheduled, scheduleNote, type ScheduledNode } from '../../lib/audio/percussion';
-import { createPlaybackChannel, stopChannel } from '../../lib/audio/playback';
+import { createPlaybackChannel, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
 import {
   RECOGNITION_AUTO_ADVANCE_MS,
   RECOGNITION_MAX_GUESSES,
@@ -76,15 +76,29 @@ export function useMeterPractice(settings: MeterRecognitionSettings) {
     }
     stopPlaybackTimer();
     disconnectScheduled(scheduledNodesRef.current);
+    stopChannel(channelRef.current, audio.sampler);
     const ctx = audio.rawContext();
     if (ctx.state === 'suspended' && 'resume' in ctx) (ctx as AudioContext).resume();
 
     const pulse = metricPulseBeats(q.timeSig.beatValue, q.timeSig.beatsPerBar);
     const { events, totalDuration } = buildPlaybackEvents(q.pattern, q.tempo, q.timeSig.measureBeats, pulse, q.numMeasures);
-    const startAt = ctx.currentTime + SILENT_LEAD_IN_SEC;
-    events.forEach((ev) => {
-      scheduleNote(ctx, startAt + ev.time, ev.duration, ev.isRest, ev.isBeat1, q.sound, q.tempo, q.emphasisValue, scheduledNodesRef.current);
-    });
+    if (q.sound === 'melodic' && audio.sampler) {
+      // "Melodic" used to be a fixed 440 Hz sine via the percussion synth —
+      // dull for longer excerpts. Route it through the piano sampler instead
+      // (a repeated tonic, accented on the downbeat via velocity).
+      const playGen = channelRef.current.playbackGen;
+      const start = audio.now() + SILENT_LEAD_IN_SEC;
+      events.forEach((ev) => {
+        if (ev.isRest) return;
+        const noteDurSec = ((ev.duration * 60) / q.tempo) * 0.9;
+        scheduleSamplerTrigger(audio.sampler, channelRef.current, playGen, start + ev.time, 'A4', noteDurSec, ev.isBeat1 ? 0.85 : 0.65);
+      });
+    } else {
+      const startAt = ctx.currentTime + SILENT_LEAD_IN_SEC;
+      events.forEach((ev) => {
+        scheduleNote(ctx, startAt + ev.time, ev.duration, ev.isRest, ev.isBeat1, q.sound, q.tempo, q.emphasisValue, scheduledNodesRef.current);
+      });
+    }
     playbackTimerRef.current = window.setTimeout(
       () => {
         playbackTimerRef.current = null;
