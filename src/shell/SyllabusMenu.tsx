@@ -58,23 +58,27 @@ export function SyllabusMenu() {
       className={`syllabus-sidebar${drawerOpen ? ' open' : ''}`}
     >
       <div className="syllabus-nav">
-        {CATEGORY_ORDER.map((category) => (
-          <div key={category}>
-            <div className="syllabus-category-title">{CATEGORY_TITLES[category]}</div>
-            {TOPICS.filter((t) => t.category === category).map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                className={`syllabus-topic${t.id === activeId ? ' active' : ''}`}
-                onClick={() => go(t.id)}
-                disabled={examActive}
-              >
-                <span>{t.title}</span>
-                {t.status === 'placeholder' && <span className="syllabus-soon-tag">soon</span>}
-              </button>
-            ))}
-          </div>
-        ))}
+        {CATEGORY_ORDER.map((category) => {
+          const visibleTopics = TOPICS.filter((t) => t.category === category && !t.hidden);
+          if (!visibleTopics.length) return null;
+          return (
+            <div key={category}>
+              <div className="syllabus-category-title">{CATEGORY_TITLES[category]}</div>
+              {visibleTopics.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`syllabus-topic${t.id === activeId ? ' active' : ''}`}
+                  onClick={() => go(t.id)}
+                  disabled={examActive}
+                >
+                  <span>{t.title}</span>
+                  {t.status === 'placeholder' && <span className="syllabus-soon-tag">soon</span>}
+                </button>
+              ))}
+            </div>
+          );
+        })}
       </div>
     </nav>
   );

@@ -70,6 +70,13 @@ export interface TopicDefinition {
   examTypes?: ExamTypeDefinition[];
   /** Overrides the generic placeholder copy (02-ui-shell §4). */
   placeholderCopy?: string;
+  /**
+   * Parked topics: kept in the inventory (ids, categories, and any future
+   * code stay valid) but removed from the visible front end — the syllabus
+   * menu skips them and their routes redirect to the default topic. To
+   * bring one back, just delete this flag from its entry.
+   */
+  hidden?: boolean;
 }
 
 // Exact inventory: 02-ui-shell-and-navigation.md §3.
@@ -95,7 +102,7 @@ export const TOPICS: TopicDefinition[] = [
   },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
   { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
-  { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder' },
+  { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder', hidden: true },
   { id: 'tuning', title: 'Tuning', category: 'intervals-scales', status: 'placeholder' },
 
   // Chords
@@ -108,8 +115,8 @@ export const TOPICS: TopicDefinition[] = [
     examTypes: [ChordRecognitionExam],
   },
   { id: 'chord-comparison', title: 'Chord Comparison', category: 'chords', status: 'placeholder' },
-  { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder' },
-  { id: 'jazz-chords', title: 'Jazz Chords', category: 'chords', status: 'placeholder' },
+  { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder', hidden: true },
+  { id: 'jazz-chords', title: 'Jazz Chords', category: 'chords', status: 'placeholder', hidden: true },
   { id: 'chord-singing', title: 'Chord Singing', category: 'chords', status: 'placeholder' },
 
   // Rhythm
@@ -130,10 +137,16 @@ export const TOPICS: TopicDefinition[] = [
     Component: RhythmDictationTopic,
     examTypes: [RhythmDictationExam],
   },
-  { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder' },
-  { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder' },
-  { id: 'rhythm-styles', title: 'Rhythm Styles', category: 'rhythm', status: 'placeholder' },
-  { id: 'two-part-rhythm-dictation', title: 'Two-Part Rhythm Dictation', category: 'rhythm', status: 'placeholder' },
+  { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder', hidden: true },
+  { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder', hidden: true },
+  { id: 'rhythm-styles', title: 'Rhythm Styles', category: 'rhythm', status: 'placeholder', hidden: true },
+  {
+    id: 'two-part-rhythm-dictation',
+    title: 'Two-Part Rhythm Dictation',
+    category: 'rhythm',
+    status: 'placeholder',
+    hidden: true,
+  },
 
   // Harmony & Form
   {
@@ -144,10 +157,16 @@ export const TOPICS: TopicDefinition[] = [
     Component: ProgressionTopic,
     examTypes: [ProgressionRecognitionExam],
   },
-  { id: 'nashville-numbers', title: 'Nashville Numbers', category: 'harmony-form', status: 'placeholder' },
-  { id: 'modulation', title: 'Modulation', category: 'harmony-form', status: 'placeholder' },
-  { id: 'phrase-structure-form', title: 'Phrase Structure & Form', category: 'harmony-form', status: 'placeholder' },
-  { id: 'jazz-forms', title: 'Jazz Forms', category: 'harmony-form', status: 'placeholder' },
+  { id: 'nashville-numbers', title: 'Nashville Numbers', category: 'harmony-form', status: 'placeholder', hidden: true },
+  { id: 'modulation', title: 'Modulation', category: 'harmony-form', status: 'placeholder', hidden: true },
+  {
+    id: 'phrase-structure-form',
+    title: 'Phrase Structure & Form',
+    category: 'harmony-form',
+    status: 'placeholder',
+    hidden: true,
+  },
+  { id: 'jazz-forms', title: 'Jazz Forms', category: 'harmony-form', status: 'placeholder', hidden: true },
 
   // Pitch & Melody
   {
@@ -158,18 +177,19 @@ export const TOPICS: TopicDefinition[] = [
     Component: MelodicDictationTopic,
     examTypes: [MelodicDictationExam],
   },
-  { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder' },
-  { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder' },
-  { id: 'note-recognition', title: 'Note Recognition', category: 'pitch-melody', status: 'placeholder' },
+  { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder', hidden: true },
+  { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder', hidden: true },
+  { id: 'note-recognition', title: 'Note Recognition', category: 'pitch-melody', status: 'placeholder', hidden: true },
   { id: 'sight-singing', title: 'Sight Singing', category: 'pitch-melody', status: 'placeholder' },
-  { id: 'contour', title: 'Contour', category: 'pitch-melody', status: 'placeholder' },
+  { id: 'contour', title: 'Contour', category: 'pitch-melody', status: 'placeholder', hidden: true },
 
-  // Repertoire
-  { id: 'repertoire-listening', title: 'Repertoire Listening', category: 'repertoire', status: 'placeholder' },
+  // Repertoire (whole category parked — SyllabusMenu drops categories with no
+  // visible topics, so hiding its only entry hides the section heading too)
+  { id: 'repertoire-listening', title: 'Repertoire Listening', category: 'repertoire', status: 'placeholder', hidden: true },
 
   // Musical Elements
   { id: 'dynamics-articulation', title: 'Dynamics & Articulation', category: 'musical-elements', status: 'placeholder' },
-  { id: 'tempo-texture', title: 'Tempo & Texture', category: 'musical-elements', status: 'placeholder' },
+  { id: 'tempo-texture', title: 'Tempo & Texture', category: 'musical-elements', status: 'placeholder', hidden: true },
 
   // Custom Topics
   {

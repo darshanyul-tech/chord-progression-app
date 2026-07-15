@@ -6,10 +6,12 @@ import { DEFAULT_TOPIC_ID, getTopic } from './topics/registry';
 
 function TopicRoute() {
   const { id } = useParams<{ id: string }>();
-  if (!id || !getTopic(id)) {
+  const topic = id ? getTopic(id) : undefined;
+  // Unknown and parked (hidden) topics both fall back to the default topic.
+  if (!topic || topic.hidden) {
     return <Navigate to={`/topic/${DEFAULT_TOPIC_ID}`} replace />;
   }
-  return <TopicHost activeId={id} />;
+  return <TopicHost activeId={id!} />;
 }
 
 const router = createHashRouter([
