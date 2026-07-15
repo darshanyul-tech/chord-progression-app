@@ -24,7 +24,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <a href="https://tonejs.github.io/" target="_blank" rel="noopener">
           Tone.js
         </a>{' '}
-        + Salamander samples.
+        + Salamander samples. &middot; v{__APP_VERSION__}
       </footer>
     </>
   );

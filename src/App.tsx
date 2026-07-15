@@ -1,5 +1,6 @@
 import { createHashRouter, Navigate, RouterProvider, useParams } from 'react-router-dom';
 import { ExamRoute } from './exam/ExamRoute';
+import { ErrorBoundary } from './shell/ErrorBoundary';
 import { Layout } from './shell/Layout';
 import { TopicHost } from './shell/TopicHost';
 import { DEFAULT_TOPIC_ID, getTopic } from './topics/registry';
@@ -36,7 +37,11 @@ const router = createHashRouter([
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <ErrorBoundary label="Ear Trainer">
+      <RouterProvider router={router} />
+    </ErrorBoundary>
+  );
 }
 
 export default App;

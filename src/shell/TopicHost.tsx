@@ -1,6 +1,7 @@
 import { Suspense, useEffect } from 'react';
 import { getTopic, TOPICS } from '../topics/registry';
 import { useUIStore } from '../state/ui';
+import { ErrorBoundary } from './ErrorBoundary';
 import { PlaceholderView } from './PlaceholderView';
 
 /**
@@ -33,9 +34,11 @@ export function TopicHost({ activeId }: { activeId: string }) {
           style={{ display: t.id === activeId ? undefined : 'none' }}
         >
           {t.Component ? (
-            <Suspense fallback={<p className="sub">Loading…</p>}>
-              <t.Component />
-            </Suspense>
+            <ErrorBoundary label={t.title}>
+              <Suspense fallback={<p className="sub">Loading…</p>}>
+                <t.Component />
+              </Suspense>
+            </ErrorBoundary>
           ) : null}
         </div>
       ))}
