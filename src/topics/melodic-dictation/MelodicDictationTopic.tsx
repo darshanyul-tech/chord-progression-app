@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import '../../styles/topics/melodic-dictation.css';
 import { durationClose, durationFitsBar } from '../../lib/rhythm/time';
 import { useIsActiveTopic } from '../../hooks/useIsActiveTopic';
+import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { NoteGlyphIcon, RestGlyphIcon } from '../rhythm-dictation/PaletteGlyph';
 import { useMelodicDictationSettings } from '../../state/settings/melodic-dictation';
 import { MelodicSettings } from './Settings';
@@ -124,9 +125,11 @@ export function MelodicDictationTopic() {
             Reset score
           </button>
         </div>
-        <p className="md-session-score">
-          Session: {practice.score.correct} / {practice.score.total}
-        </p>
+        <SessionScoreLine
+          className="md-session-score"
+          correct={practice.score.correct}
+          total={practice.score.total}
+        />
       </section>
 
       <section className="card md-card-wrap">
@@ -229,7 +232,7 @@ export function MelodicDictationTopic() {
             </div>
           </div>
 
-          <div className="md-feedback-strip">
+          <div className="md-feedback-strip" aria-live="polite">
             <span
               style={{
                 color:

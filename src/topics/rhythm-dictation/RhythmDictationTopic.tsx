@@ -4,6 +4,7 @@ import { audio } from '../../lib/audio/engine';
 import { TRIPLET_DURS } from '../../lib/rhythm/generator';
 import { beatFromClickX, durationClose, durationFitsBar } from '../../lib/rhythm/time';
 import { useIsActiveTopic } from '../../hooks/useIsActiveTopic';
+import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useRhythmDictationSettings } from '../../state/settings/rhythm-dictation';
 import { NoteGlyphIcon, RestGlyphIcon } from './PaletteGlyph';
 import { RhythmSettings } from './Settings';
@@ -98,9 +99,11 @@ export function RhythmDictationTopic() {
             Reset score
           </button>
         </div>
-        <p className="rd-session-score">
-          Session: {practice.score.correct} / {practice.score.total}
-        </p>
+        <SessionScoreLine
+          className="rd-session-score"
+          correct={practice.score.correct}
+          total={practice.score.total}
+        />
       </section>
 
       <section className="card rhythm-card-wrap">
@@ -210,7 +213,7 @@ export function RhythmDictationTopic() {
             </div>
           </div>
 
-          <div className="rd-feedback-strip">
+          <div className="rd-feedback-strip" aria-live="polite">
             <span style={{ color: practice.feedbackKind === 'ok' ? 'var(--accent-2)' : practice.feedbackKind === 'bad' ? 'var(--danger)' : undefined }}>
               {practice.feedbackMsg}
             </span>
