@@ -9,7 +9,7 @@ const DURATIONS: { value: number; label: string }[] = [
   { value: 0.25, label: 'Sixteenth' },
   { value: 1.5, label: 'Dotted quarter' },
   { value: 0.75, label: 'Dotted eighth' },
-  { value: 2.5, label: 'Dotted half' },
+  { value: 3, label: 'Dotted half' },
 ];
 const SOUND_TYPES: { value: 'percussive' | 'instrumental' | 'melodic'; label: string }[] = [
   { value: 'percussive', label: 'Percussive' },

@@ -8,7 +8,7 @@ import { durationClose, durationFitsBar, type Measure, type RhythmNote } from '.
 export const DUR_LABELS: Record<number, string> = {
   4: 'whole', 2: 'half', 1: 'quarter', 0.5: 'eighth', 0.25: 'sixteenth',
   0.333: 'triplet eighth', 0.667: 'triplet quarter',
-  1.5: 'dotted quarter', 0.75: 'dotted eighth', 2.5: 'dotted half',
+  1.5: 'dotted quarter', 0.75: 'dotted eighth', 3: 'dotted half',
 };
 
 export type RestFrequency = 'none' | 'light' | 'moderate' | 'heavy';

@@ -12,10 +12,7 @@ export interface VexDuration {
 export function vexDurationFor(d: number): VexDuration {
   if (durationClose(d, 4)) return { duration: 'w', dots: 0 };
   if (durationClose(d, 2)) return { duration: 'h', dots: 0 };
-  // Legacy's "dotted half" checkbox is actually 2.5 beats (2 + 0.5), not the
-  // musically-correct 3 beats of a true dotted half — a pre-existing legacy
-  // duration-label quirk, ported as-is. Visually closest is a dotted half.
-  if (durationClose(d, 2.5)) return { duration: 'h', dots: 1 };
+  if (durationClose(d, 3)) return { duration: 'h', dots: 1 };
   if (durationClose(d, 1)) return { duration: 'q', dots: 0 };
   if (durationClose(d, 1.5)) return { duration: 'q', dots: 1 };
   if (durationClose(d, 0.5)) return { duration: '8', dots: 0 };

@@ -39,6 +39,7 @@ function safeStorage<T>(): PersistStorage<T> {
 export function createPersistedSettingsStore<T extends Record<string, unknown>>(
   topicId: string,
   defaults: T,
+  migrate?: (settings: T) => T,
 ): UseBoundStore<StoreApi<T>> {
   return create<T>()(
     persist(() => ({ ...defaults }), {
@@ -53,7 +54,7 @@ export function createPersistedSettingsStore<T extends Record<string, unknown>>(
             merged[key] = (persisted as T)[key];
           }
         }
-        return merged;
+        return migrate ? migrate(merged) : merged;
       },
     }),
   );

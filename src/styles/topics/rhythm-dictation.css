@@ -245,10 +245,20 @@
   background: var(--border);
   margin: 0 4px;
 }
-/* Ported verbatim: legacy hides the count-in dots entirely (display: none)
-   — the count-in is audible only. Preserved exactly, not "fixed". */
 #rhythm-dictation-app #rd-countin-dots {
-  display: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+#rhythm-dictation-app #rd-countin-dots span {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: background 0.1s ease-out;
+}
+#rhythm-dictation-app #rd-countin-dots span.rd-dot-lit {
+  background: var(--accent);
 }
 .rd-check-grid label {
   display: inline-flex;

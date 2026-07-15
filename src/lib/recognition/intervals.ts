@@ -61,7 +61,6 @@ export interface IntervalQuestion {
   answerLabel: string;
   playback: { noteLen: number; gap: number };
   choiceDefs: IntervalChoiceDef[];
-  choiceLayoutClass: string;
   promptDetail: string;
 }
 
@@ -144,7 +143,6 @@ export function buildIntervalExamQuestion(practice: IntervalPracticeSettings): I
     answerLabel: base ? base.label : entry.label,
     playback: { noteLen: practice.noteLen, gap: practice.gap },
     choiceDefs,
-    choiceLayoutClass: 'interval-choice-grid',
     promptDetail: `${entry.direction === 'asc' ? 'Ascending' : 'Descending'} ${base ? base.label : entry.label}`,
   };
 }

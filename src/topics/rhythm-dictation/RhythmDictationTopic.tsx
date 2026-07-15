@@ -20,7 +20,7 @@ const PALETTE: { duration: number; label: string; title: string }[] = [
   { duration: 0.333, label: '6', title: 'Triplet eighth (6)' },
   { duration: 1.5, label: '7', title: 'Dotted quarter (7)' },
   { duration: 0.75, label: '8', title: 'Dotted eighth (8)' },
-  { duration: 2.5, label: 'H.', title: 'Dotted half' },
+  { duration: 3, label: 'H.', title: 'Dotted half' },
 ];
 const TRIPLET_QUARTER = { duration: 0.667, label: 'TQ', title: 'Triplet quarter' };
 
