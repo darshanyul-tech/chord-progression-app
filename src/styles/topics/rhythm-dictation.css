@@ -80,6 +80,7 @@
   min-height: 72px;
   cursor: crosshair;
   display: block;
+  touch-action: manipulation;
 }
 #rhythm-dictation-app #rd-staff-svg svg {
   width: 100%;
@@ -186,6 +187,7 @@
   align-items: center;
   justify-content: center;
   padding: 6px;
+  touch-action: manipulation;
 }
 #rhythm-dictation-app .rd-note-btn .rd-glyph {
   width: 34px;
@@ -221,6 +223,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: manipulation;
 }
 #rhythm-dictation-app .rd-rest-btn .rd-glyph {
   width: 20px;
