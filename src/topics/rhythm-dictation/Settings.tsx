@@ -72,15 +72,23 @@ export function RhythmSettings() {
 
         <div className="field">
           <label>Rhythmic features</label>
-          <label style={{ marginBottom: '0.45rem' }}>Rests in questions</label>
-          <select value={settings.restFrequency} onChange={(e) => setState({ restFrequency: e.target.value as typeof settings.restFrequency })}>
+          <label htmlFor="rdRestFrequency" style={{ marginBottom: '0.45rem' }}>Rests in questions</label>
+          <select
+            id="rdRestFrequency"
+            value={settings.restFrequency}
+            onChange={(e) => setState({ restFrequency: e.target.value as typeof settings.restFrequency })}
+          >
             <option value="none">No rests</option>
             <option value="light">Light (occasional)</option>
             <option value="moderate">Moderate</option>
             <option value="heavy">Heavy (frequent)</option>
           </select>
-          <label style={{ margin: '0.65rem 0 0.45rem' }}>Syncopation</label>
-          <select value={settings.syncopation} onChange={(e) => setState({ syncopation: e.target.value as typeof settings.syncopation })}>
+          <label htmlFor="rdSyncopation" style={{ margin: '0.65rem 0 0.45rem' }}>Syncopation</label>
+          <select
+            id="rdSyncopation"
+            value={settings.syncopation}
+            onChange={(e) => setState({ syncopation: e.target.value as typeof settings.syncopation })}
+          >
             <option value="off">Off — on-beat placement</option>
             <option value="light">Light — some off-beats</option>
             <option value="moderate">Moderate</option>
@@ -97,8 +105,8 @@ export function RhythmSettings() {
 
         <div className="field">
           <label>Exercise layout</label>
-          <label style={{ marginBottom: '0.35rem' }}>Measures per question</label>
-          <select value={settings.measures} onChange={(e) => setState({ measures: Number(e.target.value) })}>
+          <label htmlFor="rdMeasures" style={{ marginBottom: '0.35rem' }}>Measures per question</label>
+          <select id="rdMeasures" value={settings.measures} onChange={(e) => setState({ measures: Number(e.target.value) })}>
             <option value={1}>1</option>
             <option value={2}>2</option>
             <option value={4}>4</option>

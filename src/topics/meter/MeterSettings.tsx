@@ -102,10 +102,11 @@ export function MeterSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Auto-advance after answer</span>
+            <span className="field-toggle-title" id="meter-auto-advance-title">Auto-advance after answer</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="meter-auto-advance-title"
                 checked={settings.autoAdvance}
                 onChange={(e) => setState({ autoAdvance: e.target.checked })}
               />

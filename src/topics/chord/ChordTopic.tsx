@@ -25,10 +25,11 @@ export function ChordTopic() {
         <h2>Listen &amp; identify</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Auto-advance after answer</span>
+            <span className="field-toggle-title" id="chord-auto-advance-title">Auto-advance after answer</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="chord-auto-advance-title"
                 checked={settings.autoAdvance}
                 onChange={(e) => setSettingsState({ autoAdvance: e.target.checked })}
               />

@@ -69,10 +69,11 @@ export function ScaleSettings() {
 
       <div className="field" style={{ marginTop: '0.85rem' }}>
         <div className="field-toggle-header">
-          <span className="field-toggle-title">Play descending after ascending</span>
+          <span className="field-toggle-title" id="scale-descend-title">Play descending after ascending</span>
           <label className="toggle-switch">
             <input
               type="checkbox"
+              aria-labelledby="scale-descend-title"
               checked={settings.descend}
               onChange={(e) => setState({ descend: e.target.checked })}
             />

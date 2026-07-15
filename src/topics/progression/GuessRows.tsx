@@ -30,21 +30,33 @@ export function GuessRows({ rows, results, settings, inversionOptionsFor, onChan
         return (
           <div className="guess-row" key={i}>
             <span className="barlabel">Bar {i + 1}</span>
-            <select value={row.off} onChange={(e) => onChange(i, { off: Number(e.target.value) })}>
+            <select
+              aria-label={`Bar ${i + 1} scale degree`}
+              value={row.off}
+              onChange={(e) => onChange(i, { off: Number(e.target.value) })}
+            >
               {degOpts.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </select>
-            <select value={row.fam} onChange={(e) => onChange(i, { fam: e.target.value })}>
+            <select
+              aria-label={`Bar ${i + 1} chord quality`}
+              value={row.fam}
+              onChange={(e) => onChange(i, { fam: e.target.value })}
+            >
               {famOpts.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
                 </option>
               ))}
             </select>
-            <select value={row.ext} onChange={(e) => onChange(i, { ext: Number(e.target.value) })}>
+            <select
+              aria-label={`Bar ${i + 1} chord extension`}
+              value={row.ext}
+              onChange={(e) => onChange(i, { ext: Number(e.target.value) })}
+            >
               {extOpts.map((o) => (
                 <option key={o.value} value={o.value}>
                   {o.label}
@@ -52,7 +64,11 @@ export function GuessRows({ rows, results, settings, inversionOptionsFor, onChan
               ))}
             </select>
             {settings.inversions && (
-              <select value={row.inv} onChange={(e) => onChange(i, { inv: Number(e.target.value) })}>
+              <select
+                aria-label={`Bar ${i + 1} inversion`}
+                value={row.inv}
+                onChange={(e) => onChange(i, { inv: Number(e.target.value) })}
+              >
                 {inversionOptionsFor(i).map((k) => (
                   <option key={k} value={k}>
                     {inversionLabel(k)}

@@ -29,10 +29,11 @@ export function ProgressionSettings() {
       <div className="grid settings-section">
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Random key</span>
+            <span className="field-toggle-title" id="prog-random-key-title">Random key</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-random-key-title"
                 checked={settings.randomKey}
                 onChange={(e) => setState({ randomKey: e.target.checked })}
               />
@@ -121,10 +122,11 @@ export function ProgressionSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Rootless voicings (split hands)</span>
+            <span className="field-toggle-title" id="prog-rootless-title">Rootless voicings (split hands)</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-rootless-title"
                 checked={settings.rootless}
                 onChange={(e) => setState({ rootless: e.target.checked })}
               />
@@ -139,10 +141,11 @@ export function ProgressionSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Diatonic only</span>
+            <span className="field-toggle-title" id="prog-diatonic-title">Diatonic only</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-diatonic-title"
                 checked={settings.diatonicOnly}
                 onChange={(e) => setState({ diatonicOnly: e.target.checked })}
               />
@@ -155,10 +158,11 @@ export function ProgressionSettings() {
         {!settings.diatonicOnly && (
           <div className="field">
             <div className="field-toggle-header">
-              <span className="field-toggle-title">Use sub-dominant chords</span>
+              <span className="field-toggle-title" id="prog-subdominant-title">Use sub-dominant chords</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
+                  aria-labelledby="prog-subdominant-title"
                   checked={settings.allowSubdominant}
                   onChange={(e) => setState({ allowSubdominant: e.target.checked })}
                 />
@@ -172,10 +176,11 @@ export function ProgressionSettings() {
         {!settings.diatonicOnly && (
           <div className="field">
             <div className="field-toggle-header">
-              <span className="field-toggle-title">Chromaticism</span>
+              <span className="field-toggle-title" id="prog-chromaticism-title">Chromaticism</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
+                  aria-labelledby="prog-chromaticism-title"
                   checked={settings.chromatic}
                   onChange={(e) => setState({ chromatic: e.target.checked })}
                 />
@@ -210,10 +215,11 @@ export function ProgressionSettings() {
       <div className="grid settings-section">
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">End on resolution</span>
+            <span className="field-toggle-title" id="prog-end-resolution-title">End on resolution</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-end-resolution-title"
                 checked={settings.cadence}
                 onChange={(e) => setState({ cadence: e.target.checked })}
               />
@@ -225,10 +231,11 @@ export function ProgressionSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Play tonic chord first</span>
+            <span className="field-toggle-title" id="prog-tonic-first-title">Play tonic chord first</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-tonic-first-title"
                 checked={settings.tonicFirst}
                 onChange={(e) => setState({ tonicFirst: e.target.checked })}
               />
@@ -256,10 +263,11 @@ export function ProgressionSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Bouncing bass</span>
+            <span className="field-toggle-title" id="prog-bouncing-bass-title">Bouncing bass</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-bouncing-bass-title"
                 checked={settings.bouncingBass}
                 onChange={(e) => setState({ bouncingBass: e.target.checked })}
               />
@@ -287,10 +295,11 @@ export function ProgressionSettings() {
 
         <div className="field">
           <div className="field-toggle-header">
-            <span className="field-toggle-title">Use inversions</span>
+            <span className="field-toggle-title" id="prog-inversions-title">Use inversions</span>
             <label className="toggle-switch">
               <input
                 type="checkbox"
+                aria-labelledby="prog-inversions-title"
                 checked={settings.inversions}
                 onChange={(e) => setState({ inversions: e.target.checked })}
               />
