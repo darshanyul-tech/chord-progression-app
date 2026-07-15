@@ -129,6 +129,13 @@
   gap: 1rem;
 }
 
+/* Grid items default to min-width: auto, which lets a topic with wide
+   content (e.g. chord-progressions' scrollable .bars strip) blow out the
+   whole page's width instead of scrolling within itself. */
+.topic-view {
+  min-width: 0;
+}
+
 .syllabus-scrim {
   display: none;
 }

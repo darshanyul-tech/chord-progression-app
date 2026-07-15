@@ -14,12 +14,14 @@
 
 .bars {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 0.5rem;
   margin-top: 0.2rem;
+  overflow-x: auto;
+  padding-bottom: 0.3rem;
 }
 .bar {
-  flex: 1 1 70px;
+  flex: 0 0 70px;
   min-width: 70px;
   text-align: center;
   background: var(--bar);
