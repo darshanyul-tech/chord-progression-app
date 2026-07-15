@@ -1,3 +1,4 @@
+import { IntervalMatrix } from '../../components/IntervalMatrix';
 import { INTERVAL_TYPES, type IntervalDirectionMode } from '../../lib/recognition/intervals';
 import { useIntervalRecognitionSettings } from '../../state/settings/interval-recognition';
 
@@ -47,63 +48,11 @@ export function IntervalSettings() {
         <div className="help">
           Tick which qualities can appear for each direction. At least one interval and one direction must be enabled.
         </div>
-        <div className="interval-matrix-wrap">
-          <table className="interval-matrix">
-            <thead>
-              <tr>
-                <th>Interval</th>
-                <th>Ascending</th>
-                <th>Descending</th>
-              </tr>
-            </thead>
-            <tbody>
-              {INTERVAL_TYPES.map((def) => (
-                <tr key={def.id}>
-                  <td>{def.label}</td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={`${def.label} ascending`}
-                      checked={settings.enabledIntervals[def.id]?.asc ?? false}
-                      onChange={() => toggleCell(def.id, 'asc')}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      aria-label={`${def.label} descending`}
-                      checked={settings.enabledIntervals[def.id]?.desc ?? false}
-                      onChange={() => toggleCell(def.id, 'desc')}
-                    />
-                  </td>
-                </tr>
-              ))}
-              <tr className="interval-toggle-row">
-                <td></td>
-                <td>
-                  <button
-                    type="button"
-                    className="toggle-all-btn"
-                    aria-label="Toggle all ascending intervals"
-                    onClick={() => toggleAll('asc')}
-                  >
-                    All
-                  </button>
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="toggle-all-btn"
-                    aria-label="Toggle all descending intervals"
-                    onClick={() => toggleAll('desc')}
-                  >
-                    All
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <IntervalMatrix
+          enabledIntervals={settings.enabledIntervals}
+          onToggleCell={toggleCell}
+          onToggleAll={toggleAll}
+        />
       </div>
 
       <div className="grid">

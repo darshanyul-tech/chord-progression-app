@@ -13,6 +13,9 @@ const MelodicDictationTopic = lazy(() =>
 const RhythmDictationTopic = lazy(() =>
   import('./rhythm-dictation/RhythmDictationTopic').then((m) => ({ default: m.RhythmDictationTopic })),
 );
+const IntervalSingingTopic = lazy(() =>
+  import('./interval-singing/IntervalSingingTopic').then((m) => ({ default: m.IntervalSingingTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -104,7 +107,15 @@ export const TOPICS: TopicDefinition[] = [
     examTypes: scaleExamTypes,
   },
   { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
-  { id: 'interval-singing', title: 'Interval Singing', category: 'intervals-scales', status: 'placeholder' },
+  {
+    id: 'interval-singing',
+    title: 'Interval Singing',
+    category: 'intervals-scales',
+    status: 'active',
+    Component: IntervalSingingTopic,
+    // No exam type this phase — singing under exam timers is a different
+    // design problem, deferred (09-improvement-plan.md §16.3).
+  },
   { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder', hidden: true },
   { id: 'tuning', title: 'Tuning', category: 'intervals-scales', status: 'placeholder' },
 
