@@ -32,6 +32,22 @@ export function stopChannel(channel: PlaybackChannel, sampler: Sampler | null): 
   channel.isPlaying = false;
 }
 
+/**
+ * Marks the channel busy for `durationSec`, then flips it back and fires
+ * `onDone` — guarded by playbackGen so a stale timer from a since-stopped or
+ * -replayed sequence can't fire after the fact.
+ */
+export function scheduleChannelDone(channel: PlaybackChannel, durationSec: number, onDone: () => void): void {
+  channel.isPlaying = true;
+  const playGen = channel.playbackGen;
+  const id = window.setTimeout(() => {
+    if (playGen !== channel.playbackGen) return;
+    channel.isPlaying = false;
+    onDone();
+  }, Math.max(0, durationSec * 1000));
+  channel.timers.push(id);
+}
+
 export function scheduleSamplerTrigger(
   sampler: Sampler | null,
   channel: PlaybackChannel,

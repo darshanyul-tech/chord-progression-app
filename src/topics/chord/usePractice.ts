@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAudioReady } from '../../hooks/useAudioReady';
 import { useStopOnDeactivate } from '../../hooks/useStopOnDeactivate';
 import { audio } from '../../lib/audio/engine';
-import { createPlaybackChannel, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
+import { createPlaybackChannel, scheduleChannelDone, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
 import {
   RECOGNITION_AUTO_ADVANCE_MS,
   RECOGNITION_MAX_GUESSES,
@@ -30,6 +30,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   const score = useScoresStore((s) => s.scores[TOPIC_ID] ?? EMPTY_SCORE);
 
   const [question, setQuestion] = useState<ChordQuestion | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [guessesUsed, setGuessesUsed] = useState(0);
   const [wrongIds, setWrongIds] = useState<string[]>([]);
@@ -67,7 +68,10 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
     } else {
       const notes = midis.map(midiToNoteName);
       scheduleSamplerTrigger(audio.sampler, channelRef.current, playGen, cursor, notes, q.playback.holdLen, 0.9);
+      cursor += q.playback.holdLen;
     }
+    setIsPlaying(true);
+    scheduleChannelDone(channelRef.current, cursor - audio.now(), () => setIsPlaying(false));
     setStatusText('Listen…');
     setStatusKind('');
   }
@@ -139,12 +143,13 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   }
 
   function replay() {
-    if (!question) return;
+    if (!question || isPlaying) return;
     playQuestion(question);
   }
 
   function stop() {
     stopChannel(channelRef.current, audio.sampler);
+    setIsPlaying(false);
     setStatusText('Stopped.');
     setStatusKind('');
   }
@@ -186,6 +191,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   return {
     audioStatus,
     question,
+    isPlaying,
     answered,
     choiceGroups,
     wrongIds,

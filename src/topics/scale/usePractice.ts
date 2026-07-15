@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAudioReady } from '../../hooks/useAudioReady';
 import { useStopOnDeactivate } from '../../hooks/useStopOnDeactivate';
 import { audio } from '../../lib/audio/engine';
-import { createPlaybackChannel, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
+import { createPlaybackChannel, scheduleChannelDone, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
 import {
   RECOGNITION_AUTO_ADVANCE_MS,
   RECOGNITION_MAX_GUESSES,
@@ -30,6 +30,7 @@ export function useScalePractice(settings: ScaleRecognitionSettings) {
   const score = useScoresStore((s) => s.scores[TOPIC_ID] ?? EMPTY_SCORE);
 
   const [question, setQuestion] = useState<ScaleQuestion | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [guessesUsed, setGuessesUsed] = useState(0);
   const [wrongIds, setWrongIds] = useState<string[]>([]);
@@ -63,6 +64,8 @@ export function useScalePractice(settings: ScaleRecognitionSettings) {
       scheduleSamplerTrigger(audio.sampler, channelRef.current, playGen, cursor, note, settings.noteLen, 0.88);
       cursor += settings.noteLen + settings.noteGap;
     });
+    setIsPlaying(true);
+    scheduleChannelDone(channelRef.current, cursor - audio.now(), () => setIsPlaying(false));
     setStatusText('Listen…');
     setStatusKind('');
   }
@@ -134,12 +137,13 @@ export function useScalePractice(settings: ScaleRecognitionSettings) {
   }
 
   function replay() {
-    if (!question) return;
+    if (!question || isPlaying) return;
     playQuestion(question);
   }
 
   function stop() {
     stopChannel(channelRef.current, audio.sampler);
+    setIsPlaying(false);
     setStatusText('Stopped.');
     setStatusKind('');
   }
@@ -181,6 +185,7 @@ export function useScalePractice(settings: ScaleRecognitionSettings) {
   return {
     audioStatus,
     question,
+    isPlaying,
     answered,
     choiceGroups,
     wrongIds,

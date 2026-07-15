@@ -48,6 +48,7 @@ export function IntervalTopic() {
           onPlay={practice.play}
           playLabel="Play interval"
           replayVisible={!!practice.question}
+          replayDisabled={practice.isPlaying}
           onReplay={practice.replay}
           onStop={practice.stop}
           nextVisible={practice.answered && !settings.autoAdvance}

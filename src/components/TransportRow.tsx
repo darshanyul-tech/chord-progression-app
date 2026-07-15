@@ -7,6 +7,8 @@ interface TransportRowProps {
   onPlay(): void;
   playLabel: string;
   replayVisible: boolean;
+  /** Disabled while the current question's own hearing is still playing, so Replay can't cut it off mid-note. */
+  replayDisabled?: boolean;
   onReplay(): void;
   onStop(): void;
   nextVisible: boolean;
@@ -23,6 +25,7 @@ export function TransportRow({
   onPlay,
   playLabel,
   replayVisible,
+  replayDisabled,
   onReplay,
   onStop,
   nextVisible,
@@ -43,7 +46,7 @@ export function TransportRow({
         </button>
       )}
       {replayVisible && (
-        <button type="button" className="secondary" onClick={onReplay}>
+        <button type="button" className="secondary" onClick={onReplay} disabled={replayDisabled}>
           Replay
         </button>
       )}

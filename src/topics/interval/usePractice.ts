@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useAudioReady } from '../../hooks/useAudioReady';
 import { useStopOnDeactivate } from '../../hooks/useStopOnDeactivate';
 import { audio } from '../../lib/audio/engine';
-import { createPlaybackChannel, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
+import { createPlaybackChannel, scheduleChannelDone, scheduleSamplerTrigger, stopChannel } from '../../lib/audio/playback';
 import {
   INTERVAL_TYPES,
   RECOGNITION_AUTO_ADVANCE_MS,
@@ -32,6 +32,7 @@ export function useIntervalPractice(settings: IntervalRecognitionSettings) {
   const score = useScoresStore((s) => s.scores[TOPIC_ID] ?? EMPTY_SCORE);
 
   const [question, setQuestion] = useState<IntervalQuestion | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [answered, setAnswered] = useState(false);
   const [guessesUsed, setGuessesUsed] = useState(0);
   const [wrongIds, setWrongIds] = useState<string[]>([]);
@@ -68,6 +69,8 @@ export function useIntervalPractice(settings: IntervalRecognitionSettings) {
       scheduleSamplerTrigger(audio.sampler, channelRef.current, playGen, cursor, note, q.playback.noteLen, 0.88);
       cursor += q.playback.noteLen + q.playback.gap;
     });
+    setIsPlaying(true);
+    scheduleChannelDone(channelRef.current, cursor - audio.now(), () => setIsPlaying(false));
     setStatusText('Listen…');
     setStatusKind('');
   }
@@ -142,12 +145,13 @@ export function useIntervalPractice(settings: IntervalRecognitionSettings) {
   }
 
   function replay() {
-    if (!question) return;
+    if (!question || isPlaying) return;
     playQuestion(question);
   }
 
   function stop() {
     stopChannel(channelRef.current, audio.sampler);
+    setIsPlaying(false);
     setStatusText('Stopped.');
     setStatusKind('');
   }
@@ -188,6 +192,7 @@ export function useIntervalPractice(settings: IntervalRecognitionSettings) {
   return {
     audioStatus,
     question,
+    isPlaying,
     answered,
     choiceDefs,
     wrongIds,

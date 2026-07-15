@@ -48,6 +48,7 @@ export function ChordTopic() {
           onPlay={practice.play}
           playLabel="Play chord"
           replayVisible={!!practice.question}
+          replayDisabled={practice.isPlaying}
           onReplay={practice.replay}
           onStop={practice.stop}
           nextVisible={practice.answered && !settings.autoAdvance}
