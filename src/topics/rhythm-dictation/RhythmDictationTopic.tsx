@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import '../../styles/topics/rhythm-dictation.css';
 import { audio } from '../../lib/audio/engine';
 import { TRIPLET_DURS } from '../../lib/rhythm/generator';
@@ -33,6 +33,18 @@ export function RhythmDictationTopic() {
   const practice = useRhythmPractice(settings);
   const isActive = useIsActiveTopic('rhythm-dictation');
   const submitBtnRef = useRef<HTMLButtonElement>(null);
+  const [paletteFlash, setPaletteFlash] = useState(false);
+  const paletteFlashTimerRef = useRef<number | null>(null);
+
+  function flashPalette() {
+    setPaletteFlash(true);
+    if (paletteFlashTimerRef.current !== null) clearTimeout(paletteFlashTimerRef.current);
+    paletteFlashTimerRef.current = window.setTimeout(() => setPaletteFlash(false), 280);
+  }
+
+  useEffect(() => () => {
+    if (paletteFlashTimerRef.current !== null) clearTimeout(paletteFlashTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (!isActive) return;
@@ -41,7 +53,13 @@ export function RhythmDictationTopic() {
       if (target.tagName === 'INPUT' || target.tagName === 'SELECT') return;
 
       if (Object.prototype.hasOwnProperty.call(KEY_TO_DURATION, e.key)) {
-        practice.armDuration(KEY_TO_DURATION[e.key]!);
+        const dur = KEY_TO_DURATION[e.key]!;
+        const isTriplet = TRIPLET_DURS.some((td) => durationClose(td, dur));
+        if (isTriplet && !settings.triplets) {
+          flashPalette();
+          return;
+        }
+        practice.armDuration(dur);
         return;
       }
       switch (e.key) {
@@ -64,7 +82,7 @@ export function RhythmDictationTopic() {
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, practice.activeMeasureIndex, practice.numMeasures, practice.submitEnabled]);
+  }, [isActive, practice.activeMeasureIndex, practice.numMeasures, practice.submitEnabled, settings.triplets]);
 
   function handleStaffClick(measureIndex: number, clickX: number) {
     practice.setActiveMeasureIndex(measureIndex);
@@ -142,7 +160,7 @@ export function RhythmDictationTopic() {
           </div>
 
           <div className="rd-bottom-bar">
-            <div className="rd-palette">
+            <div className={`rd-palette${paletteFlash ? ' rd-palette-flash' : ''}`}>
               {paletteButtons.map((btn) => {
                 const isTriplet = TRIPLET_DURS.some((td) => durationClose(td, btn.duration));
                 if (isTriplet && !settings.triplets) return null;

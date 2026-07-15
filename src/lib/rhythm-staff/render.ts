@@ -32,6 +32,8 @@ const REST_KEY = 'b/4';
 export const WRONG_COLOR = '#b3261e';
 export const OK_COLOR = '#000000';
 export const CURSOR_COLOR = '#005f6b';
+/** User's own (wrong) notes in a reveal, greyed so the red correct pattern reads as the answer, not a competing voice at the same y. */
+export const MUTED_COLOR = '#8a8a8a';
 
 function buildStaveNotes(notes: Measure): StaveNote[] {
   const sorted = sortNotes(notes);
@@ -108,9 +110,13 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     const ok = hasSubmitted ? measureResults[mi] : undefined;
 
     if (hasSubmitted && !ok) {
-      // Reveal: user's answer (black) + correct pattern (contrasting red),
-      // both on the same stave (Part B4's two-voice reveal convention).
-      drawMeasureVoice(context, stave, userNotes, measureTotalBeats);
+      // Reveal: user's (wrong) answer greyed out + correct pattern in red on
+      // top, both on the same stave — greying the user voice keeps it from
+      // reading as a second competing answer at the same y (Part B4).
+      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, {
+        fillStyle: MUTED_COLOR,
+        strokeStyle: MUTED_COLOR,
+      });
       drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, {
         fillStyle: WRONG_COLOR,
         strokeStyle: WRONG_COLOR,
@@ -119,16 +125,16 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       drawMeasureVoice(context, stave, userNotes, measureTotalBeats);
     }
 
-    if (hasSubmitted && ok) {
+    if (hasSubmitted) {
       const cx = stave.getNoteEndX() - 10;
       context.save();
-      context.setFillStyle(OK_COLOR);
+      context.setFillStyle(ok ? OK_COLOR : WRONG_COLOR);
       context.beginPath();
       context.arc(cx, STAVE_Y - 14, 7, 0, Math.PI * 2, false);
       context.fill();
       context.setFillStyle('#fff');
       context.setFont('Arial', 10, 'bold');
-      context.fillText('✓', cx - 4, STAVE_Y - 10);
+      context.fillText(ok ? '✓' : '✗', cx - 4, STAVE_Y - 10);
       context.restore();
     }
   }

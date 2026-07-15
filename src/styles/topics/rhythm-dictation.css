@@ -105,6 +105,11 @@
   gap: 4px;
   flex: 1 1 auto;
   min-width: 0;
+  border-radius: 4px;
+  transition: background-color 0.1s ease-out;
+}
+#rhythm-dictation-app .rd-palette.rd-palette-flash {
+  background-color: rgba(179, 38, 30, 0.14);
 }
 #rhythm-dictation-app .rd-actions {
   display: flex;
