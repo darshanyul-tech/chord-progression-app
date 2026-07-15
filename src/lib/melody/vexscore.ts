@@ -19,6 +19,10 @@ export interface MelodyStaffModel {
   isCorrect: boolean;
   /** Present only when hasSubmitted && !isCorrect — the correct melody, reveal-styled. */
   revealMeasures: PitchedMeasure[] | null;
+  /** Measure index to flash red for a moment (invalid placement), or null. */
+  flashMeasure: number | null;
+  /** 0..1 playback cursor position across the whole melody, or null when not playing. */
+  playbackFraction: number | null;
 }
 
 /** Everything the input overlay needs to hit-test clicks, without holding onto VexFlow objects. */
@@ -39,6 +43,7 @@ const MAX_MEASURES_PER_ROW = 2;
 const REST_KEY = 'b/4';
 
 export const WRONG_COLOR = '#b3261e';
+export const CURSOR_COLOR = '#005f6b';
 
 function buildStaveNote(note: PitchedNote, key: KeyDef, clef: Clef): StaveNote {
   const { duration, dots } = vexDurationFor(note.duration);
@@ -79,7 +84,7 @@ function drawMeasureVoice(
 
 export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel): MeasureGeometry[] {
   container.innerHTML = '';
-  const { key, clef, timeSig, numMeasures, measures, hasSubmitted, isCorrect, revealMeasures } = model;
+  const { key, clef, timeSig, numMeasures, measures, hasSubmitted, isCorrect, revealMeasures, flashMeasure, playbackFraction } = model;
   const measureTotalBeats = timeSig.measureBeats;
   const numRows = Math.max(1, Math.ceil(numMeasures / MAX_MEASURES_PER_ROW));
   const canvasHeight = numRows * ROW_HEIGHT + 20;
@@ -104,7 +109,18 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
         stave.addKeySignature(key.vexKeySpec);
         if (mi === 0) stave.addTimeSignature(`${timeSig.beatsPerBar}/${timeSig.beatValue}`);
       }
-      stave.setContext(context).draw();
+      // Stave.draw() never applies setStyle() to its own line-drawing (only
+      // drawWithStyle()'s Element.applyStyle wrapper does, which Stave.draw
+      // bypasses) — so tint the raw context around the call instead.
+      if (flashMeasure === mi) {
+        context.save();
+        context.setStrokeStyle(WRONG_COLOR);
+        context.setFillStyle(WRONG_COLOR);
+        stave.setContext(context).draw();
+        context.restore();
+      } else {
+        stave.setContext(context).draw();
+      }
 
       const userNotes = measures[mi] ?? [];
       if (hasSubmitted && !isCorrect && revealMeasures) {
@@ -124,6 +140,25 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
         topLineY: stave.getYForLine(0),
         spacing: stave.getSpacingBetweenLines(),
       });
+    }
+  }
+
+  if (playbackFraction !== null && numMeasures > 0) {
+    const globalBeat = playbackFraction * numMeasures * measureTotalBeats;
+    const mi = Math.min(numMeasures - 1, Math.floor(globalBeat / measureTotalBeats));
+    const beatInMeasure = globalBeat - mi * measureTotalBeats;
+    const geo = geometry.find((g) => g.index === mi);
+    if (geo) {
+      const rel = beatInMeasure / measureTotalBeats;
+      const cx = geo.noteStartX + rel * (geo.noteEndX - geo.noteStartX);
+      context.save();
+      context.setStrokeStyle(CURSOR_COLOR);
+      context.setLineWidth(1.5);
+      context.beginPath();
+      context.moveTo(cx, geo.topLineY - 10);
+      context.lineTo(cx, geo.topLineY + geo.spacing * 4 + 10);
+      context.stroke();
+      context.restore();
     }
   }
 

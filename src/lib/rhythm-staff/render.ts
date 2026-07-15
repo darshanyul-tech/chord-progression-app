@@ -90,10 +90,18 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     if (mi === 0) {
       stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
     }
+    // Stave.draw() never applies setStyle() to its own line-drawing (only
+    // drawWithStyle()'s Element.applyStyle wrapper does, which Stave.draw
+    // bypasses) — so tint the raw context around the call instead.
     if (flashMeasure === mi) {
-      stave.setStyle({ fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR });
+      context.save();
+      context.setStrokeStyle(WRONG_COLOR);
+      context.setFillStyle(WRONG_COLOR);
+      stave.setContext(context).draw();
+      context.restore();
+    } else {
+      stave.setContext(context).draw();
     }
-    stave.setContext(context).draw();
     staves.push(stave);
 
     const userNotes = measures[mi] ?? [];

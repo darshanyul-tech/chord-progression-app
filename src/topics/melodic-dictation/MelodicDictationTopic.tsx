@@ -151,12 +151,17 @@ export function MelodicDictationTopic() {
                 hasSubmitted: practice.hasSubmitted,
                 isCorrect: practice.isCorrect,
                 revealMeasures: practice.hasSubmitted && !practice.isCorrect ? practice.correctMeasures : null,
+                flashMeasure: practice.flashMeasure,
+                playbackFraction: practice.playbackFraction,
               }}
               gridStepVal={practice.gridStepVal}
               armedDuration={practice.effectiveDuration(practice.armedDuration)}
               armedAccidental={practice.armedAccidental}
               onPlace={handlePlace}
             />
+            <p className="md-capacity-hint" aria-live="polite">
+              {practice.capacityHint}
+            </p>
           </div>
 
           <div className="md-bottom-bar">

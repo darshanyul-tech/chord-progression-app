@@ -3,7 +3,7 @@ import { generateMelody } from './generator';
 import { defaultMelodicDictationSettings } from './settings';
 import type { MelodicDictationSettings } from './settings';
 import { pitchedMeasuresEqual } from './grading';
-import { buildVexScore } from './vexscore';
+import { buildVexScore, CURSOR_COLOR, WRONG_COLOR } from './vexscore';
 
 // Smoke test (docs/04-notation-engine.md §B7): builds without throwing for
 // generated melodies across all settings combinations (property-style loop).
@@ -39,6 +39,8 @@ describe('buildVexScore smoke test', () => {
           hasSubmitted: false,
           isCorrect: false,
           revealMeasures: null,
+          flashMeasure: i % 3 === 0 ? i % settings.measures : null,
+          playbackFraction: i % 2 === 0 ? (i % 100) / 100 : null,
         }),
       ).not.toThrow();
 
@@ -53,6 +55,8 @@ describe('buildVexScore smoke test', () => {
           hasSubmitted: true,
           isCorrect,
           revealMeasures: generated.measures,
+          flashMeasure: null,
+          playbackFraction: null,
         }),
       ).not.toThrow();
     }
@@ -71,8 +75,79 @@ describe('buildVexScore smoke test', () => {
       hasSubmitted: false,
       isCorrect: false,
       revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
     });
     expect(geometry).toHaveLength(4);
     expect(geometry.map((g) => g.index)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('draws a playback cursor in CURSOR_COLOR when playbackFraction is set', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 2 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: generated.timeSig,
+      numMeasures: settings.measures,
+      measures: generated.measures,
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: 0.5,
+    });
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
+    expect(cursor).toBe(true);
+  });
+
+  it('draws no cursor when playbackFraction is null', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 2 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: generated.timeSig,
+      numMeasures: settings.measures,
+      measures: generated.measures,
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+    });
+    const svg = container.querySelector('svg')!;
+    const cursor = [...svg.querySelectorAll('path')].some((p) => p.getAttribute('stroke') === CURSOR_COLOR);
+    expect(cursor).toBe(false);
+  });
+
+  it('flashes the given measure in WRONG_COLOR', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 2 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: generated.timeSig,
+      numMeasures: settings.measures,
+      measures: generated.measures,
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: 0,
+      playbackFraction: null,
+    });
+    const svg = container.querySelector('svg')!;
+    // The color lands on the enclosing <g> (SVG stroke/fill are inherited by
+    // descendants), not necessarily on each individual <path> — VexFlow's
+    // SVG backend skips re-writing an attribute on a child that already
+    // matches its parent group's.
+    const flashed = [...svg.querySelectorAll('g,path')].some(
+      (el) => el.getAttribute('stroke') === WRONG_COLOR || el.getAttribute('fill') === WRONG_COLOR,
+    );
+    expect(flashed).toBe(true);
   });
 });

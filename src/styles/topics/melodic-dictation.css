@@ -49,6 +49,12 @@
   height: auto;
   display: block;
 }
+.md-capacity-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+  font-weight: 500;
+}
 .md-bottom-bar {
   display: flex;
   align-items: center;

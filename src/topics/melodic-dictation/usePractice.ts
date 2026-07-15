@@ -7,11 +7,12 @@ import { generateMelody } from '../../lib/melody/generator';
 import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/grading';
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
 import { keyById, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
-import { getActiveDurations } from '../../lib/rhythm/generator';
+import { DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
 import {
   durationClose,
   durationFitsBar,
   gridStep,
+  maxNotesOfDuration,
   metricPulseBeats,
   metricPulseCount,
   type TimeSigInfo,
@@ -32,10 +33,11 @@ interface MelodyChannel {
   playbackGen: number;
   timers: number[];
   scheduledNodes: ScheduledNode[];
+  rafId: number | null;
 }
 
 function newChannel(): MelodyChannel {
-  return { playbackGen: 0, timers: [], scheduledNodes: [] };
+  return { playbackGen: 0, timers: [], scheduledNodes: [], rafId: null };
 }
 
 interface PlaybackModel {
@@ -80,6 +82,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   const [armedAccidental, setArmedAccidental] = useState<'' | '#' | 'b'>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasListened, setHasListened] = useState(false);
+  const [playbackFraction, setPlaybackFraction] = useState<number | null>(null);
   const [statusText, setStatusText] = useState('Press Initialize Audio to begin.');
   const [statusKind, setStatusKind] = useState<StatusKind>('');
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -98,12 +101,17 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     channelRef.current.playbackGen++;
     clearAllTimers();
     disconnectScheduled(channelRef.current.scheduledNodes);
+    if (channelRef.current.rafId !== null) {
+      cancelAnimationFrame(channelRef.current.rafId);
+      channelRef.current.rafId = null;
+    }
     try {
       audio.sampler?.releaseAll(0);
     } catch {
       /* noop */
     }
     setIsPlaying(false);
+    setPlaybackFraction(null);
   }
 
   const wasActiveRef = useRef(isActive);
@@ -167,7 +175,27 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     });
 
     const totalMs = rhythmStartMs + model.numMeasures * model.timeSig.measureBeats * spb * 1000;
-    schedule(totalMs + 150, () => setIsPlaying(false));
+    schedule(totalMs + 150, () => {
+      setIsPlaying(false);
+      setPlaybackFraction(null);
+    });
+
+    const perfStart = performance.now();
+    const tick = () => {
+      if (channel.playbackGen !== playGen) return;
+      const elapsed = performance.now() - perfStart;
+      if (elapsed >= rhythmStartMs && elapsed <= totalMs) {
+        setPlaybackFraction(Math.min(1, Math.max(0, (elapsed - rhythmStartMs) / (totalMs - rhythmStartMs))));
+      } else {
+        setPlaybackFraction(null);
+      }
+      if (elapsed < totalMs) {
+        channel.rafId = requestAnimationFrame(tick);
+      } else {
+        channel.rafId = null;
+      }
+    };
+    channel.rafId = requestAnimationFrame(tick);
   }
 
   function startPlayback() {
@@ -351,6 +379,16 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   const allMeasuresFull = userMeasures.length > 0 && userMeasures.every((m) => Math.abs(totalBeatsPlaced(m) - timeSig.measureBeats) < 0.01);
   const submitEnabled = !hasSubmitted && allMeasuresFull && hasListened;
 
+  const capacityHint = (() => {
+    const sigLabel = `${timeSig.beatsPerBar}/${timeSig.beatValue}`;
+    const parts: string[] = [];
+    activeDurations.forEach((d) => {
+      const n = maxNotesOfDuration(d, timeSig.measureBeats);
+      if (n > 0) parts.push(`${n} ${DUR_LABELS[d] ?? d}${n === 1 ? '' : 's'}`);
+    });
+    return `${sigLabel} — ${parts.length ? `${parts.join(', ')} per bar.` : 'adjust settings to fit this metre.'}`;
+  })();
+
   return {
     audioStatus,
     key,
@@ -364,6 +402,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     activeMeasureIndex,
     setActiveMeasureIndex,
     flashMeasure,
+    playbackFraction,
     isPlaying,
     armedDuration,
     armedIsRest,
@@ -371,6 +410,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     armedAccidental,
     activeDurations,
     gridStepVal,
+    capacityHint,
     submitEnabled,
     statusText,
     statusKind,
