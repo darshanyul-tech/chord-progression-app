@@ -209,3 +209,46 @@
   outline: 2px solid var(--accent);
   background: var(--ecu-teal-light);
 }
+
+.note-palette-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.note-palette {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.note-palette-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--ecu-white);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+}
+.note-palette-btn .rd-glyph {
+  width: 34px;
+  height: 46px;
+  display: block;
+  overflow: visible;
+}
+.note-palette-btn.note-palette-rest .rd-glyph {
+  width: 20px;
+  height: 28px;
+}
+.note-palette-btn span {
+  display: none;
+}
+.note-palette-btn.armed {
+  background: #d8d8d8;
+  border-color: var(--ecu-black);
+  box-shadow: inset 0 0 0 2px var(--ecu-black);
+}

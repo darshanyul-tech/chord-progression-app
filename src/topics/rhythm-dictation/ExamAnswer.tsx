@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { RhythmStaffHost } from './RhythmStaffHost';
+import { NotePalette, NotePaletteRestToggle } from '../../components/NotePalette';
+import { EXAM_PALETTE_ENTRIES } from '../../components/notePaletteEntries';
 import type { ExamDictationProps, ExamDictationResultProps } from '../../exam/types';
 import { getActiveDurations } from '../../lib/rhythm/generator';
 import { beatFromClickX, durationFitsBar, gridStep, measuresEqual, type Measure, type TimeSigInfo } from '../../lib/rhythm/time';
@@ -15,8 +17,7 @@ export interface RhythmDictationQuestion {
   metroVolume: number;
 }
 
-export const PALETTE_DURATIONS = [4, 2, 1, 0.5, 0.25, 1.5, 0.75];
-const PALETTE_LABELS = ['1', '2', '3', '4', '5', '7', '8'];
+const PALETTE_DURATIONS = EXAM_PALETTE_ENTRIES.map((e) => e.duration);
 
 // Ported per docs/06-exam-mode.md §B3 — lightweight local copy of
 // usePractice.ts's overlap-replace placement algorithm (no settings/session
@@ -61,20 +62,9 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
           }}
         />
       </div>
-      <div className="buttons" style={{ marginTop: '0.5rem' }}>
-        {PALETTE_DURATIONS.map((d, i) => (
-          <button
-            key={d}
-            type="button"
-            className={armedDuration === d ? 'secondary' : 'ghost'}
-            onClick={() => setArmedDuration(d)}
-          >
-            {PALETTE_LABELS[i]}
-          </button>
-        ))}
-        <button type="button" className={armedIsRest ? 'secondary' : 'ghost'} onClick={() => setArmedIsRest((p) => !p)}>
-          Rest
-        </button>
+      <div className="note-palette-row" style={{ marginTop: '0.5rem' }}>
+        <NotePalette entries={EXAM_PALETTE_ENTRIES} armedDuration={armedDuration} onArm={setArmedDuration} />
+        <NotePaletteRestToggle active={armedIsRest} onToggle={() => setArmedIsRest((p) => !p)} />
         <button type="button" className="ghost" onClick={() => onAnswer(measures.map(() => []))}>
           Clear all
         </button>

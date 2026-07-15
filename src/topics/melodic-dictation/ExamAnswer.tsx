@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { VexStaffHost } from './VexStaffHost';
+import { NotePalette, NotePaletteRestToggle } from '../../components/NotePalette';
+import { EXAM_PALETTE_ENTRIES } from '../../components/notePaletteEntries';
 import type { ExamDictationProps, ExamDictationResultProps } from '../../exam/types';
 import { pitchedMeasuresEqual } from '../../lib/melody/grading';
 import type { Clef, KeyDef, PitchedMeasure } from '../../lib/melody/theory';
@@ -16,8 +18,7 @@ export interface MelodicDictationQuestion {
   tempo: number;
 }
 
-export const PALETTE_DURATIONS = [4, 2, 1, 0.5, 0.25, 1.5, 0.75];
-const PALETTE_LABELS = ['1', '2', '3', '4', '5', '7', '8'];
+const PALETTE_DURATIONS = EXAM_PALETTE_ENTRIES.map((e) => e.duration);
 
 // Ported per docs/06-exam-mode.md §B3 — lightweight local copy of
 // usePractice.ts's placement logic (no settings/session-score coupling
@@ -65,23 +66,13 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
           onPlace={placeNoteAt}
         />
       </div>
-      <div className="buttons" style={{ marginTop: '0.5rem' }}>
-        {PALETTE_DURATIONS.map((d, i) => (
-          <button
-            key={d}
-            type="button"
-            className={armedDuration === d ? 'secondary' : 'ghost'}
-            onClick={() => setArmedDuration(d)}
-          >
-            {PALETTE_LABELS[i]}
-          </button>
-        ))}
-        <button type="button" className={armedIsRest ? 'secondary' : 'ghost'} onClick={() => setArmedIsRest((p) => !p)}>
-          Rest
-        </button>
+      <div className="note-palette-row" style={{ marginTop: '0.5rem' }}>
+        <NotePalette entries={EXAM_PALETTE_ENTRIES} armedDuration={armedDuration} onArm={setArmedDuration} />
+        <NotePaletteRestToggle active={armedIsRest} onToggle={() => setArmedIsRest((p) => !p)} />
         <button
           type="button"
           className={armedAccidental === '#' ? 'secondary' : 'ghost'}
+          title="Sharp"
           onClick={() => setArmedAccidental((p) => (p === '#' ? '' : '#'))}
         >
           &#9839;
@@ -89,6 +80,7 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
         <button
           type="button"
           className={armedAccidental === 'b' ? 'secondary' : 'ghost'}
+          title="Flat"
           onClick={() => setArmedAccidental((p) => (p === 'b' ? '' : 'b'))}
         >
           &#9837;
