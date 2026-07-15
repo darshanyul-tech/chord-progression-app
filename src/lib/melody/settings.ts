@@ -19,6 +19,8 @@ export interface MelodicDictationSettings extends Record<string, unknown> {
   measures: number;
   tempo: number;
   motion: MelodicMotion;
+  /** Auditions a note's pitch on the sampler right after you place or nudge it. Practice only — exam mode never previews. */
+  previewOnPlace: boolean;
 }
 
 export function defaultMelodicDictationSettings(): MelodicDictationSettings {
@@ -35,5 +37,6 @@ export function defaultMelodicDictationSettings(): MelodicDictationSettings {
     measures: 2,
     tempo: 76,
     motion: 'steps',
+    previewOnPlace: true,
   };
 }

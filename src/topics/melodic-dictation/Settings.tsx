@@ -159,6 +159,16 @@ export function MelodicSettings() {
             value={settings.tempo}
             onChange={(e) => setState({ tempo: Number(e.target.value) })}
           />
+          <label className="toggle-switch" style={{ marginTop: '0.85rem' }}>
+            <span className="toggle-label">Preview pitch on place</span>
+            <input
+              type="checkbox"
+              checked={settings.previewOnPlace}
+              onChange={(e) => setState({ previewOnPlace: e.target.checked })}
+            />
+            <span className="toggle-slider" aria-hidden="true" />
+          </label>
+          <div className="help">Plays the note you just placed or nudged so you can hear what you wrote.</div>
         </div>
       </div>
     </section>

@@ -6,7 +6,7 @@ import { disconnectScheduled, scheduleMetroClick, type ScheduledNode } from '../
 import { generateMelody } from '../../lib/melody/generator';
 import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/grading';
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
-import { keyById, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
+import { keyById, resolveRangeWindow, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
 import { DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
 import {
   durationClose,
@@ -266,6 +266,11 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     return isDotActive ? base * 1.5 : base;
   }
 
+  function previewPitch(midi: number) {
+    if (!settings.previewOnPlace || audio.status !== 'ready' || !audio.sampler) return;
+    audio.sampler.triggerAttackRelease(midiToNoteName(midi), 0.35, audio.now());
+  }
+
   function placeNoteAt(measureIndex: number, beat: number, duration: number, isRest: boolean, midi: number | null) {
     if (hasSubmitted) return;
     const dur = effectiveDuration(duration);
@@ -277,6 +282,18 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       window.setTimeout(() => setFlashMeasure(null), 280);
       return;
     }
+    // Clamp clicks far above/below the staff to the current range window
+    // instead of placing an absurd pitch — flash to signal the clamp.
+    let placedMidi = midi;
+    if (!isRest && midi !== null) {
+      const rangeWindow = resolveRangeWindow(key, clef, settings.range);
+      const clamped = Math.max(rangeWindow.lowMidi, Math.min(rangeWindow.highMidi, midi));
+      if (clamped !== midi) {
+        placedMidi = clamped;
+        setFlashMeasure(measureIndex);
+        window.setTimeout(() => setFlashMeasure(null), 280);
+      }
+    }
     // Placing a note over existing ones replaces them (rhythm-dictation UX
     // parity — no need to backspace first).
     const end = beat + dur;
@@ -285,7 +302,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     setUserMeasures((prev) =>
       prev.map((m, i) =>
         i === measureIndex
-          ? [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : midi }]
+          ? [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }]
           : m,
       ),
     );
@@ -294,6 +311,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       { measureIndex, beat },
     ]);
     setActiveMeasureIndex(measureIndex);
+    if (!isRest && placedMidi !== null) previewPitch(placedMidi);
   }
 
   function removeLastNote() {
@@ -325,14 +343,18 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   function nudgeLastNote(delta: number) {
     if (hasSubmitted || !placementHistory.length) return;
     const last = placementHistory[placementHistory.length - 1]!;
+    const note = userMeasures[last.measureIndex]?.find(
+      (n) => durationClose(n.beat, last.beat) && !n.rest && n.midi !== null,
+    );
+    if (!note || note.midi === null) return;
+    const newMidi = note.midi + delta;
     setUserMeasures((prev) =>
       prev.map((m, i) => {
         if (i !== last.measureIndex) return m;
-        return m.map((n) =>
-          durationClose(n.beat, last.beat) && !n.rest && n.midi !== null ? { ...n, midi: n.midi + delta } : n,
-        );
+        return m.map((n) => (durationClose(n.beat, last.beat) && !n.rest && n.midi !== null ? { ...n, midi: newMidi } : n));
       }),
     );
+    previewPitch(newMidi);
   }
 
   function checkAnswer() {
