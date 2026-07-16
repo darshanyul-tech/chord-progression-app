@@ -2,6 +2,7 @@ import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordComparisonTopic } from './chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from './chord/ChordTopic';
+import { DynamicsArticulationTopic } from './dynamics-articulation/DynamicsArticulationTopic';
 import { IntervalComparisonTopic } from './interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { MeterTopic } from './meter/MeterTopic';
@@ -36,6 +37,8 @@ const intervalComparisonExamTypes = () =>
   import('./interval-comparison/examType').then((m) => [m.IntervalComparisonExam]);
 const scaleExamTypes = () => import('./scale/examType').then((m) => [m.ScaleRecognitionExam]);
 const tuningExamTypes = () => import('./tuning/examType').then((m) => [m.TuningExam]);
+const dynamicsArticulationExamTypes = () =>
+  import('./dynamics-articulation/examType').then((m) => [m.DynamicsArticulationExam]);
 const chordExamTypes = () => import('./chord/examType').then((m) => [m.ChordRecognitionExam]);
 const chordComparisonExamTypes = () => import('./chord-comparison/examType').then((m) => [m.ChordComparisonExam]);
 const meterExamTypes = () => import('./meter/examType').then((m) => [m.MeterRecognitionExam]);
@@ -241,7 +244,14 @@ export const TOPICS: TopicDefinition[] = [
   { id: 'repertoire-listening', title: 'Repertoire Listening', category: 'repertoire', status: 'placeholder', hidden: true },
 
   // Musical Elements
-  { id: 'dynamics-articulation', title: 'Dynamics & Articulation', category: 'musical-elements', status: 'placeholder' },
+  {
+    id: 'dynamics-articulation',
+    title: 'Dynamics & Articulation',
+    category: 'musical-elements',
+    status: 'active',
+    Component: DynamicsArticulationTopic,
+    examTypes: dynamicsArticulationExamTypes,
+  },
   { id: 'tempo-texture', title: 'Tempo & Texture', category: 'musical-elements', status: 'placeholder', hidden: true },
 
   // Custom Topics

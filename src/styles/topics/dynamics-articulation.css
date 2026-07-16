@@ -1,0 +1,74 @@
+/* New topic (docs/05-topics/12-dynamics-articulation.md) — checklist,
+   prompt/choices/score classes follow the same pattern as the comparison
+   topics' CSS files. */
+
+.dynamics-articulation-type-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.4rem;
+}
+.dynamics-articulation-type-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.dynamics-articulation-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.dynamics-articulation-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.dynamics-articulation-choice {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.dynamics-articulation-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.dynamics-articulation-choice:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.dynamics-articulation-choice.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.dynamics-articulation-choice.wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
+.dynamics-articulation-choice.reveal-actual {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.dynamics-articulation-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}

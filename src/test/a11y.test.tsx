@@ -16,6 +16,7 @@ import type { RecognitionExamType } from '../exam/exam-machine';
 import { useScoresStore } from '../state/scores';
 import { ChordComparisonTopic } from '../topics/chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from '../topics/chord/ChordTopic';
+import { DynamicsArticulationTopic } from '../topics/dynamics-articulation/DynamicsArticulationTopic';
 import { IntervalComparisonTopic } from '../topics/interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from '../topics/interval/IntervalTopic';
 import { MeterTopic } from '../topics/meter/MeterTopic';
@@ -86,6 +87,11 @@ describe('Topic views — axe accessibility pass', () => {
 
   it('Chord Comparison has no serious/critical violations', async () => {
     const { container } = renderAt('/topic/chord-comparison', <ChordComparisonTopic />);
+    await expectNoSeriousViolations(container);
+  });
+
+  it('Dynamics & Articulation has no serious/critical violations', async () => {
+    const { container } = renderAt('/topic/dynamics-articulation', <DynamicsArticulationTopic />);
     await expectNoSeriousViolations(container);
   });
 

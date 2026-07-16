@@ -19,6 +19,7 @@ const EXAM_LABELS = [
   'Rhythm dictation',
   'Chord progression recognition',
   'Melodic dictation',
+  'Dynamics & articulation',
 ];
 
 describe('ExamSetup', () => {
@@ -32,7 +33,7 @@ describe('ExamSetup', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders all 10 registered exam types once the async examTypes loaders resolve', async () => {
+  it('renders all 11 registered exam types once the async examTypes loaders resolve', async () => {
     render(<ExamSetup onBegin={() => {}} onCancel={() => {}} setupError="" />);
     await screen.findByText('Begin exam');
     EXAM_LABELS.forEach((label) => {

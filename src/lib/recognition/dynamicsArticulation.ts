@@ -37,11 +37,15 @@ export interface ArticulationDef {
   velocity: number;
 }
 
+// Descriptions deliberately carry no trailing punctuation — every caller
+// (the reveal message, a future "Same/Different"-style label) appends its
+// own sentence-ending punctuation, matching the topic spec's own reveal
+// example ("Staccato — short, detached notes").
 export const ARTICULATION_TABLE: ArticulationDef[] = [
-  { id: 'staccato', label: 'Staccato', description: 'Short, detached notes.', noteLenFraction: 0.25, velocity: 0.6 },
-  { id: 'legato', label: 'Legato', description: 'Smooth, connected notes.', noteLenFraction: 1.05, velocity: 0.6 },
-  { id: 'accented', label: 'Accented', description: 'Every note struck hard.', noteLenFraction: 0.7, velocity: 0.9 },
-  { id: 'tenuto', label: 'Tenuto', description: 'Held the full written value.', noteLenFraction: 0.95, velocity: 0.6 },
+  { id: 'staccato', label: 'Staccato', description: 'short, detached notes', noteLenFraction: 0.25, velocity: 0.6 },
+  { id: 'legato', label: 'Legato', description: 'smooth, connected notes', noteLenFraction: 1.05, velocity: 0.6 },
+  { id: 'accented', label: 'Accented', description: 'every note struck hard', noteLenFraction: 0.7, velocity: 0.9 },
+  { id: 'tenuto', label: 'Tenuto', description: 'held the full written value', noteLenFraction: 0.95, velocity: 0.6 },
 ];
 
 export function articulationById(id: ArticulationId): ArticulationDef | undefined {
@@ -190,6 +194,12 @@ function buildArticulationQuestion(settings: DASettings): ArticulationQuestion |
 }
 
 export type DAQuestion = DynamicsQuestion | ArticulationQuestion;
+
+/** The current mode's answer buttons — needed by the UI before any question exists yet (§5). */
+export function getDynamicsArticulationChoiceDefs(settings: DASettings): { id: string; label: string }[] {
+  if (settings.mode === 'dynamics') return getDynamicsChoiceDefs();
+  return getArticulationChoiceDefs(settings.enabledArticulations);
+}
 
 /**
  * Builds one question for the topic's current mode, or null when
