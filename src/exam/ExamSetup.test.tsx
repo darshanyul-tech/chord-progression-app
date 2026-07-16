@@ -12,6 +12,7 @@ const EXAM_LABELS = [
   'Interval identification',
   'Interval comparison',
   'Scale identification',
+  'Tuning',
   'Chord quality identification',
   'Chord comparison',
   'Meter identification',
@@ -31,7 +32,7 @@ describe('ExamSetup', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders all 9 registered exam types once the async examTypes loaders resolve', async () => {
+  it('renders all 10 registered exam types once the async examTypes loaders resolve', async () => {
     render(<ExamSetup onBegin={() => {}} onCancel={() => {}} setupError="" />);
     await screen.findByText('Begin exam');
     EXAM_LABELS.forEach((label) => {

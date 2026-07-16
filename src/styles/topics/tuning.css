@@ -1,0 +1,57 @@
+/* New topic (docs/05-topics/11-tuning.md) — prompt/choices/score classes
+   follow the same pattern as interval-comparison.css/chord-comparison.css. */
+
+.tuning-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.tuning-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.tuning-choice {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.tuning-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.tuning-choice:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.tuning-choice.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.tuning-choice.wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
+.tuning-choice.reveal-actual {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.tuning-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}

@@ -7,6 +7,7 @@ import { IntervalTopic } from './interval/IntervalTopic';
 import { MeterTopic } from './meter/MeterTopic';
 import { ProgressionTopic } from './progression/ProgressionTopic';
 import { ScaleTopic } from './scale/ScaleTopic';
+import { TuningTopic } from './tuning/TuningTopic';
 
 // Splits each topic's Tier-2 UI (React/CSS) into its own chunk.
 const MelodicDictationTopic = lazy(() =>
@@ -34,6 +35,7 @@ const intervalExamTypes = () => import('./interval/examType').then((m) => [m.Int
 const intervalComparisonExamTypes = () =>
   import('./interval-comparison/examType').then((m) => [m.IntervalComparisonExam]);
 const scaleExamTypes = () => import('./scale/examType').then((m) => [m.ScaleRecognitionExam]);
+const tuningExamTypes = () => import('./tuning/examType').then((m) => [m.TuningExam]);
 const chordExamTypes = () => import('./chord/examType').then((m) => [m.ChordRecognitionExam]);
 const chordComparisonExamTypes = () => import('./chord-comparison/examType').then((m) => [m.ChordComparisonExam]);
 const meterExamTypes = () => import('./meter/examType').then((m) => [m.MeterRecognitionExam]);
@@ -132,7 +134,14 @@ export const TOPICS: TopicDefinition[] = [
     // design problem, deferred (09-improvement-plan.md §16.3).
   },
   { id: 'jazz-scales', title: 'Jazz Scales', category: 'intervals-scales', status: 'placeholder', hidden: true },
-  { id: 'tuning', title: 'Tuning', category: 'intervals-scales', status: 'placeholder' },
+  {
+    id: 'tuning',
+    title: 'Tuning',
+    category: 'intervals-scales',
+    status: 'active',
+    Component: TuningTopic,
+    examTypes: tuningExamTypes,
+  },
 
   // Chords
   {

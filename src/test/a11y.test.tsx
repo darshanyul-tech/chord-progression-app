@@ -21,6 +21,7 @@ import { IntervalTopic } from '../topics/interval/IntervalTopic';
 import { MeterTopic } from '../topics/meter/MeterTopic';
 import { ProgressionTopic } from '../topics/progression/ProgressionTopic';
 import { ScaleTopic } from '../topics/scale/ScaleTopic';
+import { TuningTopic } from '../topics/tuning/TuningTopic';
 import { MelodicDictationTopic } from '../topics/melodic-dictation/MelodicDictationTopic';
 import { RhythmDictationTopic } from '../topics/rhythm-dictation/RhythmDictationTopic';
 
@@ -70,6 +71,11 @@ describe('Topic views — axe accessibility pass', () => {
 
   it('Scales has no serious/critical violations', async () => {
     const { container } = renderAt('/topic/scales', <ScaleTopic />);
+    await expectNoSeriousViolations(container);
+  });
+
+  it('Tuning has no serious/critical violations', async () => {
+    const { container } = renderAt('/topic/tuning', <TuningTopic />);
     await expectNoSeriousViolations(container);
   });
 
