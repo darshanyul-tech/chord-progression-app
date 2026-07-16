@@ -93,20 +93,39 @@ Singing capture loop. Pitch only — no rhythm grading in v1 (spec §1's binding
 
 ---
 
-## Phase 24 — Custom Topics: settings presets (M) — spec: `docs/05-topics/14-custom-topics.md`
+## Phase 24 — Custom Topics: settings presets (M) — spec: `docs/05-topics/14-custom-topics.md` — Done, tagged v2.6.0 (ran ahead of Phase 23 per the tag-swap note below — Phase 23 is still blocked on the outstanding manual singer gate)
 
 Presets, **not** authoring (spec §1's binding scope decision). Independent of Phases 21–23;
-sequenced last only so its "Save as custom topic…" button lands on every topic at once.
+originally sequenced last so its "Save as custom topic…" button lands on every topic at once
+— still true even run out of order, since it's wired into every topic that existed at the
+time.
 
-1. Tier-1 `lib/custom/presets.ts` (CRUD, name validation, `sanitizePresets`) + tests
-   (spec §5), incl. the schema-drift apply test.
-2. `useCustomPresets` store + syllabus-menu section + management page (registry flip of
-   `custom-topic`); "Save as custom topic…" shared button wired into every active topic's
-   Settings card.
-3. a11y entry for the management page. No exam contribution.
+1. Done — Tier-1 `lib/custom/presets.ts` (CRUD, name validation, `sanitizePresets`) + tests
+   (spec §5), incl. the schema-drift apply test: 14 unit tests, 100% coverage.
+2. Done — `useCustomPresets` persisted store (wrapping the Tier-1 pure transforms) +
+   `state/settingsStoreRegistry.ts` (topic id → settings store map, needed to apply a preset
+   back onto its origin topic's live store) + syllabus-menu section (presets listed under
+   Custom Topics; opening one applies it and navigates to `/topic/<topicId>`, no per-preset
+   routes) + management page (registry flip of `custom-topic` → "Manage custom topics", with
+   Open/Rename/Delete and a "N presets hidden" notice for dropped ones); "Save as custom
+   topic…" shared button wired into all 13 active topics' Settings cards.
+3. Done — a11y entry for the management page; Tier-2 store + management-page tests. No exam
+   contribution.
 
-**Gate:** spec §6; after this phase the syllabus menu shows zero "soon" badges; tag
-**v2.7.0**.
+Found + fixed a real bug that only manifested at Vite dev-server runtime (both the test
+suite and the production Rollup build passed regardless): `state/customPresets.ts` sits in
+an import cycle with `topics/registry.ts` (via `CustomTopicManagementPage`), so reading
+`TOPICS.map()` at module-eval time observed `TOPICS` mid-initialization — crashing every
+topic's Settings card on load. Fixed by deferring that read into the persist middleware's
+`merge` callback, which only runs once the whole module graph has finished loading.
+Live-verified in-browser (a fresh tab, after the first one got stuck in an unrelated
+tooling-flakiness state seen earlier in this session too): saved a preset, changed the live
+setting, reopened the preset, confirmed it restored and navigated correctly; the management
+page's list/Open flow.
+
+**Gate:** spec §6 in full; after this phase the syllabus menu shows zero "soon" badges
+except Sight Singing (Phase 23, still blocked); tagged **v2.6.0** (swapped ahead of Phase
+23's v2.6.0/v2.7.0 slot per the note below).
 
 ---
 
