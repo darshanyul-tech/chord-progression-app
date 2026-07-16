@@ -5,11 +5,12 @@ import { useExamSettings } from '../state/settings/exam';
 import { useUIStore } from '../state/ui';
 
 // RTL coverage for the exam machine (09-improvement-plan.md §15.2): setup
-// renders all 7 registered types, and per-type settings persist across a
+// renders all registered types, and per-type settings persist across a
 // remount (localStorage-backed, via createPersistedSettingsStore).
 
 const EXAM_LABELS = [
   'Interval identification',
+  'Interval comparison',
   'Scale identification',
   'Chord quality identification',
   'Meter identification',
@@ -29,7 +30,7 @@ describe('ExamSetup', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders all 7 registered exam types once the async examTypes loaders resolve', async () => {
+  it('renders all 8 registered exam types once the async examTypes loaders resolve', async () => {
     render(<ExamSetup onBegin={() => {}} onCancel={() => {}} setupError="" />);
     await screen.findByText('Begin exam');
     EXAM_LABELS.forEach((label) => {

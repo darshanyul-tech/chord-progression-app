@@ -15,6 +15,7 @@ import type {
 import type { RecognitionExamType } from '../exam/exam-machine';
 import { useScoresStore } from '../state/scores';
 import { ChordTopic } from '../topics/chord/ChordTopic';
+import { IntervalComparisonTopic } from '../topics/interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from '../topics/interval/IntervalTopic';
 import { MeterTopic } from '../topics/meter/MeterTopic';
 import { ProgressionTopic } from '../topics/progression/ProgressionTopic';
@@ -58,6 +59,11 @@ function renderAt(path: string, ui: React.ReactElement) {
 describe('Topic views — axe accessibility pass', () => {
   it('Interval Recognition has no serious/critical violations', async () => {
     const { container } = renderAt('/topic/interval-recognition', <IntervalTopic />);
+    await expectNoSeriousViolations(container);
+  });
+
+  it('Interval Comparison has no serious/critical violations', async () => {
+    const { container } = renderAt('/topic/interval-comparison', <IntervalComparisonTopic />);
     await expectNoSeriousViolations(container);
   });
 

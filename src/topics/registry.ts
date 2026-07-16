@@ -1,6 +1,7 @@
 import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordTopic } from './chord/ChordTopic';
+import { IntervalComparisonTopic } from './interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
 import { MeterTopic } from './meter/MeterTopic';
 import { ProgressionTopic } from './progression/ProgressionTopic';
@@ -26,6 +27,8 @@ const IntervalSingingTopic = lazy(() =>
 // loading state; useExamMachine is unaffected since it only ever sees the
 // already-resolved EnabledExamType[].
 const intervalExamTypes = () => import('./interval/examType').then((m) => [m.IntervalRecognitionExam]);
+const intervalComparisonExamTypes = () =>
+  import('./interval-comparison/examType').then((m) => [m.IntervalComparisonExam]);
 const scaleExamTypes = () => import('./scale/examType').then((m) => [m.ScaleRecognitionExam]);
 const chordExamTypes = () => import('./chord/examType').then((m) => [m.ChordRecognitionExam]);
 const meterExamTypes = () => import('./meter/examType').then((m) => [m.MeterRecognitionExam]);
@@ -106,7 +109,14 @@ export const TOPICS: TopicDefinition[] = [
     Component: ScaleTopic,
     examTypes: scaleExamTypes,
   },
-  { id: 'interval-comparison', title: 'Interval Comparison', category: 'intervals-scales', status: 'placeholder' },
+  {
+    id: 'interval-comparison',
+    title: 'Interval Comparison',
+    category: 'intervals-scales',
+    status: 'active',
+    Component: IntervalComparisonTopic,
+    examTypes: intervalComparisonExamTypes,
+  },
   {
     id: 'interval-singing',
     title: 'Interval Singing',

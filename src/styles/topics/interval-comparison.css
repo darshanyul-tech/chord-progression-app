@@ -1,0 +1,91 @@
+/* New topic (docs/05-topics/08-interval-comparison.md) — checklist + toggle-all
+   styling mirrors chord-recognition.css's .chord-type-checks/.toggle-all-btn. */
+
+.interval-comparison-type-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin-top: 0.4rem;
+}
+.interval-comparison-type-checks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+button.toggle-all-btn {
+  flex-shrink: 0;
+  padding: 0.28rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+button.toggle-all-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.interval-comparison-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.interval-comparison-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.interval-comparison-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.interval-comparison-choice {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.interval-comparison-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.interval-comparison-choice:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.interval-comparison-choice.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.interval-comparison-choice.wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
+.interval-comparison-choice.reveal-actual {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
