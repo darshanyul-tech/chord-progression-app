@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { INTERVAL_TYPES } from '../../lib/recognition/intervals';
 import type {
   ComparisonDifficulty,
@@ -157,6 +158,8 @@ export function IntervalComparisonSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="interval-comparison" getSettings={() => useIntervalComparisonSettings.getState()} />
     </section>
   );
 }

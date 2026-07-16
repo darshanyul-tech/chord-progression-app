@@ -1,4 +1,5 @@
 import { IntervalMatrix } from '../../components/IntervalMatrix';
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { INTERVAL_TYPES, type IntervalDirectionMode } from '../../lib/recognition/intervals';
 import { useIntervalRecognitionSettings } from '../../state/settings/interval-recognition';
 
@@ -85,6 +86,8 @@ export function IntervalSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="interval-recognition" getSettings={() => useIntervalRecognitionSettings.getState()} />
     </section>
   );
 }

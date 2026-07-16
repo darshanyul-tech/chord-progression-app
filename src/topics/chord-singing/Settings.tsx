@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { CHORD_RECOGNITION_GROUPS, CHORD_RECOGNITION_TYPES } from '../../lib/recognition/chords';
 import { CHORD_SINGING_ALLOWED_IDS, type ChordSingingDirectionMode, type ChordSingingPromptMode } from '../../lib/pitch/chordSinging';
 import type { RootRangePreset } from '../../lib/pitch/question';
@@ -180,6 +181,8 @@ export function ChordSingingSettings() {
         When on, the next question starts automatically after you sing the whole arpeggio correctly. Missed rounds
         always wait, so you can review the reveal.
       </div>
+
+      <SaveAsCustomTopicButton topicId="chord-singing" getSettings={() => useChordSingingSettings.getState()} />
     </section>
   );
 }

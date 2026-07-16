@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { CHORD_RECOGNITION_GROUPS, CHORD_RECOGNITION_TYPES } from '../../lib/recognition/chords';
 import type { ChordComparisonDifficulty, ChordComparisonRootRelationship } from '../../lib/recognition/chordComparison';
 import { useChordComparisonSettings } from '../../state/settings/chord-comparison';
@@ -142,6 +143,8 @@ export function ChordComparisonSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="chord-comparison" getSettings={() => useChordComparisonSettings.getState()} />
     </section>
   );
 }

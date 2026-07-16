@@ -3,7 +3,9 @@ import { persist, type PersistStorage, type StorageValue } from 'zustand/middlew
 
 // Wraps localStorage so a corrupt blob or a storage failure (private-mode Safari,
 // quota) degrades silently to defaults instead of throwing (01-architecture §7, D6).
-function safeStorage<T>(): PersistStorage<T> {
+// Exported for reuse by state/customPresets.ts, which needs the same
+// tolerant-storage wrapper for its own (non-per-topic) persisted array.
+export function safeStorage<T>(): PersistStorage<T> {
   return {
     getItem: (name) => {
       try {

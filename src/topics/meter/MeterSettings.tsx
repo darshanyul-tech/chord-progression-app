@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { METER_SIGNATURES } from '../../lib/recognition/meter';
 import { useMeterRecognitionSettings } from '../../state/settings/meter-recognition';
 
@@ -115,6 +116,8 @@ export function MeterSettings() {
           </div>
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="meter-recognition" getSettings={() => useMeterRecognitionSettings.getState()} />
     </section>
   );
 }

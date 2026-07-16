@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { MELODY_KEYS } from '../../lib/melody/theory';
 import { useMelodicDictationSettings } from '../../state/settings/melodic-dictation';
 
@@ -172,6 +173,8 @@ export function MelodicSettings() {
           <div className="help">Plays the note you just placed or nudged so you can hear what you wrote.</div>
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="melodic-dictation" getSettings={() => useMelodicDictationSettings.getState()} />
     </section>
   );
 }

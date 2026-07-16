@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { useRhythmDictationSettings } from '../../state/settings/rhythm-dictation';
 
 const TIME_SIGS = ['2/4', '3/4', '4/4', '5/4', '3/8', '6/8', '9/8', '12/8'];
@@ -168,6 +169,8 @@ export function RhythmSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="rhythm-dictation" getSettings={() => useRhythmDictationSettings.getState()} />
     </section>
   );
 }

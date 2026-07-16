@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { NOTE_NAMES } from '../../lib/theory';
 import { useProgressionSettings } from '../../state/settings/chord-progressions';
 
@@ -311,6 +312,8 @@ export function ProgressionSettings() {
           </div>
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="chord-progressions" getSettings={() => useProgressionSettings.getState()} />
     </section>
   );
 }

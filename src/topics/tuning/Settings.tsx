@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import type { TuningDifficulty, TuningRegister } from '../../lib/recognition/tuning';
 import { useTuningSettings } from '../../state/settings/tuning';
 
@@ -70,6 +71,8 @@ export function TuningSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="tuning" getSettings={() => useTuningSettings.getState()} />
     </section>
   );
 }

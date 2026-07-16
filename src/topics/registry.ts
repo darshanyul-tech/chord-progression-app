@@ -2,6 +2,7 @@ import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordComparisonTopic } from './chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from './chord/ChordTopic';
+import { CustomTopicManagementPage } from './custom-topic/CustomTopicManagementPage';
 import { DynamicsArticulationTopic } from './dynamics-articulation/DynamicsArticulationTopic';
 import { IntervalComparisonTopic } from './interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
@@ -257,10 +258,11 @@ export const TOPICS: TopicDefinition[] = [
   // Custom Topics
   {
     id: 'custom-topic',
-    title: 'Create a custom topic',
+    title: 'Manage custom topics',
     category: 'custom',
-    status: 'placeholder',
-    placeholderCopy: 'Your own exercises will live here.',
+    status: 'active',
+    Component: CustomTopicManagementPage,
+    // No exam contribution — presets have no questions of their own (docs/05-topics/14 §4).
   },
 ];
 

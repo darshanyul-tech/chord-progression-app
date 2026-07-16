@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { CHORD_RECOGNITION_GROUPS, CHORD_RECOGNITION_TYPES } from '../../lib/recognition/chords';
 import { useChordRecognitionSettings } from '../../state/settings/chord-recognition';
 
@@ -127,6 +128,8 @@ export function ChordSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="chord-recognition" getSettings={() => useChordRecognitionSettings.getState()} />
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { SCALE_RECOGNITION_GROUPS, SCALE_RECOGNITION_TYPES } from '../../lib/recognition/scales';
 import { useScaleRecognitionSettings } from '../../state/settings/scales';
 
@@ -113,6 +114,8 @@ export function ScaleSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="scales" getSettings={() => useScaleRecognitionSettings.getState()} />
     </section>
   );
 }

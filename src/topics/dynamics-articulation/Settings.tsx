@@ -1,3 +1,4 @@
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { ARTICULATION_TABLE } from '../../lib/recognition/dynamicsArticulation';
 import type { ArticulationId, DADifficulty, DAMode } from '../../lib/recognition/dynamicsArticulation';
 import { useDynamicsArticulationSettings } from '../../state/settings/dynamics-articulation';
@@ -92,6 +93,8 @@ export function DynamicsArticulationSettings() {
           />
         </div>
       </div>
+
+      <SaveAsCustomTopicButton topicId="dynamics-articulation" getSettings={() => useDynamicsArticulationSettings.getState()} />
     </section>
   );
 }

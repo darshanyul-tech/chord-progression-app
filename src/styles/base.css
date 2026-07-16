@@ -389,3 +389,27 @@ body.theme-dark footer a {
   color: var(--muted);
   text-align: center;
 }
+
+/* SaveAsCustomTopicButton (src/components/SaveAsCustomTopicButton.tsx) */
+.save-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+.save-preset-row input[type='text'] {
+  flex: 1 1 180px;
+  min-width: 140px;
+}
+.save-preset-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+}
+.save-preset-success {
+  color: var(--accent-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+}

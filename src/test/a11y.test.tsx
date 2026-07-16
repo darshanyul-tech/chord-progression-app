@@ -16,6 +16,7 @@ import type { RecognitionExamType } from '../exam/exam-machine';
 import { useScoresStore } from '../state/scores';
 import { ChordComparisonTopic } from '../topics/chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from '../topics/chord/ChordTopic';
+import { CustomTopicManagementPage } from '../topics/custom-topic/CustomTopicManagementPage';
 import { DynamicsArticulationTopic } from '../topics/dynamics-articulation/DynamicsArticulationTopic';
 import { IntervalComparisonTopic } from '../topics/interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from '../topics/interval/IntervalTopic';
@@ -112,6 +113,11 @@ describe('Topic views — axe accessibility pass', () => {
 
   it('Melodic Dictation has no serious/critical violations', async () => {
     const { container } = renderAt('/topic/melodic-dictation', <MelodicDictationTopic />);
+    await expectNoSeriousViolations(container);
+  });
+
+  it('Custom Topics management page has no serious/critical violations', async () => {
+    const { container } = renderAt('/topic/custom-topic', <CustomTopicManagementPage />);
     await expectNoSeriousViolations(container);
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CATEGORY_ORDER, CATEGORY_TITLES, TOPICS } from '../topics/registry';
+import { useCustomPresets } from '../state/customPresets';
 import { useUIStore } from '../state/ui';
 
 const TOPIC_PATH_PREFIX = '/topic/';
@@ -11,6 +12,8 @@ export function SyllabusMenu() {
   const drawerOpen = useUIStore((s) => s.drawerOpen);
   const closeDrawer = useUIStore((s) => s.closeDrawer);
   const examActive = useUIStore((s) => s.examActive);
+  const presets = useCustomPresets((s) => s.presets);
+  const applyPreset = useCustomPresets((s) => s.applyPreset);
   const sidebarRef = useRef<HTMLElement>(null);
 
   const activeId = location.pathname.startsWith(TOPIC_PATH_PREFIX)
@@ -19,6 +22,14 @@ export function SyllabusMenu() {
 
   function go(id: string) {
     navigate(`/topic/${id}`);
+    closeDrawer();
+  }
+
+  // Opening a preset applies it (overwriting that topic's live settings)
+  // then navigates to the topic itself — no per-preset routes (docs/05-topics/14 §4).
+  function openPreset(id: string, topicId: string) {
+    applyPreset(id);
+    navigate(`/topic/${topicId}`);
     closeDrawer();
   }
 
@@ -83,6 +94,18 @@ export function SyllabusMenu() {
                   {t.status === 'placeholder' && <span className="syllabus-soon-tag">soon</span>}
                 </button>
               ))}
+              {category === 'custom' &&
+                presets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    className="syllabus-topic syllabus-preset"
+                    onClick={() => openPreset(preset.id, preset.topicId)}
+                    disabled={examActive}
+                  >
+                    <span>{preset.name}</span>
+                  </button>
+                ))}
             </div>
           );
         })}

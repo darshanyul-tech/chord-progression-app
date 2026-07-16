@@ -1,4 +1,5 @@
 import { IntervalMatrix } from '../../components/IntervalMatrix';
+import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { INTERVAL_TYPES, type IntervalDirectionMode } from '../../lib/recognition/intervals';
 import type { RootRangePreset } from '../../lib/pitch/question';
 import type { ToleranceLevel } from '../../lib/pitch/settings';
@@ -138,6 +139,8 @@ export function SingingSettings() {
         When on, the next question starts automatically after you sing an interval correctly. Missed rounds always
         wait, so you can review the reveal.
       </div>
+
+      <SaveAsCustomTopicButton topicId="interval-singing" getSettings={() => useIntervalSingingSettings.getState()} />
     </section>
   );
 }
