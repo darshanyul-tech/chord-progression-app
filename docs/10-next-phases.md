@@ -61,9 +61,13 @@ with unit tests; store nothing (recalibrate per mic open).
   the unreachable subdominant-fallback guard in `buildBarChord` (the `candidates` filter
   already excludes `'subdominant'` whenever `!s.useSubdominant`, so `fnName` could never
   equal `'subdominant'` there).
-- **CI-on-PR proof**: the Phase 15 gate said "CI green on a PR"; all runs so far are
-  push-triggered. Open one trivial PR (e.g. this phase's first commit) to prove the
-  `pull_request` trigger, then merge.
+- **CI-on-PR proof**: the Phase 15 gate said "CI green on a PR"; all runs so far were
+  push-triggered. Partially done — pushed this phase's commit on a branch
+  (`phase17-ci-pr-proof`) intending to open a PR, but `gh` isn't authenticated in this
+  environment and PR creation needs the user's GitHub credentials, so the branch was
+  fast-forward-merged to `main` directly instead (both `CI` and `Azure Static Web Apps
+  CI/CD` came back green on push, confirmed via the public API). Opening an actual PR to
+  exercise the `pull_request` trigger specifically is still open — a user task.
 
 ### 17.5 Manual browser matrix for the mic surface (user task — cannot be automated here)
 §16.4's matrix was never run: Chrome, Firefox, Safari (desktop) + iOS Safari and Android
