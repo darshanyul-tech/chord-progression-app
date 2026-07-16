@@ -24,6 +24,9 @@ const IntervalSingingTopic = lazy(() =>
 const ChordSingingTopic = lazy(() =>
   import('./chord-singing/ChordSingingTopic').then((m) => ({ default: m.ChordSingingTopic })),
 );
+const SightSingingTopic = lazy(() =>
+  import('./sight-singing/SightSingingTopic').then((m) => ({ default: m.SightSingingTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -237,7 +240,14 @@ export const TOPICS: TopicDefinition[] = [
   { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder', hidden: true },
   { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder', hidden: true },
   { id: 'note-recognition', title: 'Note Recognition', category: 'pitch-melody', status: 'placeholder', hidden: true },
-  { id: 'sight-singing', title: 'Sight Singing', category: 'pitch-melody', status: 'placeholder' },
+  {
+    id: 'sight-singing',
+    title: 'Sight Singing',
+    category: 'pitch-melody',
+    status: 'active',
+    Component: SightSingingTopic,
+    // No exam type — same deferral as Interval/Chord Singing (docs/05-topics/13 §6).
+  },
   { id: 'contour', title: 'Contour', category: 'pitch-melody', status: 'placeholder', hidden: true },
 
   // Repertoire (whole category parked — SyllabusMenu drops categories with no

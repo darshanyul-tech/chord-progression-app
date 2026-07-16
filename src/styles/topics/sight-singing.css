@@ -1,0 +1,61 @@
+/* New topic (docs/05-topics/13-sight-singing.md). Prompt/feedback/score
+   classes mirror interval-singing.css/chord-singing.css; the note-progress
+   strip mirrors chord-singing's tone-progress strip. */
+
+.sight-singing-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.sight-singing-feedback {
+  margin-top: 0.65rem;
+  font-weight: 600;
+  min-height: 1.2em;
+}
+.sight-singing-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.sight-singing-staff {
+  margin: 0.5rem 0;
+}
+.sight-singing-staff svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.sight-singing-note-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.sight-singing-note-chip {
+  padding: 0.3rem 0.6rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--panel-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 1.6rem;
+  text-align: center;
+}
+.sight-singing-note-chip-active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.sight-singing-note-chip-correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.sight-singing-note-chip-wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
