@@ -14,6 +14,7 @@ import type {
 } from '../exam/exam-machine';
 import type { RecognitionExamType } from '../exam/exam-machine';
 import { useScoresStore } from '../state/scores';
+import { ChordComparisonTopic } from '../topics/chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from '../topics/chord/ChordTopic';
 import { IntervalComparisonTopic } from '../topics/interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from '../topics/interval/IntervalTopic';
@@ -74,6 +75,11 @@ describe('Topic views — axe accessibility pass', () => {
 
   it('Chord Recognition has no serious/critical violations', async () => {
     const { container } = renderAt('/topic/chord-recognition', <ChordTopic />);
+    await expectNoSeriousViolations(container);
+  });
+
+  it('Chord Comparison has no serious/critical violations', async () => {
+    const { container } = renderAt('/topic/chord-comparison', <ChordComparisonTopic />);
     await expectNoSeriousViolations(container);
   });
 

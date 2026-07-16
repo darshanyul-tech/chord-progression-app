@@ -1,0 +1,59 @@
+/* New topic (docs/05-topics/09-chord-comparison.md). Chord-type grouping and
+   toggle-all styling are reused directly from chord-recognition.css (the
+   spec's explicit reuse mandate); only the prompt/choices/score classes
+   below are new, since chord-recognition's use a chord-specific prompt line. */
+
+.chord-comparison-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chord-comparison-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+}
+.chord-comparison-choice {
+  flex: 1 1 140px;
+  min-width: 120px;
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.1s;
+}
+.chord-comparison-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.chord-comparison-choice:disabled {
+  cursor: default;
+  opacity: 0.85;
+}
+.chord-comparison-choice.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.chord-comparison-choice.wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}
+.chord-comparison-choice.reveal-actual {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.chord-comparison-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}

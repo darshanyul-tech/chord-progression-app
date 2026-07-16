@@ -60,8 +60,11 @@ export type ChordComparisonAnswerId = 'same' | 'different';
 /** Max transposition offset (semitones) for the "transposed" root relationship (§4.3). */
 const MAX_TRANSPOSE_OFFSET = 5;
 
-/** Fixed arpeggio timing — the topic exposes only one length slider (chord/block hold), per its storage schema (§3). */
-export const CHORD_COMPARISON_ARP_NOTE_LEN = 0.35;
+/**
+ * The topic exposes only one length slider (§3's storage schema has just
+ * `holdLen`, no separate arp fields) — in arpeggio mode, holdLen doubles as
+ * the per-note length, with this small fixed gap between notes.
+ */
 export const CHORD_COMPARISON_ARP_GAP = 0.08;
 
 export interface ChordComparisonSettings extends Record<string, unknown> {

@@ -1,5 +1,6 @@
 import { lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
+import { ChordComparisonTopic } from './chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from './chord/ChordTopic';
 import { IntervalComparisonTopic } from './interval-comparison/IntervalComparisonTopic';
 import { IntervalTopic } from './interval/IntervalTopic';
@@ -31,6 +32,7 @@ const intervalComparisonExamTypes = () =>
   import('./interval-comparison/examType').then((m) => [m.IntervalComparisonExam]);
 const scaleExamTypes = () => import('./scale/examType').then((m) => [m.ScaleRecognitionExam]);
 const chordExamTypes = () => import('./chord/examType').then((m) => [m.ChordRecognitionExam]);
+const chordComparisonExamTypes = () => import('./chord-comparison/examType').then((m) => [m.ChordComparisonExam]);
 const meterExamTypes = () => import('./meter/examType').then((m) => [m.MeterRecognitionExam]);
 const rhythmDictationExamTypes = () => import('./rhythm-dictation/examType').then((m) => [m.RhythmDictationExam]);
 const progressionExamTypes = () => import('./progression/examType').then((m) => [m.ProgressionRecognitionExam]);
@@ -138,7 +140,14 @@ export const TOPICS: TopicDefinition[] = [
     Component: ChordTopic,
     examTypes: chordExamTypes,
   },
-  { id: 'chord-comparison', title: 'Chord Comparison', category: 'chords', status: 'placeholder' },
+  {
+    id: 'chord-comparison',
+    title: 'Chord Comparison',
+    category: 'chords',
+    status: 'active',
+    Component: ChordComparisonTopic,
+    examTypes: chordComparisonExamTypes,
+  },
   { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder', hidden: true },
   { id: 'jazz-chords', title: 'Jazz Chords', category: 'chords', status: 'placeholder', hidden: true },
   { id: 'chord-singing', title: 'Chord Singing', category: 'chords', status: 'placeholder' },
