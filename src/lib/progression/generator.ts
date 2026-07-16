@@ -131,7 +131,10 @@ export function makeTritoneSub(targetDegree: number, s: ResolvedProgressionSetti
     roman: `subV/${target}`,
     inversion: chooseInversion(quality, s),
     secondary: true,
-    chromatic: true,
+    // Unlike makeChromaticApproach (the insertChromaticChords pass), this is a
+    // buildBarChord colour choice alongside secdom/applied/borrowedIv, so it
+    // doesn't set `chromatic` — that flag is reserved for chromaticCount's
+    // forced-insertion bookkeeping and dedupeAdjacent's protection of those.
   };
 }
 
@@ -204,22 +207,21 @@ function buildBarChord(
   let candidates = FLOW[prevFn] ? FLOW[prevFn]!.slice() : ['tonic'];
   if (!s.useSubdominant) candidates = candidates.filter((f) => f !== 'subdominant');
   if (!candidates.length) candidates = ['tonic', 'dominant'];
-  let fnName = pick(candidates);
+  const fnName = pick(candidates);
 
-  let degreePool = functionDegreePool(fnName, s);
-  if (fnName === 'subdominant' && !s.useSubdominant) {
-    fnName = 'dominant';
-    degreePool = functionDegreePool('dominant', s);
-  }
+  // fnName is drawn from `candidates`, which already excludes 'subdominant'
+  // whenever `!s.useSubdominant` (see above), so no fallback guard is needed here.
+  const degreePool = functionDegreePool(fnName, s);
   const degree = pickByVoiceLeading(degreePool, (d) => degreePc(s.keyPc, d, s), prevRootPc)!;
 
   if (!s.diatonicOnly && random() < 0.34) {
     const colours = ['secdom'];
     if (s.useSubdominant && degree !== 1) colours.push('applied');
     if (s.useSubdominant) colours.push('borrowediv');
+    if (s.chromaticism) colours.push('tritonesub');
     const choice = pick(colours);
 
-    if (choice === 'secdom') {
+    if (choice === 'secdom' || choice === 'tritonesub') {
       const targets = [1, 2, 3, 4, 5, 6, 7].filter(
         (t) => pcToDegree(s.keyPc, mod12(degreePc(s.keyPc, t, s) + 7), s) !== null,
       );
@@ -228,7 +230,11 @@ function buildBarChord(
         (t) => mod12(degreePc(s.keyPc, t, s) + 7),
         prevRootPc,
       )!;
-      return { chord: makeSecondaryDominant(tgt, s), fn: 'dominant', forced: false };
+      // tritonesub swaps V/target for its tritone substitute (subV/target),
+      // reusing the same target selection as secdom — it's the same harmonic
+      // slot, just resolved a half-step above instead of a fourth below.
+      const chord = choice === 'tritonesub' ? makeTritoneSub(tgt, s) : makeSecondaryDominant(tgt, s);
+      return { chord, fn: 'dominant', forced: false };
     }
     if (choice === 'applied') {
       return { chord: makeAppliedDominant(degree, s), fn: 'dominant', forced: false };

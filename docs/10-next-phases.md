@@ -48,15 +48,19 @@ threshold to `max(0.01, ambientMedian × 3)`. Tier-1 helper (`calibrateRmsThresh
 with unit tests; store nothing (recalibrate per mic open).
 
 ### 17.4 Small plan-vs-shipped gaps (one cleanup commit)
-- **Favicon PNG fallback** (11.2 specced "SVG + PNG"; only `favicon.svg` shipped): add
-  `favicon-192.png` / `favicon-512.png` + `apple-touch-icon` link tags.
-- **Title**: plan said "Ear Trainer — ECU", shipped "Ear Trainer". Decide once and align
-  doc or title (recommendation: keep "Ear Trainer", amend the doc — branding in a tab title
-  buys nothing).
-- **Progression dead code** flagged in the Phase 15 coverage commit: `makeTritoneSub` is
-  exported+tested but unreachable from `buildBarChord`'s colour branch; either wire
-  `'tritone'` into the colour pool behind `chromaticism` or move the function next to its
-  only real consumer. Also the unreachable subdominant-fallback guard noted there.
+- **Favicon PNG fallback** (11.2 specced "SVG + PNG"; only `favicon.svg` shipped): done —
+  added `favicon-192.png` / `favicon-512.png` (rendered from `favicon.svg`) plus
+  `<link rel="icon">` and `apple-touch-icon` tags in `index.html`.
+- **Title**: plan said "Ear Trainer — ECU", shipped "Ear Trainer". Done — kept "Ear Trainer"
+  and amended 09-improvement-plan.md §11.2 to match (branding in a tab title buys nothing).
+- **Progression dead code** flagged in the Phase 15 coverage commit: `makeTritoneSub` was
+  exported+tested but unreachable from `buildBarChord`'s colour branch. Done — wired in as a
+  `'tritonesub'` colour choice gated behind `s.chromaticism`, reusing secdom's target
+  selection (it's the same harmonic slot, resolved a half-step above instead of a fourth
+  below); `generator.test.ts` now reaches it via `generateProgression` directly. Also removed
+  the unreachable subdominant-fallback guard in `buildBarChord` (the `candidates` filter
+  already excludes `'subdominant'` whenever `!s.useSubdominant`, so `fnName` could never
+  equal `'subdominant'` there).
 - **CI-on-PR proof**: the Phase 15 gate said "CI green on a PR"; all runs so far are
   push-triggered. Open one trivial PR (e.g. this phase's first commit) to prove the
   `pull_request` trigger, then merge.

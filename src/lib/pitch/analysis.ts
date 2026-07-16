@@ -71,6 +71,24 @@ export const DEFAULT_TRACKER_OPTIONS: TrackerOptions = {
 };
 
 /**
+ * Ambient-noise calibration (docs/10-next-phases.md §17.3, deferred from
+ * 09-improvement-plan.md §16.4): given the RMS values of the first couple of
+ * seconds of mic frames after the mic opens, returns the rmsThreshold the
+ * tracker should use — a multiple of the ambient median so laptop fans and
+ * room hiss don't count as voicing, floored at the fixed default so a dead-
+ * silent room never lowers the gate below it. Median (not mean) so a brief
+ * cough or chair scrape during the window doesn't inflate the threshold.
+ */
+export function calibrateRmsThreshold(
+  ambientRms: number[],
+  floor: number = DEFAULT_TRACKER_OPTIONS.rmsThreshold,
+  factor = 3,
+): number {
+  if (!ambientRms.length) return floor;
+  return Math.max(floor, median(ambientRms) * factor);
+}
+
+/**
  * Advances the tracker by one analysis frame. Pure function: never mutates
  * `state`, always returns a fresh TrackerState. Once `phase` reaches
  * 'captured' the tracker is terminal for that attempt — call

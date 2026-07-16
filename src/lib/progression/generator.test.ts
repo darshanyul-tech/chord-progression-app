@@ -61,16 +61,25 @@ describe('generateProgression', () => {
     expect(prog[0]!.roman).toBe('I');
     expect(prog[0]!.rootPc).toBe(resolved({ bars: 4 }).keyPc);
   });
+
+  it('can produce a tritone-substitution chord (subV) when chromaticism is enabled', () => {
+    // makeChromaticApproach (the insertChromaticChords pass) also stamps
+    // roman: 'subV/...', but leaves degree null; makeTritoneSub (the
+    // buildBarChord colour choice under test here) always sets a real degree.
+    const s = resolved({ diatonicOnly: false, chromatic: true, chromaticCount: 1, bars: 8 });
+    let sawTritoneSub = false;
+    for (let trial = 0; trial < 60 && !sawTritoneSub; trial++) {
+      const prog = generateProgression(s);
+      sawTritoneSub = prog.some((ch) => ch.roman.startsWith('subV/') && ch.degree !== null);
+    }
+    expect(sawTritoneSub).toBe(true);
+  });
 });
 
-// makeTritoneSub is exported but not currently wired into buildBarChord's
-// colour-choice branch (only 'secdom'/'applied'/'borrowediv' are) — direct
-// unit test since generateProgression alone can never reach it.
 describe('makeTritoneSub', () => {
-  it('builds a chromatic dominant a semitone above the target degree', () => {
+  it('builds a dominant 7th a semitone above the target degree', () => {
     const s = resolved();
     const ch = makeTritoneSub(5, s); // target = V
-    expect(ch.chromatic).toBe(true);
     expect(ch.secondary).toBe(true);
     expect(ch.roman).toContain('subV/');
   });

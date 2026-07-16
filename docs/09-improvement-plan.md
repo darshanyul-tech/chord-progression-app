@@ -50,9 +50,13 @@ land them as separate commits within the phase.
   Retry affordance (the engine already exposes `lastError`).
 
 ### 11.2 App identity & metadata
-- `index.html`: proper `<title>` ("Ear Trainer — ECU"), meta description, theme-color,
+- `index.html`: proper `<title>` ("Ear Trainer"), meta description, theme-color,
   favicon set (SVG + PNG fallbacks; a simple treble-clef or tuning-fork mark), Open Graph
   tags. Currently the Vite default favicon ships.
+
+  (Amended 2026-07-16, Phase 17.4: shipped title is "Ear Trainer" without the "— ECU"
+  suffix — branding in a browser tab title buys nothing, so the doc is aligned to what
+  shipped rather than the reverse.)
 - Version display: read `package.json` version via Vite `define` and show it in the footer
   (`v1.0.0`), so bug reports can name a build. Bump `package.json` version each phase.
 - `README.md` at repo root: what the app is, dev commands (`npm run dev/test/lint/build`),

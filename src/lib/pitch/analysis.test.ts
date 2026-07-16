@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   advanceTracker,
+  calibrateRmsThreshold,
   centsBetween,
   DEFAULT_TRACKER_OPTIONS,
   f0FromMidi,
@@ -115,6 +116,30 @@ describe('advanceTracker — octave jump', () => {
     expect(state.phase).toBe('captured');
     // Captured pitch reflects the post-jump hold (A4), not an average of the two octaves.
     expect(state.capturedMidi).toBeCloseTo(midiFromF0(440), 0.5);
+  });
+});
+
+describe('calibrateRmsThreshold', () => {
+  it('returns the floor for an empty sample set', () => {
+    expect(calibrateRmsThreshold([])).toBe(DEFAULT_TRACKER_OPTIONS.rmsThreshold);
+  });
+
+  it('returns the floor when the room is quieter than it (silent room never lowers the gate)', () => {
+    expect(calibrateRmsThreshold([0.0001, 0.0002, 0.0001])).toBe(DEFAULT_TRACKER_OPTIONS.rmsThreshold);
+  });
+
+  it('scales with the ambient median in a noisy room', () => {
+    // Ambient median 0.02 -> threshold 0.06 (x3), well above the 0.01 floor.
+    expect(calibrateRmsThreshold([0.02, 0.02, 0.02])).toBeCloseTo(0.06, 10);
+  });
+
+  it('uses the median, so a brief loud transient during the window does not inflate the threshold', () => {
+    const ambient = [0.02, 0.02, 0.02, 0.02, 0.9]; // chair scrape at the end
+    expect(calibrateRmsThreshold(ambient)).toBeCloseTo(0.06, 10);
+  });
+
+  it('honors custom floor and factor', () => {
+    expect(calibrateRmsThreshold([0.05], 0.001, 2)).toBeCloseTo(0.1, 10);
   });
 });
 

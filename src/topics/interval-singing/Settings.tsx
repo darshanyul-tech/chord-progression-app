@@ -121,6 +121,23 @@ export function SingingSettings() {
       <div className="help">
         When on, singing the right pitch class in any octave counts as correct — singers naturally shift octaves.
       </div>
+
+      <div className="field-toggle-header" style={{ marginTop: '0.5rem' }}>
+        <span className="field-toggle-title" id="singing-auto-advance-title">Auto-advance after a correct answer</span>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            aria-labelledby="singing-auto-advance-title"
+            checked={settings.autoAdvance}
+            onChange={(e) => setState({ autoAdvance: e.target.checked })}
+          />
+          <span className="toggle-slider" aria-hidden="true" />
+        </label>
+      </div>
+      <div className="help">
+        When on, the next question starts automatically after you sing an interval correctly. Missed rounds always
+        wait, so you can review the reveal.
+      </div>
     </section>
   );
 }
