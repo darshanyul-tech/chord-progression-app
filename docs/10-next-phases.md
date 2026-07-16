@@ -117,16 +117,26 @@ Build order (one commit per step, same rhythm as previous topic builds):
 
 Depends on Phase 17 (mic release + calibration land first — this topic inherits them).
 
-1. Tier-1 `lib/pitch/chordSinging.ts` (singable-subset assertion, question builder,
-   `gradeArpeggio` pure helper) + tests (spec §7).
-2. **Extract `PitchMeter` to `src/components/PitchMeter.tsx`** (second consumer rule) —
-   separate commit touching interval-singing only mechanically.
-3. Tier-2: settings store, `src/topics/chord-singing/` (usePractice with the sequential
-   tone-capture round flow of spec §4, tone-progress strip, echo/construction modes),
-   registry flip. No exam type (documented deferral, same as Interval Singing).
-4. Manual gate with a singer (spec §8) — same ≥9/10 bar as Phase 16.
+1. Done — Tier-1 `lib/pitch/chordSinging.ts` (singable-subset assertion, question builder,
+   `gradeArpeggio` pure helper) + tests (spec §7): 11 unit tests, 96.96% statement coverage.
+2. Done — extracted `PitchMeter` to `src/components/PitchMeter.tsx` (second consumer rule),
+   mechanical, its CSS moved from `topics/interval-singing.css` into `base.css`.
+3. Done — Tier-2: settings store, `src/topics/chord-singing/` (usePractice with the
+   sequential tone-capture round flow of spec §4, tone-progress strip, echo/construction
+   modes), registry flip (lazy-loaded, matching Interval Singing). No exam type (documented
+   deferral, same as Interval Singing). Live-verified in-browser: settings render, Initialize
+   Audio succeeds, the mic-gated New question button is correctly disabled pre-permission.
+   The full sing-a-round flow needs a real microphone, which this sandbox can't grant.
+4. **Not done — user-only task.** Manual gate with a singer (spec §8, ≥9/10 bar as Phase 16)
+   requires an actual human voice; cannot be automated here. Recommended checklist: echo mode
+   with a maj triad (in-tune root-3rd-5th grades correct; a >tolerance flat 3rd grades that
+   tone wrong with signed cents); construction mode names the quality correctly; octave
+   equivalence on/off behaves per spec; mic-denied/no-device guidance and mic release on
+   topic switch match Interval Singing.
 
-**Gate:** spec §8 in full; all existing tests still green; tag **v2.3.0**.
+**Gate:** spec §8 in full (item 4 above is the one open item); all existing tests green;
+tagged **v2.3.0** with item 4 recorded as outstanding rather than blocking the tag — the same
+tradeoff Phase 17 made for its own manual browser matrix (§17.5).
 
 ---
 
