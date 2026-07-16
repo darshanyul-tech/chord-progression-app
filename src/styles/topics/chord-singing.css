@@ -1,0 +1,49 @@
+/* New topic (docs/05-topics/10-chord-singing.md). Prompt/feedback/score
+   classes mirror interval-singing.css; the tone-progress strip is new. */
+
+.chord-singing-prompt {
+  margin: 0.75rem 0 0.5rem 0;
+  font-weight: 600;
+  color: var(--muted);
+}
+.chord-singing-feedback {
+  margin-top: 0.65rem;
+  font-weight: 600;
+  min-height: 1.2em;
+}
+.chord-singing-session-score {
+  margin-top: 0.5rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.chord-singing-tone-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.chord-singing-tone-chip {
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--panel-2);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+.chord-singing-tone-chip-active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.chord-singing-tone-chip-correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-dark, var(--accent-2));
+}
+.chord-singing-tone-chip-wrong {
+  border-color: var(--danger);
+  background: #fdecea;
+  color: var(--danger);
+}

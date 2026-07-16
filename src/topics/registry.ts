@@ -18,6 +18,9 @@ const RhythmDictationTopic = lazy(() =>
 const IntervalSingingTopic = lazy(() =>
   import('./interval-singing/IntervalSingingTopic').then((m) => ({ default: m.IntervalSingingTopic })),
 );
+const ChordSingingTopic = lazy(() =>
+  import('./chord-singing/ChordSingingTopic').then((m) => ({ default: m.ChordSingingTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -150,7 +153,15 @@ export const TOPICS: TopicDefinition[] = [
   },
   { id: 'cluster-chords', title: 'Cluster Chords', category: 'chords', status: 'placeholder', hidden: true },
   { id: 'jazz-chords', title: 'Jazz Chords', category: 'chords', status: 'placeholder', hidden: true },
-  { id: 'chord-singing', title: 'Chord Singing', category: 'chords', status: 'placeholder' },
+  {
+    id: 'chord-singing',
+    title: 'Chord Singing',
+    category: 'chords',
+    status: 'active',
+    Component: ChordSingingTopic,
+    // No exam type this phase — same deferral as Interval Singing (singing
+    // under exam timers is a different design problem, docs/09 §16.3).
+  },
 
   // Rhythm
   {
