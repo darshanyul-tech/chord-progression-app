@@ -158,3 +158,9 @@ Tone.js 15 upgrade.
 
 Tag v2.1.0 / v2.2.0 / v2.3.0 after Phases 18 / 19 / 20 respectively; Phase 17 rides into
 the v2.1.0 tag (no separate release).
+
+---
+
+**This plan closed at v2.3.0 (all four phases shipped). Continued in
+`docs/11-next-phases.md` (Phases 21–25: Tuning, Dynamics & Articulation, Sight Singing,
+Custom Topics presets, and the platform backlog).**
