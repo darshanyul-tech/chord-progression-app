@@ -1,6 +1,6 @@
 import { pick, random } from '../theory';
 import { CHORD_RECOGNITION_RECIPES, chordTypeById } from '../recognition/chords';
-import { gradeSungInterval, type SungGradeOptions, type SungGradeResult } from './grading';
+import { gradeSungSequence, type SungGradeOptions, type SungGradeResult } from './grading';
 import type { RootRangePreset, RootRangeWindow } from './question';
 import type { ToleranceLevel } from './settings';
 
@@ -125,7 +125,9 @@ export interface ArpeggioGradeResult {
  * offset, unchanged from Interval Singing (§1/§7's explicit reuse mandate).
  * `captures[i]` is the fractional-MIDI pitch captured for `toneOffsets[i]`;
  * callers only invoke this once every tone has been captured, so the two
- * arrays are always the same length.
+ * arrays are always the same length. Delegates to the shared
+ * gradeSungSequence (extracted in Phase 23 once Sight Singing needed the
+ * identical shape for absolute-pitch melody grading) — no behavior change.
  */
 export function gradeArpeggio(
   rootMidi: number,
@@ -133,6 +135,5 @@ export function gradeArpeggio(
   captures: number[],
   opts: SungGradeOptions,
 ): ArpeggioGradeResult {
-  const tones = toneOffsets.map((offset, i) => gradeSungInterval(rootMidi, offset, captures[i]!, opts));
-  return { allCorrect: tones.every((t) => t.correct), tones };
+  return gradeSungSequence(rootMidi, toneOffsets, captures, opts);
 }

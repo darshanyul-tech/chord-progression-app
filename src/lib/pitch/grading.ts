@@ -47,3 +47,27 @@ export function gradeSungInterval(
     sungLabel: midiToNoteName(Math.round(capturedMidiFloat)),
   };
 }
+
+export interface SungSequenceGradeResult {
+  allCorrect: boolean;
+  tones: SungGradeResult[];
+}
+
+/**
+ * Grades a completed multi-tone attempt: one gradeSungInterval call per
+ * target offset, in order. Shared by Chord Singing's `gradeArpeggio`
+ * (rootMidi = the chord's root, offsets = its recipe intervals) and Sight
+ * Singing's `gradeSungMelody` (rootMidi = 0, offsets = absolute target
+ * MIDI notes) — both topics reduce to "grade each tone against the same
+ * root, then AND the results" (docs/05-topics/13-sight-singing.md §3,
+ * extracted here per that spec's own second-consumer note).
+ */
+export function gradeSungSequence(
+  rootMidi: number,
+  targetOffsets: number[],
+  captures: number[],
+  opts: SungGradeOptions,
+): SungSequenceGradeResult {
+  const tones = targetOffsets.map((offset, i) => gradeSungInterval(rootMidi, offset, captures[i]!, opts));
+  return { allCorrect: tones.every((t) => t.correct), tones };
+}
