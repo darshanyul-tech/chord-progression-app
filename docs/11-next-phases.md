@@ -26,18 +26,26 @@ has deferred. After Phase 24 the visible front end has **no placeholder topics l
 
 ---
 
-## Phase 21 — Tuning (S) — spec: `docs/05-topics/11-tuning.md`
+## Phase 21 — Tuning (S) — spec: `docs/05-topics/11-tuning.md` — Done, tagged v2.4.0
 
 The smallest remaining topic and the only one touching the audio layer's signature: no mic,
 three fixed answer buttons, difficulty = detune magnitude.
 
-1. Audio: extend `scheduleSamplerTrigger` to accept Hz values (or a sibling helper — spec §4)
-   + a unit test that the Hz path round-trips through `centsBetween`.
-2. Tier-1 `lib/recognition/tuning.ts` (builder, fixed choice defs) + tests (spec §7).
-3. Tier-2 topic + settings + registry flip; exam type `tuning`; a11y suite entry; ExamSetup
-   test count 9 → 10.
+1. Done — audio: extended `scheduleSamplerTrigger`'s `notes` parameter to accept a bare Hz
+   number (Tone's `Frequency` union already supports it) rather than a sibling helper.
+2. Done — Tier-1 `lib/recognition/tuning.ts` (builder, fixed choice defs) + tests (spec §7):
+   9 unit tests, 100% coverage, including the Hz round-trip via `centsBetween` (no
+   hand-computed constant) and the bit-identical-schedule check for in-tune questions.
+3. Done — Tier-2 topic + settings + registry flip; exam type `tuning` (its `playOnce`
+   couldn't reuse `exam/playback.ts`'s `playNoteSequence` — that always resolves through
+   `midiToNoteName`, but the detuned hearing needs a raw Hz value — so it's hand-written
+   mirroring that helper's own internal shape); a11y suite entry; ExamSetup test count
+   9 → 10. Live-verified in-browser: a full practice round and a full exam question with
+   Tuning enabled, no console errors from the new Hz-valued playback path.
 
-**Gate:** spec §8; hard difficulty spot-checked by ear; tag **v2.4.0**.
+**Gate:** spec §8 automatable parts all green (hard-difficulty audibility is a by-ear
+judgment call, not something this session can certify — flagged for the user to spot-check
+live); tagged **v2.4.0**.
 
 ---
 
