@@ -53,7 +53,10 @@ export function scheduleSamplerTrigger(
   channel: PlaybackChannel,
   playGen: number,
   when: number,
-  notes: string | string[],
+  // A bare number is a Hz value (Tone.Sampler's `Frequency` union already
+  // accepts it) — used by Tuning (docs/05-topics/11 §4) to schedule a
+  // detuned pitch that has no note-name spelling.
+  notes: string | string[] | number,
   duration: number,
   velocity: number,
 ): void {
