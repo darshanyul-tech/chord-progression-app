@@ -49,18 +49,28 @@ live); tagged **v2.4.0**.
 
 ---
 
-## Phase 22 — Dynamics & Articulation (M) — spec: `docs/05-topics/12-dynamics-articulation.md`
+## Phase 22 — Dynamics & Articulation (M) — spec: `docs/05-topics/12-dynamics-articulation.md` — Done, tagged v2.5.0
 
 Unlocks the Musical Elements category. Comparative dynamics (never absolute — spec §1's
 binding decision) + four articulations via velocity/duration only.
 
-1. Tier-1 `lib/recognition/dynamicsArticulation.ts` (phrase walker, dynamics builder with
-   reflect-not-clamp velocity placement, articulation table) + tests (spec §7).
-2. Tier-2 topic with mode-switched answer buttons + settings + registry flip; exam type
-   `dynamicsArticulation`; a11y entry; ExamSetup count 10 → 11.
+1. Done — Tier-1 `lib/recognition/dynamicsArticulation.ts` (phrase walker, dynamics builder
+   with reflect-not-clamp velocity placement, articulation table) + tests (spec §7): 15 unit
+   tests, 96.63% statement / 90.9% function coverage.
+2. Done — Tier-2 topic with mode-switched answer buttons + settings + registry flip; exam
+   type `dynamicsArticulation` (its `playOnce` couldn't reuse `exam/playback.ts`'s
+   `playNoteSequence` — that helper hardcodes one velocity for the whole sequence, but
+   dynamics needs two different velocities and articulation needs a per-table duration
+   fraction — so it's hand-written, same pattern as Tuning's exam type); a11y entry;
+   ExamSetup count 10 → 11. A doubled-period cosmetic bug (articulation descriptions
+   carried their own trailing period, colliding with the reveal message's) was found during
+   live verification and fixed. Live-verified in-browser: full rounds in both modes, a full
+   exam question in each mode, and the Musical Elements category header rendering without
+   its "soon" badge — all with no console errors.
 
-**Gate:** spec §8 incl. the laptop-speaker spot-check; the Musical Elements category header
-appears; tag **v2.5.0**.
+**Gate:** spec §8 automatable parts all green (the laptop-speaker audibility spot-check is a
+by-ear judgment call, flagged for the user, same as Tuning's hard-difficulty check); the
+Musical Elements category header appears; tagged **v2.5.0**.
 
 ---
 
