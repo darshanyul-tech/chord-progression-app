@@ -4,7 +4,9 @@ Continuation of `10-next-phases.md`, which closed at v2.3.0 (Phase 20, Chord Sin
 This plan covers the four sections still showing "soon" in the syllabus menu — Tuning,
 Dynamics & Articulation, Sight Singing, and Custom Topics — with full specs in
 `docs/05-topics/11–14`, plus a named backlog for the platform items every previous plan
-has deferred. After Phase 24 the visible front end has **no placeholder topics left**.
+has deferred. **Status: Phases 21–24 all shipped (v2.4.0–v2.7.0) — the visible front end
+now has no placeholder topics left.** Only Phase 25 (the unscheduled platform backlog)
+remains, plus the outstanding user-only items below.
 
 **Conventions carried forward (binding, unchanged):**
 - Two-tier protocol (D15): new logic framework-free in `src/lib/`, unit-tested; React thin.
@@ -16,11 +18,13 @@ has deferred. After Phase 24 the visible front end has **no placeholder topics l
 - Verify claims against current code before acting — details below reflect v2.3.0
   (commit `f2e2b31`).
 
-**Outstanding user-only items inherited from plan 10 (not blocking, but do them):**
+**Outstanding user-only items (not blocking any tag, but do them):**
 - Phase 17.5 manual browser/mic matrix (Chrome/Firefox/Safari desktop + iOS Safari/Android
   Chrome) — never run.
-- Phase 20 manual singer gate for Chord Singing (≥9/10) — **Phase 23 below is blocked on
-  this one**, since Sight Singing stretches the same capture loop further.
+- Phase 20 manual singer gate for Chord Singing (≥9/10) — still open.
+- Phase 23 manual singer gate for Sight Singing (≥9/10) — still open (Phase 23 itself
+  shipped without waiting on Phase 20's gate, per the user's go-ahead; both gates remain
+  genuinely unverified by an actual human voice).
 - CI-on-PR proof (one PR through the `pull_request` trigger) — needs the user's GitHub
   credentials.
 
@@ -74,26 +78,41 @@ Musical Elements category header appears; tagged **v2.5.0**.
 
 ---
 
-## Phase 23 — Sight Singing (L, microphone) — spec: `docs/05-topics/13-sight-singing.md`
+## Phase 23 — Sight Singing (L, microphone) — spec: `docs/05-topics/13-sight-singing.md` — Done, tagged v2.7.0
 
-**Blocked on the Phase 20 manual singer gate** (user task above). Third mic topic: notated
-melody displayed via the existing VexFlow display path, sung note-by-note through the Chord
-Singing capture loop. Pitch only — no rhythm grading in v1 (spec §1's binding decision).
+Third mic topic: notated melody displayed via the existing VexFlow display path, sung
+note-by-note through the Chord Singing capture loop. Pitch only — no rhythm grading in v1
+(spec §1's binding decision).
 
-1. Tier-1 `lib/pitch/sightSinging.ts` (melody-to-target flattening, vocal-window clamping
-   with transposition fallback, `gradeSungMelody`) + tests (spec §7).
-2. If `gradeSungMelody` and Chord Singing's `gradeArpeggio` come out identical, extract the
-   shared helper — separate mechanical commit (second-consumer rule at Tier-1).
-3. Tier-2: settings store, `src/topics/sight-singing/` (read-only staff host, per-note
-   highlight/tick/cross on the staff, `PitchMeter`, Chord Singing's round flow), registry
-   flip (lazy chunk like the other mic topics). No exam type.
-4. Manual singer gate (spec §8, ≥9/10) — user task, recorded like Phases 16/20.
+1. Done — Tier-1 `lib/pitch/sightSinging.ts` (melody-to-target flattening, vocal-window
+   fitting via octave transposition with bounded regeneration retries, `gradeSungMelody`) +
+   tests (spec §7): 16 unit tests, 100% statement coverage.
+2. Done — `gradeSungMelody` and Chord Singing's `gradeArpeggio` came out identical in shape,
+   so the shared logic was extracted to `lib/pitch/grading.ts`'s `gradeSungSequence` in its
+   own mechanical commit first (second-consumer rule at Tier-1); `gradeArpeggio` now
+   delegates to it with zero behavior change (its existing test suite passed unmodified).
+3. Done — Tier-2: settings store, `src/topics/sight-singing/` (read-only
+   `SightSingingStaffHost` reusing `buildVexScore` exactly as Melodic Dictation's display —
+   no new notation code; a note-progress strip below the staff for per-note tick/cross,
+   since `buildVexScore` only supports one style per measure-voice, not per-note
+   recoloring — extending it would itself be new notation code; `PitchMeter`; Chord
+   Singing's round-flow shape), registry flip (lazy chunk like the other mic topics). No
+   exam type. Not added to the a11y suite, matching the existing precedent that already
+   excludes Interval/Chord Singing.
+4. **Not done — user-only task.** Manual singer gate (spec §8, ≥9/10) needs an actual human
+   voice; cannot be automated here. Same checklist shape as Phases 16/20: a stepwise C-major
+   melody sung in tune grades correct end-to-end; one flat note grades exactly that note
+   wrong with signed cents; random key/range presets never produce an out-of-window target
+   (already covered by the automated tests, but worth a live spot-check); mic-denied
+   guidance and mic release on topic switch behave as in the other two singing topics.
 
-**Gate:** spec §8 (item 4 user-only, recorded not blocking the tag); tag **v2.6.0**.
+**Gate:** spec §8 in full (item 4 above is the one open item, recorded rather than blocking
+the tag — the same tradeoff Phase 17 made for its own manual browser matrix); tagged
+**v2.7.0**.
 
 ---
 
-## Phase 24 — Custom Topics: settings presets (M) — spec: `docs/05-topics/14-custom-topics.md` — Done, tagged v2.6.0 (ran ahead of Phase 23 per the tag-swap note below — Phase 23 is still blocked on the outstanding manual singer gate)
+## Phase 24 — Custom Topics: settings presets (M) — spec: `docs/05-topics/14-custom-topics.md` — Done, tagged v2.6.0 (ran ahead of Phase 23 per the tag-swap note below; Phase 23 has since also shipped, at v2.7.0)
 
 Presets, **not** authoring (spec §1's binding scope decision). Independent of Phases 21–23;
 originally sequenced last so its "Save as custom topic…" button lands on every topic at once
@@ -124,8 +143,8 @@ setting, reopened the preset, confirmed it restored and navigated correctly; the
 page's list/Open flow.
 
 **Gate:** spec §6 in full; after this phase the syllabus menu shows zero "soon" badges
-except Sight Singing (Phase 23, still blocked); tagged **v2.6.0** (swapped ahead of Phase
-23's v2.6.0/v2.7.0 slot per the note below).
+except Sight Singing (Phase 23, then still blocked — since shipped at v2.7.0); tagged
+**v2.6.0** (swapped ahead of Phase 23's v2.6.0/v2.7.0 slot per the note below).
 
 ---
 
@@ -153,14 +172,15 @@ tempo & texture) stays parked; unhiding any of them starts with its own spec doc
 
 ## Suggested order & sizing
 
-| Phase | Size | Depends on |
+| Phase | Size | Status |
 |---|---|---|
-| 21 Tuning | S | — (do first; smallest, touches audio signature) |
-| 22 Dynamics & Articulation | M | — |
-| 23 Sight Singing | L | Phase 20's manual singer gate (user task) |
-| 24 Custom topic presets | M | — (last so the save button lands on all topics at once) |
+| 21 Tuning | S | Done — v2.4.0 |
+| 22 Dynamics & Articulation | M | Done — v2.5.0 |
+| 24 Custom topic presets | M | Done — v2.6.0 (ran ahead of 23, per the swap note below) |
+| 23 Sight Singing | L | Done — v2.7.0 (its own manual singer gate is still an open user task) |
 | 25 Platform backlog | — | unscheduled |
 
-Tag v2.4.0 / v2.5.0 / v2.6.0 / v2.7.0 after Phases 21 / 22 / 23 / 24 respectively. If
-Phase 23 stays blocked on the singer gate, run Phase 24 ahead of it and swap the two tags —
-the phases are independent.
+Tags landed as v2.4.0 / v2.5.0 / v2.6.0 / v2.7.0 after Phases 21 / 22 / 24 / 23
+respectively — Phase 24 ran ahead of Phase 23 (which was still blocked on Phase 20's singer
+gate at the time) per this doc's own swap contingency; Phase 23 shipped once given the
+go-ahead to continue despite that gate remaining open.
