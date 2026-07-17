@@ -180,12 +180,30 @@ export function MelodicDictationTopic() {
                 const fits = durationFitsBar(practice.effectiveDuration(btn.duration), practice.timeSig.measureBeats);
                 const disabled = !allowed || !fits;
                 const armed = durationClose(practice.armedDuration, btn.duration);
+                // Explain *why* a duration is greyed out — a bare disabled
+                // button gives no hint that e.g. a whole note simply can't
+                // fit the current question's time signature. activeDurations
+                // is already bar-fit-filtered (getActiveDurations), so it
+                // can't tell "unchecked in settings" apart from "checked but
+                // too big for this bar" — check the raw settings for that.
+                let title = btn.title;
+                if (disabled) {
+                  const checkedInSettings = settings.durations.some((d) => durationClose(d, btn.duration));
+                  if (!checkedInSettings) {
+                    title = `${btn.title} — not enabled in Note & rest values above`;
+                  } else {
+                    const sigLabel = `${practice.timeSig.beatsPerBar}/${practice.timeSig.beatValue}`;
+                    title = practice.isDotActive
+                      ? `${btn.title} — dotted, doesn't fit this ${sigLabel} bar`
+                      : `${btn.title} — doesn't fit this ${sigLabel} bar`;
+                  }
+                }
                 return (
                   <button
                     key={btn.duration}
                     type="button"
                     className={`md-note-btn${armed ? ' md-btn-armed' : ''}${disabled ? ' md-dur-disabled' : ''}`}
-                    title={btn.title}
+                    title={title}
                     aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
                   >
