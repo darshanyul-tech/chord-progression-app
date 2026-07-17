@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildVexScore, type MeasureGeometry, type MelodyStaffModel } from '../../lib/melody/vexscore';
 import { lineToLetterOctave, naturalMidiFor } from '../../lib/melody/theory';
-import { resolvePlacementBeat } from '../../lib/melody/placement';
+import { findMeasureAt, resolvePlacementBeat } from '../../lib/melody/placement';
 
 interface VexStaffHostProps {
   /** VexStaffHost owns the hover ghost itself (see `hover` state below) — callers never supply `MelodyStaffModel.hover`. */
@@ -92,12 +92,6 @@ export function VexStaffHost({
     [],
   );
 
-  function findMeasureAt(x: number, y: number): MeasureGeometry | null {
-    const candidates = geometryRef.current.filter((g) => x >= g.noteStartX - 20 && x <= g.noteEndX + 20);
-    if (!candidates.length) return null;
-    return candidates.reduce((best, g) => (Math.abs(g.topLineY - y) < Math.abs(best.topLineY - y) ? g : best));
-  }
-
   function pointFromEvent(evt: { clientX: number; clientY: number }): { x: number; y: number } | null {
     const svg = containerRef.current?.querySelector('svg');
     if (!svg) return null;
@@ -123,7 +117,7 @@ export function VexStaffHost({
   }
 
   function resolveAt(x: number, y: number): ResolvedPoint | null {
-    const geo = findMeasureAt(x, y);
+    const geo = findMeasureAt(geometryRef.current, x, y);
     if (!geo) return null;
     const measureTotalBeats = model.timeSig.measureBeats;
     const rel = (x - geo.noteStartX) / Math.max(1, geo.noteEndX - geo.noteStartX);

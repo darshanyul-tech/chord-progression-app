@@ -1,5 +1,6 @@
 import { candidateBeats } from '../rhythm/generator';
 import type { PitchedMeasure } from './theory';
+import type { MeasureGeometry } from './vexscore';
 
 // docs/12-melodic-dictation-fixes.md MD-3. The single resolver both the
 // commit path (usePractice's placeNoteAt) and the hover preview
@@ -19,19 +20,25 @@ export interface ResolvedPlacement {
 // as a direct hit — so a click aimed at the free beat right after a note
 // (off by only a little, e.g. raw beat 0.9 when the next note starts at 1)
 // still fell inside that note's [0, 1) span and replaced it instead of
-// filling the next beat. Reported live: three crotchets in 3/4 capped out
-// at one, because every attempt to add the second one re-hit the first.
-// Shrinking the hit-zone to this note's own middle keeps a real "click this
-// note to edit it" target while leaving the boundary near a free neighbour
-// free to resolve there instead.
-const DIRECT_HIT_MARGIN = 0.25;
+// filling the next beat. Shrinking the hit-zone to a note's own middle
+// keeps a real "click this note to edit it" target while leaving the
+// boundary near a free neighbour free to resolve there instead.
+const HIT_MARGIN = 0.25;
+
+function coreContains(clamped: number, beat: number, duration: number, leftMargin: number, rightMargin: number): boolean {
+  return clamped >= beat + leftMargin - 0.001 && clamped < beat + duration - rightMargin - 0.001;
+}
 
 /**
  * Resolves a raw (proportional, unsnapped) beat estimate — from a click or
  * hover x-position — into either a direct hit on an existing note (replace)
- * or the nearest free beat that can hold `armedDuration` without overlapping
- * anything (place). Returns null when no free slot exists for that duration
- * anywhere in the bar (caller should reject/flash rather than guess).
+ * or a free beat that can hold `armedDuration` without overlapping anything
+ * (place). Prefers whichever note or candidate the click confidently lands
+ * within its own (margin-shrunk, where adjacent to something else) core
+ * before falling back to nearest-distance, so a click can't get pulled onto
+ * the wrong side of a boundary just because a raw distance calculation
+ * narrowly favours it. Returns null only when no free slot exists anywhere
+ * for this duration (caller should reject/flash rather than guess).
  */
 export function resolvePlacementBeat(
   measure: PitchedMeasure,
@@ -42,24 +49,95 @@ export function resolvePlacementBeat(
 ): ResolvedPlacement | null {
   const clamped = Math.max(0, Math.min(measureTotalBeats, rawBeat));
 
-  const isWithin = (n: PitchedMeasure[number], margin: number) =>
-    clamped >= n.beat + margin - 0.001 && clamped < n.beat + n.duration - margin - 0.001;
-
-  const coreHit = measure.find((n) => isWithin(n, n.duration * DIRECT_HIT_MARGIN));
+  const coreHit = measure.find((n) => coreContains(clamped, n.beat, n.duration, n.duration * HIT_MARGIN, n.duration * HIT_MARGIN));
   if (coreHit) return { beat: coreHit.beat, isReplace: true };
 
   const spans = measure.map((n) => ({ start: n.beat, end: n.beat + n.duration }));
   const candidates = candidateBeats(armedDuration, spans, measureTotalBeats, gridStepVal);
+
   if (candidates.length) {
+    // Prefer a candidate the click confidently lands within — margined only
+    // on a side that actually touches an existing note (where confusing it
+    // with that note is possible); an isolated candidate with free space on
+    // both sides accepts a click anywhere across its full width, so aiming
+    // loosely at open space still works exactly as before. Whenever
+    // gridStepVal is finer than armedDuration, two isolated (full-width)
+    // candidates' ranges can overlap (e.g. candidates 0.5 apart but each a
+    // full 1-beat-wide range) — picking the *nearest* confident match
+    // rather than the first one found in ascending order avoids a
+    // systematic bias toward the earlier candidate whenever a click lands
+    // in that overlap.
+    const touchesLeft = (c: number) => measure.some((n) => Math.abs(n.beat + n.duration - c) < 0.01);
+    const touchesRight = (c: number) => measure.some((n) => Math.abs(n.beat - (c + armedDuration)) < 0.01);
+    const confidentMatches = candidates.filter((c) =>
+      coreContains(
+        clamped,
+        c,
+        armedDuration,
+        touchesLeft(c) ? armedDuration * HIT_MARGIN : 0,
+        touchesRight(c) ? armedDuration * HIT_MARGIN : 0,
+      ),
+    );
+    if (confidentMatches.length) {
+      const nearestConfident = confidentMatches.reduce((best, c) =>
+        Math.abs(c - clamped) < Math.abs(best - clamped) ? c : best,
+      );
+      return { beat: nearestConfident, isReplace: false };
+    }
+
+    // Missed every confident zone — the click is somewhere in the boundary
+    // buffer between a note and a candidate that neither wants to claim
+    // outright (the breathing room you'd naturally leave writing notes by
+    // hand). Still resolves to whichever is nearest rather than rejecting a
+    // click that's merely a little off-centre — but critically, it now
+    // *tries the confident zones first*, so a click that's actually well
+    // inside a candidate's own space always wins that candidate outright,
+    // instead of an existing note's unshrunk full span (or the raw nearest-
+    // distance calculation) pulling it back the wrong way. That's what let
+    // a click approaching a barline — where the beat↔pixel mapping is
+    // least exact — sometimes snap onto a note the click wasn't visually
+    // anywhere near.
     const nearest = candidates.reduce((best, c) => (Math.abs(c - clamped) < Math.abs(best - clamped) ? c : best));
     return { beat: nearest, isReplace: false };
   }
 
-  // No free slot anywhere for this duration — fall back to the note's full,
-  // unshrunk span so a click near its edge can still land as an edit rather
-  // than being rejected outright just for missing the stricter core zone.
-  const edgeHit = measure.find((n) => isWithin(n, 0));
+  // No free slot anywhere for this duration — fall back to any note whose
+  // full, unshrunk span contains the click, so a near-edge click can still
+  // land as an edit rather than being rejected outright just for missing
+  // the stricter core zone.
+  const edgeHit = measure.find((n) => clamped >= n.beat - 0.001 && clamped < n.beat + n.duration - 0.001);
   if (edgeHit) return { beat: edgeHit.beat, isReplace: true };
 
   return null;
+}
+
+/**
+ * Picks which measure a click landed in, given every measure's geometry.
+ * Two measures on the same row share a ±`tolerance` band around their
+ * common barline (vexscore.ts's own MARGIN_LEFT/MARGIN_RIGHT are only 10
+ * each — well inside the default 20), so a click near that boundary can
+ * match both. Prefers a measure whose own note area actually contains x;
+ * only for a click in the tolerance-only margin outside every measure's
+ * real span does it fall back to the nearest by row, then by x-distance to
+ * that measure's own span. Same-row measures share a topLineY, so without
+ * that x-distance tie-break, a plain "closest topLineY" reduce never breaks
+ * the tie (equal values never satisfy a strict "<") and always keeps
+ * whichever measure came first — i.e. always the earlier measure,
+ * regardless of which side of the barline the click was actually nearer
+ * to. That's what let a click aimed at the next bar's first beat, right
+ * after finishing the previous one, keep resolving back into the (now
+ * full) previous bar and landing on its last note as an edit instead.
+ */
+export function findMeasureAt(geometries: MeasureGeometry[], x: number, y: number, tolerance = 20): MeasureGeometry | null {
+  const candidates = geometries.filter((g) => x >= g.noteStartX - tolerance && x <= g.noteEndX + tolerance);
+  if (!candidates.length) return null;
+  const containing = candidates.filter((g) => x >= g.noteStartX && x <= g.noteEndX);
+  const pool = containing.length ? containing : candidates;
+  const xDistance = (g: MeasureGeometry) => (x < g.noteStartX ? g.noteStartX - x : x > g.noteEndX ? x - g.noteEndX : 0);
+  return pool.reduce((best, g) => {
+    const bestRowDist = Math.abs(best.topLineY - y);
+    const rowDist = Math.abs(g.topLineY - y);
+    if (rowDist !== bestRowDist) return rowDist < bestRowDist ? g : best;
+    return xDistance(g) < xDistance(best) ? g : best;
+  });
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePlacementBeat } from './placement';
+import { findMeasureAt, resolvePlacementBeat } from './placement';
 import type { PitchedMeasure } from './theory';
+import type { MeasureGeometry } from './vexscore';
 
 const note = (beat: number, duration: number, midi = 60): PitchedMeasure[number] => ({ beat, duration, rest: false, midi });
 
@@ -81,5 +82,81 @@ describe('resolvePlacementBeat', () => {
       const result = resolvePlacementBeat(measure, 0.05, 1, 3, 1);
       expect(result).toEqual({ beat: 0, isReplace: true });
     });
+  });
+
+  // "Approaching a barline": a click near the boundary between an existing
+  // note and the one free beat left in the bar is *always* numerically
+  // nearest to that candidate (there's nothing else it could be), so this
+  // still resolves there — a hard "too far, do nothing" cutoff turned out
+  // to be indistinguishable from breaking the very near-boundary clicks the
+  // MD-3 fix above depends on, given how narrow the actual ambiguous buffer
+  // between a note's core and a candidate's own confident zone is (both
+  // shrink by the same margin). What actually changed: the confident zone
+  // is checked *first*, so a click well inside a candidate's own space
+  // always resolves to that candidate outright, rather than a raw
+  // nearest-distance calculation (or an existing note's unshrunk full
+  // span) pulling it the wrong way — which is what let some barline-
+  // approaching clicks snap onto a note they weren't visually near.
+  describe('candidate resolution near a boundary (natural-writing breathing room)', () => {
+    it('resolves a click in the ambiguous buffer between a note and the only free candidate', () => {
+      const measure: PitchedMeasure = [note(0, 1), note(1, 1)];
+      // note(1,1)'s core ends at 1.75; candidate 2's confident zone (margined
+      // on its touching left side) starts at 2.25 — 2.0 sits in neither, but
+      // it's still unambiguously closer to 2 than to anything else.
+      const result = resolvePlacementBeat(measure, 2.0, 1, 3, 1);
+      expect(result).toEqual({ beat: 2, isReplace: false });
+    });
+
+    it('resolves confidently once the click is well inside the candidate\'s own core', () => {
+      const measure: PitchedMeasure = [note(0, 1), note(1, 1)];
+      const result = resolvePlacementBeat(measure, 2.6, 1, 3, 1);
+      expect(result).toEqual({ beat: 2, isReplace: false });
+    });
+
+    it('an isolated candidate with free space on both sides accepts a click across its full width (no regression for open space)', () => {
+      const measure: PitchedMeasure = [note(0, 1)];
+      // Candidates are 1 and 2; candidate 1 touches an existing note on its
+      // left, but candidate 2 is fully isolated (free on both sides) and
+      // should accept any click closer to it than to candidate 1.
+      const result = resolvePlacementBeat(measure, 2.1, 1, 3, 1);
+      expect(result).toEqual({ beat: 2, isReplace: false });
+    });
+  });
+});
+
+// findMeasureAt: two same-row measures share a topLineY, so picking between
+// them near their shared barline can't rely on row-distance alone — it used
+// to always keep whichever measure was found first (the earlier one),
+// regardless of which side of the barline x was actually nearer to.
+describe('findMeasureAt', () => {
+  const measure0: MeasureGeometry = { index: 0, noteStartX: 10, noteEndX: 490, topLineY: 100, spacing: 10 };
+  const measure1: MeasureGeometry = { index: 1, noteStartX: 510, noteEndX: 990, topLineY: 100, spacing: 10 };
+
+  it('picks the measure whose note area actually contains x', () => {
+    expect(findMeasureAt([measure0, measure1], 250, 100)?.index).toBe(0);
+    expect(findMeasureAt([measure0, measure1], 750, 100)?.index).toBe(1);
+  });
+
+  it('picks measure 1 for a click just past the shared barline, even though it is inside measure 0\'s tolerance band too', () => {
+    // 495 is within measure0.noteEndX(490)+20 *and* measure1.noteStartX(510)-20 —
+    // the classic case where both used to match and the tie always broke
+    // toward measure 0 regardless of x. It's nearer measure1's own start.
+    const result = findMeasureAt([measure0, measure1], 505, 100);
+    expect(result?.index).toBe(1);
+  });
+
+  it('picks measure 0 for a click just before the shared barline, in the same overlapping tolerance band', () => {
+    const result = findMeasureAt([measure0, measure1], 495, 100);
+    expect(result?.index).toBe(0);
+  });
+
+  it('returns null when x is outside every measure’s tolerance band', () => {
+    expect(findMeasureAt([measure0, measure1], -100, 100)).toBeNull();
+  });
+
+  it('prefers the row nearer to y when measures are on different rows', () => {
+    const row2: MeasureGeometry = { index: 2, noteStartX: 10, noteEndX: 490, topLineY: 250, spacing: 10 };
+    expect(findMeasureAt([measure0, row2], 250, 240)?.index).toBe(2);
+    expect(findMeasureAt([measure0, row2], 250, 110)?.index).toBe(0);
   });
 });
