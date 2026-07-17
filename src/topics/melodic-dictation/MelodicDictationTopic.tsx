@@ -9,18 +9,22 @@ import { MelodicSettings } from './Settings';
 import { VexStaffHost } from './VexStaffHost';
 import { useMelodicPractice } from './usePractice';
 
+// Base values only — dotted variants are reached by arming a base value and
+// toggling Dot (below), not via separate dedicated buttons. A duration's
+// dotted form is still gated by the same settings.durations list (e.g. a
+// dotted quarter needs 1.5 checked under Note & rest values), just resolved
+// through effectiveDuration() instead of a hardcoded second palette entry —
+// so the composition works for every base value, not just quarter/eighth.
 const PALETTE: { duration: number; label: string; title: string }[] = [
   { duration: 4, label: '1', title: 'Whole note (1)' },
   { duration: 2, label: '2', title: 'Half note (2)' },
   { duration: 1, label: '3', title: 'Quarter note (3)' },
   { duration: 0.5, label: '4', title: 'Eighth note (4)' },
   { duration: 0.25, label: '5', title: 'Sixteenth note (5)' },
-  { duration: 1.5, label: '7', title: 'Dotted quarter (7)' },
-  { duration: 0.75, label: '8', title: 'Dotted eighth (8)' },
 ];
 
 const KEY_TO_DURATION: Record<string, number> = {
-  '1': 4, '2': 2, '3': 1, '4': 0.5, '5': 0.25, '7': 1.5, '8': 0.75,
+  '1': 4, '2': 2, '3': 1, '4': 0.5, '5': 0.25,
 };
 
 function loadBadgeFor(status: string): string {
@@ -176,26 +180,32 @@ export function MelodicDictationTopic() {
           <div className="md-bottom-bar">
             <div className="md-palette">
               {PALETTE.map((btn) => {
-                const allowed = practice.activeDurations.some((d) => durationClose(d, btn.duration));
-                const fits = durationFitsBar(practice.effectiveDuration(btn.duration), practice.timeSig.measureBeats);
+                // Gate and preview the *effective* (dot-adjusted) duration —
+                // arming "Quarter" while Dot is on means the actual value
+                // being placed is a dotted quarter, so that's what needs to
+                // be checked against settings/bar-fit and shown in the icon.
+                const effective = practice.effectiveDuration(btn.duration);
+                const allowed = practice.activeDurations.some((d) => durationClose(d, effective));
+                const fits = durationFitsBar(effective, practice.timeSig.measureBeats);
                 const disabled = !allowed || !fits;
                 const armed = durationClose(practice.armedDuration, btn.duration);
+                const effectiveTitle = practice.isDotActive
+                  ? btn.title.replace(/^(\S+)/, (word) => `Dotted ${word.toLowerCase()}`)
+                  : btn.title;
                 // Explain *why* a duration is greyed out — a bare disabled
                 // button gives no hint that e.g. a whole note simply can't
                 // fit the current question's time signature. activeDurations
                 // is already bar-fit-filtered (getActiveDurations), so it
                 // can't tell "unchecked in settings" apart from "checked but
                 // too big for this bar" — check the raw settings for that.
-                let title = btn.title;
+                let title = effectiveTitle;
                 if (disabled) {
-                  const checkedInSettings = settings.durations.some((d) => durationClose(d, btn.duration));
+                  const checkedInSettings = settings.durations.some((d) => durationClose(d, effective));
                   if (!checkedInSettings) {
-                    title = `${btn.title} — not enabled in Note & rest values above`;
+                    title = `${effectiveTitle} — not enabled in Note & rest values above`;
                   } else {
                     const sigLabel = `${practice.timeSig.beatsPerBar}/${practice.timeSig.beatValue}`;
-                    title = practice.isDotActive
-                      ? `${btn.title} — dotted, doesn't fit this ${sigLabel} bar`
-                      : `${btn.title} — doesn't fit this ${sigLabel} bar`;
+                    title = `${effectiveTitle} — doesn't fit this ${sigLabel} bar`;
                   }
                 }
                 return (
@@ -207,7 +217,7 @@ export function MelodicDictationTopic() {
                     aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
                   >
-                    <NoteGlyphIcon duration={btn.duration} />
+                    <NoteGlyphIcon duration={effective} />
                     <span>{btn.label}</span>
                   </button>
                 );

@@ -119,6 +119,10 @@
   width: 52px;
   height: 52px;
   background: var(--panel-2);
+  /* Global `button` sets color:var(--ecu-white) for accent-filled primary
+     buttons — without this override these text glyphs (·, ♯, ♭, ⌫, ✕) were
+     white text on this near-white background, invisible. */
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 18px;

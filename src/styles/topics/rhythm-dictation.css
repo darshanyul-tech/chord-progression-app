@@ -222,6 +222,10 @@
   width: 52px;
   height: 52px;
   background: var(--ecu-white);
+  /* Global `button` sets color:var(--ecu-white) for accent-filled primary
+     buttons — without this override these text glyphs (·, ⌫, ✕) were white
+     text on this white background, invisible. */
+  color: var(--ecu-black);
   border: 1px solid #aaa;
   border-radius: 2px;
   font-size: 16px;
