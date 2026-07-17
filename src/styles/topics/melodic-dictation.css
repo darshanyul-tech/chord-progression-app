@@ -98,6 +98,12 @@
   display: block;
   overflow: visible;
 }
+.md-note-btn .rd-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
 .md-note-btn span {
   display: none;
 }
@@ -126,6 +132,12 @@
   width: 20px;
   height: 28px;
   color: var(--text);
+}
+.md-rest-btn .rd-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 .md-mod-active {
   background: var(--ecu-teal-light) !important;

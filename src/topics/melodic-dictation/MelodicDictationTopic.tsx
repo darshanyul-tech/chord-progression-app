@@ -159,6 +159,7 @@ export function MelodicDictationTopic() {
               }}
               gridStepVal={practice.gridStepVal}
               armedDuration={practice.effectiveDuration(practice.armedDuration)}
+              armedIsRest={practice.armedIsRest}
               armedAccidental={practice.armedAccidental}
               onPlace={handlePlace}
               onCursorMoveBeat={practice.moveCursorBeat}

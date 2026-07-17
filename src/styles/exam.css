@@ -259,6 +259,12 @@
   display: block;
   overflow: visible;
 }
+.note-palette-btn .rd-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
 .note-palette-btn.note-palette-rest .rd-glyph {
   width: 20px;
   height: 28px;

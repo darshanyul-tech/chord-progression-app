@@ -131,3 +131,76 @@ describe('useMelodicPractice — undo/clear/grade', () => {
     expect(result.current.score.total).toBe(1);
   });
 });
+
+// docs/12-melodic-dictation-fixes.md MD-3 (RC-3): a bar used to only ever
+// accept one note per click because layout/hit-testing disagreed and any
+// near-miss click silently replaced the existing note instead of filling
+// the next free beat. Raw beats below are deliberately off-exact (not
+// n.beat itself) to simulate real, slightly-imprecise clicks.
+describe('useMelodicPractice — placement resolution (docs/12 regression)', () => {
+  it('places three quarter notes in a 3/4 bar without a later click overwriting an earlier one', () => {
+    const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
+    act(() => {
+      result.current.placeNoteAt(0, 0.1, 1, false, 60);
+    });
+    act(() => {
+      result.current.placeNoteAt(0, 1.3, 1, false, 62);
+    });
+    act(() => {
+      result.current.placeNoteAt(0, 2.6, 1, false, 64);
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(3);
+    expect(result.current.userMeasures[0]?.map((n) => n.beat).sort((a, b) => a - b)).toEqual([0, 1, 2]);
+  });
+
+  it('replaces the note a click lands directly on, rather than adding a duplicate', () => {
+    const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
+    act(() => {
+      result.current.placeNoteAt(0, 0, 1, false, 60);
+    });
+    act(() => {
+      result.current.placeNoteAt(0, 0.2, 1, false, 65); // clicks back onto the same note (re-pitch)
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(1);
+    expect(result.current.userMeasures[0]?.[0]).toEqual({ beat: 0, duration: 1, rest: false, midi: 65 });
+  });
+
+  it('flashes and rejects a placement once the bar has no room for the armed duration', () => {
+    const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
+    act(() => {
+      result.current.placeNoteAt(0, 0.1, 1, false, 60);
+      result.current.placeNoteAt(0, 1.3, 1, false, 62);
+      result.current.placeNoteAt(0, 2.6, 1, false, 64);
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(3);
+    act(() => {
+      // Beyond the bar end (clamps to beat 3) — not inside any existing
+      // note's span, and the fully-filled 3/4 bar has no free slot left.
+      result.current.placeNoteAt(0, 3.4, 1, false, 67);
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(3);
+    expect(result.current.flashMeasure).toBe(0);
+  });
+
+  // Found via live browser verification of the MD-3 fix: an earlier version
+  // of moveCursorBeat picked "nearest candidate to the cursor, then +1",
+  // which skipped the very next beat whenever the cursor wasn't itself a
+  // candidate (true right after every placement, since placing a note
+  // never moves the cursor) — ArrowRight after placing beat 0 jumped
+  // straight to beat 2, and a further ArrowRight jumped measures entirely,
+  // leaving beat 1 unreachable by keyboard.
+  it('moveCursorBeat steps to the very next free beat, not the one after it', () => {
+    const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
+    act(() => result.current.focusCursor());
+    expect(result.current.cursorBeat).toBe(0);
+    act(() => result.current.placeAtCursor());
+    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, rest: false, midi: 60 }]);
+    act(() => result.current.moveCursorBeat(1));
+    expect(result.current.cursorBeat).toBe(1);
+    act(() => result.current.placeAtCursor());
+    act(() => result.current.moveCursorBeat(1));
+    expect(result.current.cursorBeat).toBe(2);
+    act(() => result.current.placeAtCursor());
+    expect(result.current.userMeasures[0]?.map((n) => n.beat).sort((a, b) => a - b)).toEqual([0, 1, 2]);
+  });
+});

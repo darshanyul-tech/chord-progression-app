@@ -34,6 +34,7 @@ export function SightSingingStaffHost({ melody, activeFraction }: SightSingingSt
       cursorMeasureIndex: 0,
       cursorBeat: null,
       cursorMidi: null,
+      hover: null,
     };
     buildVexScore(containerRef.current, model);
   });

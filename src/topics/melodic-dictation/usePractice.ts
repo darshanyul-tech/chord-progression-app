@@ -5,9 +5,10 @@ import { audio } from '../../lib/audio/engine';
 import { disconnectScheduled, scheduleMetroClick, type ScheduledNode } from '../../lib/audio/percussion';
 import { generateMelody } from '../../lib/melody/generator';
 import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/grading';
+import { resolvePlacementBeat } from '../../lib/melody/placement';
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
 import { keyById, resolveRangeWindow, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
-import { DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
+import { candidateBeats, DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
 import {
   durationClose,
   durationFitsBar,
@@ -278,16 +279,39 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     audio.sampler.triggerAttackRelease(midiToNoteName(midi), 0.35, audio.now());
   }
 
-  function placeNoteAt(measureIndex: number, beat: number, duration: number, isRest: boolean, midi: number | null) {
+  function placeNoteAt(measureIndex: number, rawBeat: number, duration: number, isRest: boolean, midi: number | null) {
     if (hasSubmitted) return;
     const dur = effectiveDuration(duration);
     const measure = userMeasures[measureIndex];
     if (!measure) return;
     const cap = timeSig.measureBeats;
-    if (!durationFitsBar(dur, cap) || beat + dur > cap + 0.001) {
+    const reject = () => {
       setFlashMeasure(measureIndex);
       window.setTimeout(() => setFlashMeasure(null), 280);
+    };
+    if (!durationFitsBar(dur, cap)) {
+      reject();
       return;
+    }
+    // Resolve the click/cursor's raw beat estimate into either a direct hit
+    // on an existing note (edit in place) or the nearest free slot the armed
+    // duration actually fits in — never silently replaces a neighbour to
+    // make room (docs/12-melodic-dictation-fixes.md MD-3 / RC-3).
+    const resolved = resolvePlacementBeat(measure, rawBeat, dur, cap, gridStepVal);
+    if (!resolved) {
+      reject();
+      return;
+    }
+    const { beat, isReplace } = resolved;
+    if (isReplace) {
+      const end = beat + dur;
+      const collidesWithOther = measure.some(
+        (n) => !durationClose(n.beat, beat) && beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001,
+      );
+      if (collidesWithOther || end > cap + 0.001) {
+        reject();
+        return;
+      }
     }
     // Clamp clicks far above/below the staff to the current range window
     // instead of placing an absurd pitch — flash to signal the clamp.
@@ -301,20 +325,18 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
         window.setTimeout(() => setFlashMeasure(null), 280);
       }
     }
-    // Placing a note over existing ones replaces them (rhythm-dictation UX
-    // parity — no need to backspace first).
-    const end = beat + dur;
-    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
-    const replacedBeats = measure.filter(overlaps).map((n) => n.beat);
     setUserMeasures((prev) =>
       prev.map((m, i) =>
         i === measureIndex
-          ? [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }]
+          ? [
+              ...m.filter((n) => !durationClose(n.beat, beat)),
+              { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi },
+            ]
           : m,
       ),
     );
     setPlacementHistory((prev) => [
-      ...prev.filter((p) => !(p.measureIndex === measureIndex && replacedBeats.some((b) => durationClose(b, p.beat)))),
+      ...prev.filter((p) => !(p.measureIndex === measureIndex && durationClose(p.beat, beat))),
       { measureIndex, beat },
     ]);
     setActiveMeasureIndex(measureIndex);
@@ -324,29 +346,48 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   // Keyboard placement fallback (09-improvement-plan.md §14.1): mirrors
   // rhythm-dictation's insertion cursor, plus a pitch dimension (Up/Down
   // select a staff line before Enter commits, per the plan's melodic note).
+  //
+  // Steps through the union of (a) free beats the armed duration could fill
+  // and (b) existing notes' own beats (so the cursor can still reach a note
+  // to replace it), always moving to the single nearest steppable beat in
+  // the travel direction — never "nearest overall, then +1" (that skipped
+  // the very next beat whenever the cursor wasn't itself sitting on a
+  // candidate, e.g. right after a placement; docs/12-melodic-dictation-
+  // fixes.md MD-3 item 4, found via live verification of this fix).
   function moveCursorBeat(delta: number) {
     if (hasSubmitted) return;
     setCursorBeat((prev) => {
       const cur = prev ?? 0;
       const cap = timeSig.measureBeats;
-      const next = cur + delta * gridStepVal;
-      if (next < -0.001) {
-        const prevIndex = activeMeasureIndex - 1;
-        if (prevIndex >= 0) {
-          setActiveMeasureIndex(prevIndex);
-          return Math.max(0, cap - gridStepVal);
-        }
-        return 0;
-      }
-      if (next > cap - gridStepVal + 0.001) {
+      const measure = userMeasures[activeMeasureIndex] ?? [];
+      const spans = measure.map((n) => ({ start: n.beat, end: n.beat + n.duration }));
+      const dur = effectiveDuration(armedDuration);
+      const freeCandidates = candidateBeats(dur, spans, cap, gridStepVal);
+      const steppable = Array.from(new Set([...freeCandidates, ...measure.map((n) => n.beat)])).sort((a, b) => a - b);
+
+      const next =
+        delta > 0
+          ? steppable.find((c) => c > cur + 0.001)
+          : steppable
+              .slice()
+              .reverse()
+              .find((c) => c < cur - 0.001);
+      if (next !== undefined) return next;
+
+      if (delta > 0) {
         const nextIndex = activeMeasureIndex + 1;
         if (nextIndex < numMeasures) {
           setActiveMeasureIndex(nextIndex);
           return 0;
         }
+        return steppable.length ? steppable[steppable.length - 1]! : Math.max(0, cap - gridStepVal);
+      }
+      const prevIndex = activeMeasureIndex - 1;
+      if (prevIndex >= 0) {
+        setActiveMeasureIndex(prevIndex);
         return Math.max(0, cap - gridStepVal);
       }
-      return next;
+      return steppable.length ? steppable[0]! : 0;
     });
   }
 
