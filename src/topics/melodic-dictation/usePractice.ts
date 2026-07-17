@@ -295,23 +295,23 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     }
     // Resolve the click/cursor's raw beat estimate into either a direct hit
     // on an existing note (edit in place) or the nearest free slot the armed
-    // duration actually fits in — never silently replaces a neighbour to
-    // make room (docs/12-melodic-dictation-fixes.md MD-3 / RC-3).
+    // duration actually fits in — a gap click never silently replaces a
+    // neighbour to make room (docs/12-melodic-dictation-fixes.md MD-3 /
+    // RC-3), since resolvePlacementBeat only ever returns free slots there.
     const resolved = resolvePlacementBeat(measure, rawBeat, dur, cap, gridStepVal);
     if (!resolved) {
       reject();
       return;
     }
     const { beat, isReplace } = resolved;
-    if (isReplace) {
-      const end = beat + dur;
-      const collidesWithOther = measure.some(
-        (n) => !durationClose(n.beat, beat) && beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001,
-      );
-      if (collidesWithOther || end > cap + 0.001) {
-        reject();
-        return;
-      }
+    const end = beat + dur;
+    // A direct hit is a deliberate "put this note here instead" — unlike a
+    // gap click, it's allowed to replace whatever the new (possibly larger)
+    // duration now spans, not just the one note originally clicked. Only
+    // reject if the new duration itself can't fit the bar from that beat.
+    if (isReplace && end > cap + 0.001) {
+      reject();
+      return;
     }
     // Clamp clicks far above/below the staff to the current range window
     // instead of placing an absurd pitch — flash to signal the clamp.
@@ -325,18 +325,22 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
         window.setTimeout(() => setFlashMeasure(null), 280);
       }
     }
+    // Gap-fill placements never overlap anything (resolvePlacementBeat only
+    // returns beats that fit clean), so this filter is a no-op there; on a
+    // direct hit it clears every note the new, possibly-larger span now covers.
+    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
+    const removedBeats = measure.filter(overlaps).map((n) => n.beat);
     setUserMeasures((prev) =>
       prev.map((m, i) =>
         i === measureIndex
-          ? [
-              ...m.filter((n) => !durationClose(n.beat, beat)),
-              { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi },
-            ]
+          ? [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }]
           : m,
       ),
     );
     setPlacementHistory((prev) => [
-      ...prev.filter((p) => !(p.measureIndex === measureIndex && durationClose(p.beat, beat))),
+      ...prev.filter(
+        (p) => !(p.measureIndex === measureIndex && (durationClose(p.beat, beat) || removedBeats.some((b) => durationClose(b, p.beat)))),
+      ),
       { measureIndex, beat },
     ]);
     setActiveMeasureIndex(measureIndex);

@@ -7,7 +7,7 @@ import { pitchedMeasuresEqual } from '../../lib/melody/grading';
 import { resolvePlacementBeat } from '../../lib/melody/placement';
 import type { Clef, KeyDef, PitchedMeasure } from '../../lib/melody/theory';
 import { getActiveDurations } from '../../lib/rhythm/generator';
-import { durationClose, gridStep, type TimeSigInfo } from '../../lib/rhythm/time';
+import { gridStep, type TimeSigInfo } from '../../lib/rhythm/time';
 
 export interface MelodicDictationQuestion {
   typeId: 'melodicDictation';
@@ -34,8 +34,10 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
 
   // Mirrors usePractice.ts's placeNoteAt resolution (docs/12-melodic-
   // dictation-fixes.md MD-3): a raw click-beat estimate resolves to either a
-  // direct hit on an existing note (replace) or the nearest free slot for
-  // the armed duration — never silently replaces a neighbour to make room.
+  // direct hit on an existing note (replace — clears whatever the new,
+  // possibly-larger duration now spans, since clicking squarely on a note is
+  // a deliberate swap) or the nearest free slot for the armed duration (a
+  // gap click, which never overlaps anything by construction).
   function placeNoteAt(measureIndex: number, rawBeat: number, midi: number) {
     if (disabled) return;
     const duration = armedDuration;
@@ -46,16 +48,12 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
     const resolved = resolvePlacementBeat(measure, rawBeat, duration, cap, gridStepVal);
     if (!resolved) return;
     const { beat, isReplace } = resolved;
-    if (isReplace) {
-      const end = beat + duration;
-      const collidesWithOther = measure.some(
-        (n) => !durationClose(n.beat, beat) && beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001,
-      );
-      if (collidesWithOther || end > cap + 0.001) return;
-    }
+    const end = beat + duration;
+    if (isReplace && end > cap + 0.001) return;
+    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
     const next = measures.map((m, i) =>
       i === measureIndex
-        ? [...m.filter((n) => !durationClose(n.beat, beat)), { beat, duration, rest: armedIsRest, midi: armedIsRest ? null : midi }]
+        ? [...m.filter((n) => !overlaps(n)), { beat, duration, rest: armedIsRest, midi: armedIsRest ? null : midi }]
         : m,
     );
     onAnswer(next);

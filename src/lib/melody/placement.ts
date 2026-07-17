@@ -1,5 +1,4 @@
 import { candidateBeats } from '../rhythm/generator';
-import { durationClose } from '../rhythm/time';
 import type { PitchedMeasure } from './theory';
 
 // docs/12-melodic-dictation-fixes.md MD-3. The single resolver both the
@@ -39,10 +38,4 @@ export function resolvePlacementBeat(
   if (!candidates.length) return null;
   const nearest = candidates.reduce((best, c) => (Math.abs(c - clamped) < Math.abs(best - clamped) ? c : best));
   return { beat: nearest, isReplace: false };
-}
-
-/** True when placing `duration` at `beat` (replacing any note already exactly at `beat`) would still overlap some *other* note. */
-export function placementCollides(measure: PitchedMeasure, beat: number, duration: number): boolean {
-  const end = beat + duration;
-  return measure.some((n) => !durationClose(n.beat, beat) && beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001);
 }

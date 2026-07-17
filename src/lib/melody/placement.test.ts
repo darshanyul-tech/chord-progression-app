@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { placementCollides, resolvePlacementBeat } from './placement';
+import { resolvePlacementBeat } from './placement';
 import type { PitchedMeasure } from './theory';
 
 const note = (beat: number, duration: number, midi = 60): PitchedMeasure[number] => ({ beat, duration, rest: false, midi });
@@ -40,22 +40,5 @@ describe('resolvePlacementBeat', () => {
     // Gap from 0.5 to 4 in a 4/4 bar; clicking near 1 should land exactly at 0.5 (nearest free eighth-grid beat).
     const result = resolvePlacementBeat(measure, 0.6, 0.5, 4, 0.25);
     expect(result).toEqual({ beat: 0.5, isReplace: false });
-  });
-});
-
-describe('placementCollides', () => {
-  it('is false when replacing the note already at that beat', () => {
-    const measure: PitchedMeasure = [note(0, 1), note(1, 1)];
-    expect(placementCollides(measure, 0, 1)).toBe(false);
-  });
-
-  it('is true when a larger duration at the same beat would swallow the next note', () => {
-    const measure: PitchedMeasure = [note(0, 1), note(1, 1)];
-    expect(placementCollides(measure, 0, 2)).toBe(true);
-  });
-
-  it('is false for a free beat with no neighbours', () => {
-    const measure: PitchedMeasure = [note(0, 1)];
-    expect(placementCollides(measure, 2, 1)).toBe(false);
   });
 });

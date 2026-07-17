@@ -182,6 +182,47 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     expect(result.current.flashMeasure).toBe(0);
   });
 
+  // Reported after the MD-3 fix shipped: clicking directly on an existing
+  // note to swap it for a *bigger* one was rejected outright whenever the
+  // bigger note would now cover a later note too — placeNoteAt used to
+  // reject on any collision instead of clearing what the deliberate replace
+  // now spans. A direct hit is different from a gap click: the user aimed
+  // at that exact note, so it's allowed to consume neighbours the gap-fill
+  // path (resolvePlacementBeat's free-slot search) would never touch.
+  it('replacing a note with a bigger one clears whatever else the new span now covers', () => {
+    const { result } = renderPractice({ signatures: ['4/4'], durations: [1, 0.5] });
+    act(() => {
+      // Two eighths at 0 and 0.5, then a quarter at 1 — three small notes in the bar.
+      result.current.placeNoteAt(0, 0, 0.5, false, 60);
+      result.current.placeNoteAt(0, 0.5, 0.5, false, 62);
+      result.current.placeNoteAt(0, 1, 1, false, 64);
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(3);
+    act(() => {
+      // Click back on the first eighth, armed with a duration big enough to swallow all three.
+      result.current.placeNoteAt(0, 0.1, 2, false, 67);
+    });
+    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 2, rest: false, midi: 67 }]);
+  });
+
+  // A whole note filling an otherwise-full 4/4 bar was unplaceable: clicking
+  // on any of the bar's existing notes to swap them all for a whole note hit
+  // the same over-broad collision rejection as above.
+  it('places a whole note over an otherwise-full 4/4 bar by clicking on an existing note', () => {
+    const { result } = renderPractice({ signatures: ['4/4'], durations: [1, 4] });
+    act(() => {
+      result.current.placeNoteAt(0, 0, 1, false, 60);
+      result.current.placeNoteAt(0, 1, 1, false, 62);
+      result.current.placeNoteAt(0, 2, 1, false, 64);
+      result.current.placeNoteAt(0, 3, 1, false, 65);
+    });
+    expect(result.current.userMeasures[0]).toHaveLength(4);
+    act(() => {
+      result.current.placeNoteAt(0, 0.2, 4, false, 60);
+    });
+    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 4, rest: false, midi: 60 }]);
+  });
+
   // Found via live browser verification of the MD-3 fix: an earlier version
   // of moveCursorBeat picked "nearest candidate to the cursor, then +1",
   // which skipped the very next beat whenever the cursor wasn't itself a
