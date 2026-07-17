@@ -41,4 +41,45 @@ describe('resolvePlacementBeat', () => {
     const result = resolvePlacementBeat(measure, 0.6, 0.5, 4, 0.25);
     expect(result).toEqual({ beat: 0.5, isReplace: false });
   });
+
+  // Reported live: a click aimed at the free beat right after a note (off
+  // by only a little) used to fall inside that note's full [0, 1) span and
+  // replace it — every attempt to add a second crotchet re-hit the first,
+  // capping a 3/4 bar at one note. rawBeat=0.9 is close to beat 1 but still
+  // technically inside note(0,1)'s un-shrunk span; it must resolve to the
+  // free beat 1, not treat 0.9 as landing on the beat-0 note.
+  describe('near-boundary clicks resolve to the adjacent free beat, not the previous note (regression)', () => {
+    it('a click just short of the next beat fills that beat instead of replacing the previous note', () => {
+      const measure: PitchedMeasure = [note(0, 1)];
+      const result = resolvePlacementBeat(measure, 0.9, 1, 3, 1);
+      expect(result).toEqual({ beat: 1, isReplace: false });
+    });
+
+    it('completes three crotchets in 3/4 even with imprecise (near-boundary) clicks each time', () => {
+      let measure: PitchedMeasure = [];
+      const clicks = [0.05, 0.9, 1.95];
+      const expectedBeats = [0, 1, 2];
+      clicks.forEach((rawBeat, i) => {
+        const result = resolvePlacementBeat(measure, rawBeat, 1, 3, 1);
+        expect(result).toEqual({ beat: expectedBeats[i], isReplace: false });
+        measure = [...measure, note(result!.beat, 1)];
+      });
+      expect(measure).toHaveLength(3);
+    });
+
+    it('still treats a click well inside a note (its core) as a direct hit', () => {
+      const measure: PitchedMeasure = [note(0, 1)];
+      const result = resolvePlacementBeat(measure, 0.5, 1, 3, 1);
+      expect(result).toEqual({ beat: 0, isReplace: true });
+    });
+
+    it('falls back to a direct hit near the edge when no free slot exists anywhere', () => {
+      // Bar fully packed (three crotchets in 3/4) — a near-edge click on the
+      // first note has nowhere else to go, so it should still edit that note
+      // rather than being rejected outright for missing the stricter core zone.
+      const measure: PitchedMeasure = [note(0, 1), note(1, 1), note(2, 1)];
+      const result = resolvePlacementBeat(measure, 0.05, 1, 3, 1);
+      expect(result).toEqual({ beat: 0, isReplace: true });
+    });
+  });
 });

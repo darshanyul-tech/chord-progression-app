@@ -159,7 +159,7 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
       result.current.placeNoteAt(0, 0, 1, false, 60);
     });
     act(() => {
-      result.current.placeNoteAt(0, 0.2, 1, false, 65); // clicks back onto the same note (re-pitch)
+      result.current.placeNoteAt(0, 0.5, 1, false, 65); // clicks back onto the same note (re-pitch)
     });
     expect(result.current.userMeasures[0]).toHaveLength(1);
     expect(result.current.userMeasures[0]?.[0]).toEqual({ beat: 0, duration: 1, rest: false, midi: 65 });
@@ -200,7 +200,7 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     expect(result.current.userMeasures[0]).toHaveLength(3);
     act(() => {
       // Click back on the first eighth, armed with a duration big enough to swallow all three.
-      result.current.placeNoteAt(0, 0.1, 2, false, 67);
+      result.current.placeNoteAt(0, 0.25, 2, false, 67);
     });
     expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 2, rest: false, midi: 67 }]);
   });
