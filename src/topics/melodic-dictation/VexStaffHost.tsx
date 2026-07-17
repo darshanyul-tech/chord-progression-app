@@ -21,6 +21,7 @@ interface VexStaffHostProps {
 interface HoverState {
   measureIndex: number;
   beat: number;
+  duration: number;
   midi: number | null;
 }
 
@@ -72,7 +73,13 @@ export function VexStaffHost({
       geometryRef.current = buildVexScore(containerRef.current, {
         ...model,
         hover: activeHover
-          ? { measureIndex: activeHover.measureIndex, beat: activeHover.beat, midi: activeHover.midi, isRest: armedIsRest }
+          ? {
+              measureIndex: activeHover.measureIndex,
+              beat: activeHover.beat,
+              duration: activeHover.duration,
+              midi: activeHover.midi,
+              isRest: armedIsRest,
+            }
           : null,
       });
     }
@@ -148,7 +155,12 @@ export function VexStaffHost({
       setHover(null);
       return;
     }
-    setHover({ measureIndex: resolved.geo.index, beat: placed.beat, midi: armedIsRest ? null : resolved.midi });
+    setHover({
+      measureIndex: resolved.geo.index,
+      beat: placed.beat,
+      duration: armedDuration,
+      midi: armedIsRest ? null : resolved.midi,
+    });
   }
 
   function handleMouseMove(evt: React.MouseEvent<HTMLDivElement>) {

@@ -47,7 +47,13 @@ describe('buildVexScore smoke test', () => {
           cursorMidi: i % 5 === 0 ? 60 + (i % 12) : null,
           hover:
             i % 6 === 0
-              ? { measureIndex: 0, beat: (i % 4) * 0.5, midi: i % 2 === 0 ? 60 + (i % 12) : null, isRest: i % 2 !== 0 }
+              ? {
+                  measureIndex: 0,
+                  beat: (i % 4) * 0.5,
+                  duration: [1, 0.5, 2, 0.25][i % 4]!,
+                  midi: i % 2 === 0 ? 60 + (i % 12) : null,
+                  isRest: i % 2 !== 0,
+                }
               : null,
         }),
       ).not.toThrow();
@@ -278,7 +284,7 @@ describe('buildVexScore smoke test', () => {
       cursorMeasureIndex: 0,
       cursorBeat: null,
       cursorMidi: null,
-      hover: { measureIndex: 0, beat: 1, midi: 64, isRest: false },
+      hover: { measureIndex: 0, beat: 1, duration: 1, midi: 64, isRest: false },
     });
     const svg = container.querySelector('svg')!;
     const ghost = [...svg.querySelectorAll('*')].some(
@@ -305,13 +311,132 @@ describe('buildVexScore smoke test', () => {
       cursorMeasureIndex: 0,
       cursorBeat: null,
       cursorMidi: null,
-      hover: { measureIndex: 0, beat: 1, midi: 64, isRest: false },
+      hover: { measureIndex: 0, beat: 1, duration: 1, midi: 64, isRest: false },
     });
     const svg = container.querySelector('svg')!;
     const ghost = [...svg.querySelectorAll('*')].some(
       (el) => el.getAttribute('fill') === HOVER_COLOR || el.getAttribute('stroke') === HOVER_COLOR,
     );
     expect(ghost).toBe(false);
+  });
+
+  // Follow-up to MD-4: the ghost used to be a hand-drawn circle positioned
+  // by a raw beat-proportional formula that didn't match where VexFlow's
+  // own Formatter actually places a real note — it rendered visibly to the
+  // left of the note it previewed. Rendering the ghost as a real (styled)
+  // tickable in the same voice as the actual notes means its x-position is
+  // whatever the Formatter gives it, identical to a real note at that beat.
+  it('positions the hover ghost at the exact x a real note at that beat would get', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
+    const generated = generateMelody(settings);
+    const model = {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+      numMeasures: 1,
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+    };
+
+    const realContainer = document.createElement('div');
+    buildVexScore(realContainer, {
+      ...model,
+      measures: [[{ beat: 1, duration: 1, rest: false, midi: 64 }]],
+      hover: null,
+    });
+    const realX = realContainer.querySelector('.vf-notehead text')?.getAttribute('x');
+
+    const ghostContainer = document.createElement('div');
+    buildVexScore(ghostContainer, {
+      ...model,
+      measures: [[]],
+      hover: { measureIndex: 0, beat: 1, duration: 1, midi: 64, isRest: false },
+    });
+    const ghostX = ghostContainer.querySelector('.vf-notehead text')?.getAttribute('x');
+
+    expect(ghostX).toBeDefined();
+    expect(ghostX).toBe(realX);
+  });
+
+  it('shows a dot on the hover ghost for a dotted duration', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+      numMeasures: 1,
+      measures: [[]],
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      hover: { measureIndex: 0, beat: 0, duration: 1.5, midi: 64, isRest: false },
+    });
+    const noteheadGroup = container.querySelector('.vf-notehead');
+    expect(noteheadGroup?.querySelectorAll('text').length).toBe(2);
+  });
+
+  it('renders the hover ghost as a rest (no stem) when isRest is set', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+      numMeasures: 1,
+      measures: [[]],
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      hover: { measureIndex: 0, beat: 0, duration: 1, midi: null, isRest: true },
+    });
+    const staveNote = container.querySelector('.vf-stavenote');
+    expect(staveNote?.querySelector('.vf-stem')).toBeNull();
+    expect(staveNote?.querySelector('.vf-notehead')).not.toBeNull();
+  });
+
+  it('never lets the hover ghost overlap an existing note (replace preview)', () => {
+    const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+      numMeasures: 1,
+      measures: [[{ beat: 0, duration: 1, rest: false, midi: 60 }]],
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      // A direct-hit replace at beat 0 with a bigger duration — the ghost
+      // must be the only note left, not sitting alongside the one it replaces.
+      hover: { measureIndex: 0, beat: 0, duration: 4, midi: 67, isRest: false },
+    });
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavenote').length).toBe(1);
   });
 });
 

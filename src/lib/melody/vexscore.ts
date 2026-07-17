@@ -37,6 +37,7 @@ export interface HoverPreview {
   measureIndex: number;
   /** Already resolved (snapped to the nearest valid slot / direct hit) — see lib/melody/placement.ts. */
   beat: number;
+  duration: number;
   midi: number | null;
   isRest: boolean;
 }
@@ -139,10 +140,28 @@ function drawMeasureVoice(
   key: KeyDef,
   clef: Clef,
   style?: { fillStyle: string; strokeStyle: string },
+  hoverNote?: PitchedNote | null,
 ): void {
-  if (!notes.length) return;
   const measureTotalBeats = timeSig.measureBeats;
-  const sorted = notes.slice().sort((a, b) => a.beat - b.beat);
+
+  // A hover ghost is rendered as a real tickable in this same voice, not a
+  // hand-drawn overlay — that's what makes its position and glyph exact
+  // (flags, dots, rest shape, full note size) instead of an approximated
+  // circle sitting wherever the raw beat-proportional formula lands, which
+  // is *not* where the Formatter actually places a real note (docs/12
+  // MD-4 follow-up). It replaces whatever it would overlap if committed,
+  // mirroring placeNoteAt's own direct-hit-clears-neighbours behaviour, so
+  // the preview always matches what clicking would actually do.
+  let effectiveNotes = notes;
+  let ghostRef: PitchedNote | null = null;
+  if (hoverNote) {
+    const end = hoverNote.beat + hoverNote.duration;
+    const overlaps = (n: PitchedNote) => hoverNote.beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
+    effectiveNotes = [...notes.filter((n) => !overlaps(n)), hoverNote];
+    ghostRef = hoverNote;
+  }
+  if (!effectiveNotes.length) return;
+  const sorted = effectiveNotes.slice().sort((a, b) => a.beat - b.beat);
 
   // Build the full-bar tickable list: real notes plus invisible GhostNotes
   // filling every gap (before the first note, between notes, and up to the
@@ -156,7 +175,11 @@ function drawMeasureVoice(
     const gap = n.beat - cursor;
     if (gap > 0.001) decomposeGap(gap).forEach((d) => tickables.push(buildGhostNote(d)));
     const staveNote = buildStaveNote(n, key, clef);
-    if (style) staveNote.setStyle(style);
+    if (n === ghostRef) {
+      staveNote.setStyle({ fillStyle: HOVER_COLOR, strokeStyle: HOVER_COLOR });
+    } else if (style) {
+      staveNote.setStyle(style);
+    }
     tickables.push(staveNote);
     noteToStave.set(n, staveNote);
     cursor = n.beat + n.duration;
@@ -176,9 +199,11 @@ function drawMeasureVoice(
   const beamGroups = Beam.getDefaultBeamGroups(`${timeSig.beatsPerBar}/${timeSig.beatValue}`);
   const beams = beamableRuns(sorted).flatMap((run) => {
     const runStaveNotes = run.map((n) => noteToStave.get(n)!);
-    return Beam.generateBeams(runStaveNotes, { groups: beamGroups });
+    const runBeams = Beam.generateBeams(runStaveNotes, { groups: beamGroups });
+    if (run.includes(ghostRef!)) runBeams.forEach((b) => b.setStyle({ fillStyle: HOVER_COLOR, strokeStyle: HOVER_COLOR }));
+    else if (style) runBeams.forEach((b) => b.setStyle(style));
+    return runBeams;
   });
-  if (style) beams.forEach((b) => b.setStyle(style));
 
   voice.draw(context, stave);
   beams.forEach((b) => b.setContext(context).draw());
@@ -247,7 +272,11 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
           strokeStyle: WRONG_COLOR,
         });
       } else {
-        drawMeasureVoice(context, stave, userNotes, timeSig, key, clef);
+        const hoverNote: PitchedNote | null =
+          !hasSubmitted && hover && hover.measureIndex === mi
+            ? { beat: hover.beat, duration: hover.duration, rest: hover.isRest, midi: hover.midi }
+            : null;
+        drawMeasureVoice(context, stave, userNotes, timeSig, key, clef, undefined, hoverNote);
       }
 
       geometry.push({
@@ -283,36 +312,6 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       context.lineTo(cx, cy - 8);
       context.closePath();
       context.fill();
-      context.restore();
-    }
-  }
-
-  if (hover !== null && !hasSubmitted) {
-    const geo = geometry.find((g) => g.index === hover.measureIndex);
-    if (geo) {
-      const rel = Math.max(0, Math.min(1, hover.beat / measureTotalBeats));
-      const cx = geo.noteStartX + rel * (geo.noteEndX - geo.noteStartX);
-      let cy = geo.topLineY + 2 * geo.spacing;
-      if (!hover.isRest && hover.midi !== null) {
-        const spelled = spellMidi(hover.midi, key);
-        const letterIndex = NATURAL_LETTERS.indexOf(spelled.letter);
-        const kpLine = staffLineFor(letterIndex, spelled.octave, clef);
-        cy = geo.topLineY + (5 - kpLine) * geo.spacing;
-      }
-      // Hand-drawn ghost (notehead + short stem) via the raw context rather
-      // than a second VexFlow voice — a real tickable would perturb the
-      // Formatter's spacing of the actual placed notes (docs/12 MD-4).
-      context.save();
-      context.setFillStyle(HOVER_COLOR);
-      context.setStrokeStyle(HOVER_COLOR);
-      context.setLineWidth(1.5);
-      context.beginPath();
-      context.arc(cx, cy, 4.5, 0, Math.PI * 2, false);
-      context.fill();
-      context.beginPath();
-      context.moveTo(cx + 4.5, cy);
-      context.lineTo(cx + 4.5, cy - 24);
-      context.stroke();
       context.restore();
     }
   }
