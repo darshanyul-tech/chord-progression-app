@@ -193,7 +193,6 @@ export const TOPICS: TopicDefinition[] = [
     title: 'Rhythm Dictation',
     category: 'rhythm',
     status: 'active',
-    theme: 'dark',
     Component: RhythmDictationTopic,
     examTypes: rhythmDictationExamTypes,
   },

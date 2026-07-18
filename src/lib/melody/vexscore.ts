@@ -1,4 +1,6 @@
-import { Accidental, Beam, Dot, Formatter, GhostNote, Renderer, Stave, StaveNote, Voice, type StemmableNote } from 'vexflow';
+import { Accidental, Dot, Renderer, Stave, StaveNote, type Voice } from 'vexflow';
+import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
+import type { MeasureGeometry } from '../notation/geometry';
 import { vexDurationFor } from '../rhythm-staff/vexDuration';
 import type { TimeSigInfo } from '../rhythm/time';
 import { midiToVexKey, spellMidi } from './spelling';
@@ -8,6 +10,10 @@ import { NATURAL_LETTERS, staffLineFor, type Clef, type KeyDef, type PitchedMeas
 // grading/storage/playback never read these objects. Renders a fresh scene
 // from the model every call, same imperative-island convention as the
 // rhythm staff (Part A) and the exam-mode reveal-as-second-voice pattern.
+// Per-measure rendering itself is the shared lib/notation framework (see
+// lib/notation/index.ts) — this file only supplies the PitchedNote adapter
+// and the parts genuinely specific to melodic dictation (pitch/clef/key,
+// accidentals, multi-row layout, the pitch-aware keyboard cursor).
 
 export interface MelodyStaffModel {
   key: KeyDef;
@@ -35,20 +41,11 @@ export interface MelodyStaffModel {
 
 export interface HoverPreview {
   measureIndex: number;
-  /** Already resolved (snapped to the nearest valid slot / direct hit) — see lib/melody/placement.ts. */
+  /** Already resolved (snapped to the nearest valid slot / direct hit) — see lib/notation/placement.ts. */
   beat: number;
   duration: number;
   midi: number | null;
   isRest: boolean;
-}
-
-/** Everything the input overlay needs to hit-test clicks, without holding onto VexFlow objects. */
-export interface MeasureGeometry {
-  index: number;
-  noteStartX: number;
-  noteEndX: number;
-  topLineY: number;
-  spacing: number;
 }
 
 const CANVAS_WIDTH = 1000;
@@ -66,147 +63,20 @@ export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
 /** Mouse-hover placement ghost (docs/12 MD-4) — same hue as the keyboard cursor's teal accent, translucent. */
 export const HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
 
-// Only durations that decompose cleanly (§ decomposeGap) appear here; the
-// palette only ever offers these seven values plus their multiples/sums, so
-// every gap this app can produce is representable without a remainder.
-const CANONICAL_GAP_DURATIONS = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25];
-
-/**
- * Greedily splits a beat-gap into standard note-value chunks (largest first),
- * used to pad measures with invisible GhostNotes so the Formatter spaces
- * *placed* notes proportionally to their real beat position instead of
- * packing them sequentially with no regard for empty beats (docs/12 RC-3) —
- * the mismatch that let a bar accept fewer notes than its capacity.
- */
-export function decomposeGap(gapBeats: number): number[] {
-  const out: number[] = [];
-  let rem = gapBeats;
-  let guard = 0;
-  while (rem > 0.001 && guard++ < 64) {
-    const fit = CANONICAL_GAP_DURATIONS.find((d) => d <= rem + 0.001);
-    if (!fit) break;
-    out.push(fit);
-    rem -= fit;
-  }
-  return out;
-}
-
-function buildGhostNote(durationBeats: number): GhostNote {
-  const { duration, dots } = vexDurationFor(durationBeats);
-  return new GhostNote({ duration, dots });
-}
-
-function buildStaveNote(note: PitchedNote, key: KeyDef, clef: Clef): StaveNote {
-  const { duration, dots } = vexDurationFor(note.duration);
-  const staveNote = note.rest
-    ? new StaveNote({ keys: [REST_KEY], duration: `${duration}r`, dots, clef })
-    : new StaveNote({ keys: [midiToVexKey(note.midi!, key)], duration, dots, clef, autoStem: true });
-  if (dots > 0) Dot.buildAndAttach([staveNote], { all: true });
-  return staveNote;
-}
-
-/**
- * Groups time-adjacent, sub-beat, non-rest notes into beamable runs. `sorted`
- * must already be beat-ascending. A run needs 2+ notes with no gap or rest
- * between them — VexFlow only draws flags on lone notes and on notes broken
- * apart by a rest or a silent gap; beaming across either looks wrong and
- * used to happen because beams were generated after the notes had already
- * drawn their own flags/stems (docs/12 RC-2).
- */
-export function beamableRuns(sorted: PitchedNote[]): PitchedNote[][] {
-  const runs: PitchedNote[][] = [];
-  let current: PitchedNote[] = [];
-  let cursor: number | null = null;
-  for (const n of sorted) {
-    const beamable = !n.rest && n.duration < 1 - 0.001;
-    const adjacent = beamable && cursor !== null && Math.abs(n.beat - cursor) < 0.001;
-    if (beamable && adjacent) {
-      current.push(n);
-    } else {
-      if (current.length > 1) runs.push(current);
-      current = beamable ? [n] : [];
-    }
-    cursor = beamable ? n.beat + n.duration : null;
-  }
-  if (current.length > 1) runs.push(current);
-  return runs;
-}
-
-function drawMeasureVoice(
-  context: ReturnType<Renderer['getContext']>,
-  stave: Stave,
-  notes: PitchedMeasure,
-  timeSig: TimeSigInfo,
-  key: KeyDef,
-  clef: Clef,
-  style?: { fillStyle: string; strokeStyle: string },
-  hoverNote?: PitchedNote | null,
-): void {
-  const measureTotalBeats = timeSig.measureBeats;
-
-  // A hover ghost is rendered as a real tickable in this same voice, not a
-  // hand-drawn overlay — that's what makes its position and glyph exact
-  // (flags, dots, rest shape, full note size) instead of an approximated
-  // circle sitting wherever the raw beat-proportional formula lands, which
-  // is *not* where the Formatter actually places a real note (docs/12
-  // MD-4 follow-up). It replaces whatever it would overlap if committed,
-  // mirroring placeNoteAt's own direct-hit-clears-neighbours behaviour, so
-  // the preview always matches what clicking would actually do.
-  let effectiveNotes = notes;
-  let ghostRef: PitchedNote | null = null;
-  if (hoverNote) {
-    const end = hoverNote.beat + hoverNote.duration;
-    const overlaps = (n: PitchedNote) => hoverNote.beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
-    effectiveNotes = [...notes.filter((n) => !overlaps(n)), hoverNote];
-    ghostRef = hoverNote;
-  }
-  if (!effectiveNotes.length) return;
-  const sorted = effectiveNotes.slice().sort((a, b) => a.beat - b.beat);
-
-  // Build the full-bar tickable list: real notes plus invisible GhostNotes
-  // filling every gap (before the first note, between notes, and up to the
-  // bar end) so the Formatter spaces everything proportionally to beat
-  // position (docs/12 RC-3) instead of packing placed notes with no regard
-  // for the empty space around them.
-  const tickables: StemmableNote[] = [];
-  const noteToStave = new Map<PitchedNote, StaveNote>();
-  let cursor = 0;
-  sorted.forEach((n) => {
-    const gap = n.beat - cursor;
-    if (gap > 0.001) decomposeGap(gap).forEach((d) => tickables.push(buildGhostNote(d)));
-    const staveNote = buildStaveNote(n, key, clef);
-    if (n === ghostRef) {
-      staveNote.setStyle({ fillStyle: HOVER_COLOR, strokeStyle: HOVER_COLOR });
-    } else if (style) {
-      staveNote.setStyle(style);
-    }
-    tickables.push(staveNote);
-    noteToStave.set(n, staveNote);
-    cursor = n.beat + n.duration;
-  });
-  const tailGap = measureTotalBeats - cursor;
-  if (tailGap > 0.001) decomposeGap(tailGap).forEach((d) => tickables.push(buildGhostNote(d)));
-
-  const voice = new Voice({ numBeats: measureTotalBeats, beatValue: 4 });
-  voice.setMode(Voice.Mode.SOFT);
-  voice.addTickables(tickables);
-  Accidental.applyAccidentals([voice], key.vexKeySpec);
-  new Formatter().joinVoices([voice]).format([voice], Math.max(20, stave.getNoteEndX() - stave.getNoteStartX() - 20));
-
-  // Beams must be generated — and their notes' stems prepared — *before*
-  // draw(), per VexFlow's own documented order; generating them afterward is
-  // what caused the doubled flags / stems that don't reach the beam (RC-2).
-  const beamGroups = Beam.getDefaultBeamGroups(`${timeSig.beatsPerBar}/${timeSig.beatValue}`);
-  const beams = beamableRuns(sorted).flatMap((run) => {
-    const runStaveNotes = run.map((n) => noteToStave.get(n)!);
-    const runBeams = Beam.generateBeams(runStaveNotes, { groups: beamGroups });
-    if (run.includes(ghostRef!)) runBeams.forEach((b) => b.setStyle({ fillStyle: HOVER_COLOR, strokeStyle: HOVER_COLOR }));
-    else if (style) runBeams.forEach((b) => b.setStyle(style));
-    return runBeams;
-  });
-
-  voice.draw(context, stave);
-  beams.forEach((b) => b.setContext(context).draw());
+function melodyAdapter(key: KeyDef, clef: Clef): MeasureVoiceAdapter<PitchedNote> {
+  return {
+    beat: (n) => n.beat,
+    duration: (n) => n.duration,
+    isRest: (n) => n.rest,
+    buildNote: (n) => {
+      const { duration, dots } = vexDurationFor(n.duration);
+      const staveNote = n.rest
+        ? new StaveNote({ keys: [REST_KEY], duration: `${duration}r`, dots, clef })
+        : new StaveNote({ keys: [midiToVexKey(n.midi!, key)], duration, dots, clef, autoStem: true });
+      if (dots > 0) Dot.buildAndAttach([staveNote], { all: true });
+      return staveNote;
+    },
+  };
 }
 
 export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel): MeasureGeometry[] {
@@ -228,6 +98,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
     hover,
   } = model;
   const measureTotalBeats = timeSig.measureBeats;
+  const adapter = melodyAdapter(key, clef);
   const numRows = Math.max(1, Math.ceil(numMeasures / MAX_MEASURES_PER_ROW));
   const canvasHeight = numRows * ROW_HEIGHT + 20;
 
@@ -265,18 +136,36 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       }
 
       const userNotes = measures[mi] ?? [];
+      const beforeFormat = (voice: Voice) => Accidental.applyAccidentals([voice], key.vexKeySpec);
       if (hasSubmitted && !isCorrect && revealMeasures) {
-        drawMeasureVoice(context, stave, userNotes, timeSig, key, clef);
-        drawMeasureVoice(context, stave, revealMeasures[mi] ?? [], timeSig, key, clef, {
-          fillStyle: WRONG_COLOR,
-          strokeStyle: WRONG_COLOR,
+        drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+          hoverColor: HOVER_COLOR,
+          beforeFormat,
         });
+        drawMeasureVoice(
+          context,
+          stave,
+          revealMeasures[mi] ?? [],
+          measureTotalBeats,
+          timeSig.beatsPerBar,
+          timeSig.beatValue,
+          adapter,
+          {
+            style: { fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR },
+            hoverColor: HOVER_COLOR,
+            beforeFormat,
+          },
+        );
       } else {
         const hoverNote: PitchedNote | null =
           !hasSubmitted && hover && hover.measureIndex === mi
             ? { beat: hover.beat, duration: hover.duration, rest: hover.isRest, midi: hover.midi }
             : null;
-        drawMeasureVoice(context, stave, userNotes, timeSig, key, clef, undefined, hoverNote);
+        drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+          hoverNote,
+          hoverColor: HOVER_COLOR,
+          beforeFormat,
+        });
       }
 
       geometry.push({

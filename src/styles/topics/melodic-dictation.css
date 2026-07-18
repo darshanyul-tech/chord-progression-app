@@ -68,6 +68,7 @@
 .md-palette {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
   flex: 1 1 auto;
@@ -111,6 +112,20 @@
   opacity: 0.35;
   pointer-events: none;
 }
+.md-note-btn-sm .rd-glyph {
+  width: 24px;
+  height: 33px;
+}
+.md-note-btn-whole .rd-glyph {
+  width: 24px;
+  height: 33px;
+  transform: translateX(6px);
+}
+.md-note-btn-lg .rd-glyph {
+  width: 42px;
+  height: 56px;
+  transform: translate(6px, -10px);
+}
 .md-btn-armed {
   border-color: var(--accent) !important;
   box-shadow: inset 0 0 0 2px var(--accent);
@@ -136,12 +151,16 @@
   width: 20px;
   height: 28px;
   color: var(--text);
+  transform: translate(6px, -6px);
 }
 .md-rest-btn .rd-glyph svg {
   width: 100%;
   height: 100%;
   display: block;
   overflow: visible;
+}
+.md-mod-btn-lg {
+  font-size: 28px;
 }
 .md-mod-active {
   background: var(--ecu-teal-light) !important;

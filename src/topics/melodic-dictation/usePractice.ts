@@ -5,19 +5,12 @@ import { audio } from '../../lib/audio/engine';
 import { disconnectScheduled, scheduleMetroClick, type ScheduledNode } from '../../lib/audio/percussion';
 import { generateMelody } from '../../lib/melody/generator';
 import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/grading';
-import { resolvePlacementBeat } from '../../lib/melody/placement';
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
 import { keyById, resolveRangeWindow, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
+import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
+import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { candidateBeats, DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
-import {
-  durationClose,
-  durationFitsBar,
-  gridStep,
-  maxNotesOfDuration,
-  metricPulseBeats,
-  metricPulseCount,
-  type TimeSigInfo,
-} from '../../lib/rhythm/time';
+import { durationClose, durationFitsBar, gridStep, maxNotesOfDuration, metricPulseBeats, metricPulseCount, type TimeSigInfo } from '../../lib/rhythm/time';
 import { midiToNoteName } from '../../lib/theory';
 import { prefersReducedMotion, REDUCED_MOTION_INTERVAL_SEC } from '../../lib/motion';
 import type { StatusKind } from '../../components/StatusLine';
@@ -57,6 +50,22 @@ function tonicTriadMidis(key: KeyDef, clef: Clef): number[] {
   const third = key.mode === 'major' ? root + 4 : root + 3;
   return [root, third, root + 7];
 }
+
+// A bar should never have unaccounted-for space. Every mutation that can
+// leave a hole — a fresh/cleared/undone measure, or a direct-hit replace
+// whose new (possibly smaller) duration only partially covers whatever it
+// cleared, e.g. an eighth note replacing one beat of a quarter rest and
+// leaving the other half uncovered — runs its result through the shared
+// lib/notation/gaps.ts fillGaps, which re-derives any missing span as
+// default rests at the meter's pulse. This adapter is the only melodic-
+// specific plug-in that framework needs (PitchedNote.rest+midi vs rhythm's
+// RhythmNote.isRest — see rhythm-dictation/usePractice.ts's own).
+const melodyRestAdapter: RestAdapter<PitchedMeasure[number]> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.rest,
+  makeRest: (beat, duration) => ({ beat, duration, rest: true, midi: null }),
+};
 
 export function useMelodicPractice(settings: MelodicDictationSettings) {
   const audioStatus = useAudioReady();
@@ -224,12 +233,15 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   function generateQuestion(autoPlay = true) {
     stopPlayback();
     const generated = generateMelody(settings);
+    const pulse = metricPulseBeats(generated.timeSig.beatValue, generated.timeSig.beatsPerBar);
     setKey(generated.key);
     setClef(generated.clef);
     setTimeSig(generated.timeSig);
     setNumMeasures(settings.measures);
     setCorrectMeasures(generated.measures);
-    setUserMeasures(Array.from({ length: settings.measures }, () => []));
+    setUserMeasures(
+      Array.from({ length: settings.measures }, () => defaultRestMeasure(generated.timeSig.measureBeats, pulse, melodyRestAdapter)),
+    );
     setHasSubmitted(false);
     setIsCorrect(false);
     setActiveMeasureIndex(0);
@@ -330,10 +342,16 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     // direct hit it clears every note the new, possibly-larger span now covers.
     const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
     const removedBeats = measure.filter(overlaps).map((n) => n.beat);
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
     setUserMeasures((prev) =>
       prev.map((m, i) =>
         i === measureIndex
-          ? [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }]
+          ? fillGaps(
+              [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }],
+              cap,
+              pulse,
+              melodyRestAdapter,
+            )
           : m,
       ),
     );
@@ -426,6 +444,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
 
   function removeLastNote() {
     if (hasSubmitted) return;
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
     setPlacementHistory((prev) => {
       if (!prev.length) return prev;
       const last = prev[prev.length - 1]!;
@@ -434,9 +453,14 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
           if (i !== last.measureIndex) return m;
           const idx = m.findIndex((n) => durationClose(n.beat, last.beat));
           if (idx < 0) return m;
-          const next = m.slice();
-          next.splice(idx, 1);
-          return next;
+          // Refill the vacated span with default rests instead of leaving a
+          // gap — a bar never has unaccounted-for space, undo included.
+          return fillGaps(
+            m.filter((_, i2) => i2 !== idx),
+            timeSig.measureBeats,
+            pulse,
+            melodyRestAdapter,
+          );
         }),
       );
       setActiveMeasureIndex(last.measureIndex);
@@ -446,7 +470,10 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
 
   function clearActiveMeasure() {
     if (hasSubmitted) return;
-    setUserMeasures((prev) => prev.map((m, i) => (i === activeMeasureIndex ? [] : m)));
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
+    setUserMeasures((prev) =>
+      prev.map((m, i) => (i === activeMeasureIndex ? defaultRestMeasure(timeSig.measureBeats, pulse, melodyRestAdapter) : m)),
+    );
     setPlacementHistory((prev) => prev.filter((p) => p.measureIndex !== activeMeasureIndex));
   }
 

@@ -39,6 +39,22 @@ function renderPractice(overrides: Partial<ReturnType<typeof defaultMelodicDicta
   });
 }
 
+// A bar never has unaccounted-for space — a fresh 4/4 measure starts as
+// four crotchet rests (one per beat), not an empty array.
+const fourQuarterRests = [
+  { beat: 0, duration: 1, rest: true, midi: null },
+  { beat: 1, duration: 1, rest: true, midi: null },
+  { beat: 2, duration: 1, rest: true, midi: null },
+  { beat: 3, duration: 1, rest: true, midi: null },
+];
+
+// placeNoteAt/removeLastNote append/splice rather than re-sort (the
+// renderer and grading both sort independently before use), so tests
+// compare by beat position, not raw array order.
+function byBeat<T extends { beat: number }>(measure: T[]): T[] {
+  return [...measure].sort((a, b) => a.beat - b.beat);
+}
+
 // docs/09-improvement-plan.md §12.5 — a click far above/below the staff used
 // to place an unclamped, arbitrary MIDI value. C/treble/narrow resolves to
 // [60, 72] (resolveRangeWindow); placeNoteAt should clamp to that window.
@@ -48,7 +64,7 @@ describe('useMelodicPractice — pitch range clamping', () => {
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false, 200);
     });
-    expect(result.current.userMeasures[0]?.[0]?.midi).toBe(72);
+    expect(result.current.userMeasures[0]?.find((n) => !n.rest)?.midi).toBe(72);
   });
 
   it('clamps an absurdly low click to the range window bottom', () => {
@@ -56,7 +72,7 @@ describe('useMelodicPractice — pitch range clamping', () => {
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false, -50);
     });
-    expect(result.current.userMeasures[0]?.[0]?.midi).toBe(60);
+    expect(result.current.userMeasures[0]?.find((n) => !n.rest)?.midi).toBe(60);
   });
 
   it('leaves an in-range pitch untouched', () => {
@@ -64,7 +80,7 @@ describe('useMelodicPractice — pitch range clamping', () => {
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false, 64);
     });
-    expect(result.current.userMeasures[0]?.[0]?.midi).toBe(64);
+    expect(result.current.userMeasures[0]?.find((n) => !n.rest)?.midi).toBe(64);
   });
 });
 
@@ -74,28 +90,33 @@ describe('useMelodicPractice — pitch range clamping', () => {
 describe('useMelodicPractice — undo/clear/grade', () => {
   afterEach(() => setRng());
 
-  it('removeLastNote undoes the most recent placement, not an earlier one', () => {
+  it('removeLastNote undoes the most recent placement, refilling its span with a default rest', () => {
     const { result } = renderPractice();
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false, 64);
       result.current.placeNoteAt(0, 1, 1, false, 67);
     });
-    expect(result.current.userMeasures[0]).toHaveLength(2);
+    expect(result.current.userMeasures[0]).toHaveLength(4); // 2 notes + 2 remaining default rests
     act(() => result.current.removeLastNote());
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, rest: false, midi: 64 }]);
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, rest: false, midi: 64 },
+      { beat: 1, duration: 1, rest: true, midi: null },
+      { beat: 2, duration: 1, rest: true, midi: null },
+      { beat: 3, duration: 1, rest: true, midi: null },
+    ]);
   });
 
-  it('clearActiveMeasure empties only the measure last placed into', () => {
+  it('clearActiveMeasure resets only the measure last placed into to default rests', () => {
     const { result } = renderPractice({ measures: 2 });
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false, 64);
       result.current.placeNoteAt(1, 0, 1, false, 67); // becomes the active measure
     });
-    expect(result.current.userMeasures[0]).toHaveLength(1);
-    expect(result.current.userMeasures[1]).toHaveLength(1);
+    expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(1);
+    expect(result.current.userMeasures[1].filter((n) => !n.rest)).toHaveLength(1);
     act(() => result.current.clearActiveMeasure());
-    expect(result.current.userMeasures[0]).toHaveLength(1);
-    expect(result.current.userMeasures[1]).toHaveLength(0);
+    expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(1);
+    expect(result.current.userMeasures[1]).toEqual(fourQuarterRests);
   });
 
   it('checkAnswer grades correct when every placement matches the generated melody exactly', () => {
@@ -161,8 +182,8 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     act(() => {
       result.current.placeNoteAt(0, 0.5, 1, false, 65); // clicks back onto the same note (re-pitch)
     });
-    expect(result.current.userMeasures[0]).toHaveLength(1);
-    expect(result.current.userMeasures[0]?.[0]).toEqual({ beat: 0, duration: 1, rest: false, midi: 65 });
+    expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(1);
+    expect(result.current.userMeasures[0].find((n) => !n.rest)).toEqual({ beat: 0, duration: 1, rest: false, midi: 65 });
   });
 
   it('flashes and rejects a placement once the bar has no room for the armed duration', () => {
@@ -191,18 +212,33 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
   // path (resolvePlacementBeat's free-slot search) would never touch.
   it('replacing a note with a bigger one clears whatever else the new span now covers', () => {
     const { result } = renderPractice({ signatures: ['4/4'], durations: [1, 0.5] });
+    // Separate act() calls, not one batched block: the first two placements
+    // both land inside the *same* original default quarter-rest (0-1), so
+    // batching them would resolve the second click against the pre-batch
+    // (still-whole-rest) snapshot instead of the first click's already-split
+    // result — a staleness artifact of batching same-slot clicks together
+    // that a real click sequence (each its own event/render) never hits.
     act(() => {
-      // Two eighths at 0 and 0.5, then a quarter at 1 — three small notes in the bar.
-      result.current.placeNoteAt(0, 0, 0.5, false, 60);
-      result.current.placeNoteAt(0, 0.5, 0.5, false, 62);
-      result.current.placeNoteAt(0, 1, 1, false, 64);
+      result.current.placeNoteAt(0, 0, 0.5, false, 60); // first eighth
     });
-    expect(result.current.userMeasures[0]).toHaveLength(3);
+    act(() => {
+      result.current.placeNoteAt(0, 0.5, 0.5, false, 62); // second eighth
+    });
+    act(() => {
+      result.current.placeNoteAt(0, 1, 1, false, 64); // quarter
+    });
+    expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(3);
     act(() => {
       // Click back on the first eighth, armed with a duration big enough to swallow all three.
       result.current.placeNoteAt(0, 0.25, 2, false, 67);
     });
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 2, rest: false, midi: 67 }]);
+    // Beats 2-4 were still the untouched default rests — a half note only
+    // covers beats 0-2, so they stay exactly as they were.
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 2, rest: false, midi: 67 },
+      { beat: 2, duration: 1, rest: true, midi: null },
+      { beat: 3, duration: 1, rest: true, midi: null },
+    ]);
   });
 
   // A whole note filling an otherwise-full 4/4 bar was unplaceable: clicking
@@ -235,7 +271,11 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     act(() => result.current.focusCursor());
     expect(result.current.cursorBeat).toBe(0);
     act(() => result.current.placeAtCursor());
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, rest: false, midi: 60 }]);
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, rest: false, midi: 60 },
+      { beat: 1, duration: 1, rest: true, midi: null },
+      { beat: 2, duration: 1, rest: true, midi: null },
+    ]);
     act(() => result.current.moveCursorBeat(1));
     expect(result.current.cursorBeat).toBe(1);
     act(() => result.current.placeAtCursor());

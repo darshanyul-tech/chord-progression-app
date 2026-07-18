@@ -5,7 +5,7 @@ import App from './App';
 describe('App shell', () => {
   it('redirects "/" to the default topic and renders the shell', () => {
     render(<App />);
-    expect(screen.getByRole('heading', { name: 'Ear Trainer' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'TryTone' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
     // Default topic is chord-progressions; its Settings card confirms it rendered.
     expect(screen.getByRole('heading', { name: 'Settings' })).toBeInTheDocument();

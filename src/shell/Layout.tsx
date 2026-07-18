@@ -20,7 +20,7 @@ export function Layout({ children }: { children: ReactNode }) {
         <main className="shell-main">{children}</main>
       </div>
       <footer>
-        Ear trainer with rhythm dictation tab &middot; progression audio by{' '}
+        TryTone with rhythm dictation tab &middot; progression audio by{' '}
         <a href="https://tonejs.github.io/" target="_blank" rel="noopener">
           Tone.js
         </a>{' '}

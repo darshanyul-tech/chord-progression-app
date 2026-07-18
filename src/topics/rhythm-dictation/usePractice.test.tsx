@@ -45,53 +45,117 @@ function renderPractice(overrides: Partial<ReturnType<typeof defaultRhythmDictat
   });
 }
 
+// A bar never has unaccounted-for space — a fresh 4/4 measure starts as
+// four crotchet rests (one per beat), not an empty array.
+const fourQuarterRests = [
+  { beat: 0, duration: 1, isRest: true },
+  { beat: 1, duration: 1, isRest: true },
+  { beat: 2, duration: 1, isRest: true },
+  { beat: 3, duration: 1, isRest: true },
+];
+
+// placeNoteAt/removeLastNote append/splice rather than re-sort (the
+// renderer and grading both sort independently before use), so tests
+// compare by beat position, not raw array order.
+function byBeat<T extends { beat: number }>(measure: T[]): T[] {
+  return [...measure].sort((a, b) => a.beat - b.beat);
+}
+
+describe('useRhythmPractice — default rest fill', () => {
+  it('a fresh 4/4 measure starts as four crotchet rests, not empty', () => {
+    const { result } = renderPractice();
+    expect(result.current.userMeasures[0]).toEqual(fourQuarterRests);
+  });
+
+  it('a compound 6/8 measure starts as two dotted-quarter rests (the meter\'s own pulse)', () => {
+    const { result } = renderPractice({ signatures: ['6/8'], durations: [1.5] });
+    expect(result.current.userMeasures[0]).toEqual([
+      { beat: 0, duration: 1.5, isRest: true },
+      { beat: 1.5, duration: 1.5, isRest: true },
+    ]);
+  });
+
+  it('replacing a whole quarter-rest slot with a smaller note refills the leftover with a rest, never a gap', () => {
+    const { result } = renderPractice({ durations: [1, 0.5] });
+    act(() => result.current.placeNoteAt(0, 0, 0.5, false)); // eighth note over the beat-0 quarter rest
+    const totalBeats = byBeat(result.current.userMeasures[0]).reduce((s, n) => s + n.duration, 0);
+    expect(totalBeats).toBeCloseTo(4, 6); // no unaccounted-for space anywhere in the bar
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 0.5, isRest: false },
+      { beat: 0.5, duration: 0.5, isRest: true },
+      { beat: 1, duration: 1, isRest: true },
+      { beat: 2, duration: 1, isRest: true },
+      { beat: 3, duration: 1, isRest: true },
+    ]);
+  });
+});
+
 describe('useRhythmPractice — placement', () => {
-  it('placeNoteAt records a note at the given measure/beat', () => {
+  it('placeNoteAt replaces the default rest at the given beat', () => {
     const { result } = renderPractice();
     act(() => result.current.placeNoteAt(0, 0, 1, false));
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, isRest: false }]);
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, isRest: false },
+      { beat: 1, duration: 1, isRest: true },
+      { beat: 2, duration: 1, isRest: true },
+      { beat: 3, duration: 1, isRest: true },
+    ]);
   });
 
-  it('placing over an existing note replaces it instead of rejecting the click', () => {
+  it('a direct hit on an existing note replaces it instead of rejecting the click', () => {
     const { result } = renderPractice();
-    act(() => {
-      result.current.placeNoteAt(0, 0, 2, false); // half note at beat 0
-      result.current.placeNoteAt(0, 0, 1, false); // quarter note overlapping it
-    });
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, isRest: false }]);
+    act(() => result.current.placeNoteAt(0, 0, 2, false)); // half note at beat 0 (replaces the two default rests it spans)
+    act(() => result.current.placeNoteAt(0, 1, 1, false)); // click the half note's middle with a quarter armed
+    // The half note shrinks back to a quarter — the beat it no longer
+    // covers (1-2) is refilled with a default rest, not left empty.
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, isRest: false },
+      { beat: 1, duration: 1, isRest: true },
+      { beat: 2, duration: 1, isRest: true },
+      { beat: 3, duration: 1, isRest: true },
+    ]);
   });
 
-  it('flashes the measure and rejects a placement that would overflow the bar', () => {
+  it('flashes the measure and rejects a placement with no free slot anywhere', () => {
     const { result } = renderPractice();
-    act(() => result.current.placeNoteAt(0, 3.5, 4, false)); // whole note doesn't fit at beat 3.5 in 4/4
-    expect(result.current.userMeasures[0]).toEqual([]);
+    act(() => result.current.placeNoteAt(0, 0, 1, false)); // quarter at beat 0
+    const before = byBeat(result.current.userMeasures[0]);
+    act(() => result.current.placeNoteAt(0, 2.5, 4, false)); // whole note can no longer fit anywhere in 4/4
+    expect(byBeat(result.current.userMeasures[0])).toEqual(before);
     expect(result.current.flashMeasure).toBe(0);
   });
 });
 
 describe('useRhythmPractice — undo/clear', () => {
-  it('removeLastNote undoes the most recent placement, not an earlier one', () => {
+  it('removeLastNote undoes the most recent placement, refilling its span with default rests', () => {
     const { result } = renderPractice();
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false);
       result.current.placeNoteAt(0, 1, 1, false);
     });
-    expect(result.current.userMeasures[0]).toHaveLength(2);
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, isRest: false },
+      { beat: 1, duration: 1, isRest: false },
+      { beat: 2, duration: 1, isRest: true },
+      { beat: 3, duration: 1, isRest: true },
+    ]);
     act(() => result.current.removeLastNote());
-    expect(result.current.userMeasures[0]).toEqual([{ beat: 0, duration: 1, isRest: false }]);
+    expect(byBeat(result.current.userMeasures[0])).toEqual(
+      fourQuarterRests.map((r, i) => (i === 0 ? { beat: 0, duration: 1, isRest: false } : r)),
+    );
   });
 
-  it('clearActiveMeasure empties only the measure last placed into', () => {
+  it('clearActiveMeasure resets only the measure last placed into to default rests', () => {
     const { result } = renderPractice({ measures: 2 });
     act(() => {
       result.current.placeNoteAt(0, 0, 1, false);
       result.current.placeNoteAt(1, 0, 1, false); // becomes the active measure
     });
-    expect(result.current.userMeasures[0]).toHaveLength(1);
-    expect(result.current.userMeasures[1]).toHaveLength(1);
+    expect(result.current.userMeasures[0].filter((n) => !n.isRest)).toHaveLength(1);
+    expect(result.current.userMeasures[1].filter((n) => !n.isRest)).toHaveLength(1);
     act(() => result.current.clearActiveMeasure());
-    expect(result.current.userMeasures[0]).toHaveLength(1);
-    expect(result.current.userMeasures[1]).toHaveLength(0);
+    expect(result.current.userMeasures[0].filter((n) => !n.isRest)).toHaveLength(1);
+    expect(result.current.userMeasures[1]).toEqual(fourQuarterRests);
   });
 });
 

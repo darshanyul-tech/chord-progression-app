@@ -15,12 +15,12 @@ import { useMelodicPractice } from './usePractice';
 // dotted quarter needs 1.5 checked under Note & rest values), just resolved
 // through effectiveDuration() instead of a hardcoded second palette entry —
 // so the composition works for every base value, not just quarter/eighth.
-const PALETTE: { duration: number; label: string; title: string }[] = [
-  { duration: 4, label: '1', title: 'Whole note (1)' },
-  { duration: 2, label: '2', title: 'Half note (2)' },
-  { duration: 1, label: '3', title: 'Quarter note (3)' },
-  { duration: 0.5, label: '4', title: 'Eighth note (4)' },
-  { duration: 0.25, label: '5', title: 'Sixteenth note (5)' },
+const PALETTE: { duration: number; label: string; title: string; size: 'whole' | 'sm' | 'lg' }[] = [
+  { duration: 4, label: '1', title: 'Whole note (1)', size: 'whole' },
+  { duration: 2, label: '2', title: 'Half note (2)', size: 'sm' },
+  { duration: 1, label: '3', title: 'Quarter note (3)', size: 'sm' },
+  { duration: 0.5, label: '4', title: 'Eighth note (4)', size: 'lg' },
+  { duration: 0.25, label: '5', title: 'Sixteenth note (5)', size: 'lg' },
 ];
 
 const KEY_TO_DURATION: Record<string, number> = {
@@ -212,7 +212,7 @@ export function MelodicDictationTopic() {
                   <button
                     key={btn.duration}
                     type="button"
-                    className={`md-note-btn${armed ? ' md-btn-armed' : ''}${disabled ? ' md-dur-disabled' : ''}`}
+                    className={`md-note-btn md-note-btn-${btn.size}${armed ? ' md-btn-armed' : ''}${disabled ? ' md-dur-disabled' : ''}`}
                     title={title}
                     aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
@@ -234,7 +234,7 @@ export function MelodicDictationTopic() {
               </button>
               <button
                 type="button"
-                className={`md-mod-btn${practice.isDotActive ? ' md-mod-active' : ''}`}
+                className={`md-mod-btn md-mod-btn-lg${practice.isDotActive ? ' md-mod-active' : ''}`}
                 title="Dot (D)"
                 aria-pressed={practice.isDotActive}
                 onClick={practice.toggleDot}
@@ -243,7 +243,7 @@ export function MelodicDictationTopic() {
               </button>
               <button
                 type="button"
-                className={`md-mod-btn${practice.armedAccidental === '#' ? ' md-mod-active' : ''}`}
+                className={`md-mod-btn md-mod-btn-lg${practice.armedAccidental === '#' ? ' md-mod-active' : ''}`}
                 title="Sharp (S)"
                 aria-pressed={practice.armedAccidental === '#'}
                 onClick={practice.toggleSharp}
@@ -252,7 +252,7 @@ export function MelodicDictationTopic() {
               </button>
               <button
                 type="button"
-                className={`md-mod-btn${practice.armedAccidental === 'b' ? ' md-mod-active' : ''}`}
+                className={`md-mod-btn md-mod-btn-lg${practice.armedAccidental === 'b' ? ' md-mod-active' : ''}`}
                 title="Flat (F)"
                 aria-pressed={practice.armedAccidental === 'b'}
                 onClick={practice.toggleFlat}

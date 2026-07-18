@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { buildVexScore, type MeasureGeometry, type MelodyStaffModel } from '../../lib/melody/vexscore';
+import { buildVexScore, type MelodyStaffModel } from '../../lib/melody/vexscore';
 import { lineToLetterOctave, naturalMidiFor } from '../../lib/melody/theory';
-import { findMeasureAt, resolvePlacementBeat } from '../../lib/melody/placement';
+import type { MeasureGeometry } from '../../lib/notation/geometry';
+import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
 
 interface VexStaffHostProps {
   /** VexStaffHost owns the hover ghost itself (see `hover` state below) — callers never supply `MelodyStaffModel.hover`. */

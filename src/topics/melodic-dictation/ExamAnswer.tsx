@@ -4,8 +4,8 @@ import { NotePalette, NotePaletteRestToggle } from '../../components/NotePalette
 import { EXAM_PALETTE_ENTRIES } from '../../components/notePaletteEntries';
 import type { ExamDictationProps, ExamDictationResultProps } from '../../exam/types';
 import { pitchedMeasuresEqual } from '../../lib/melody/grading';
-import { resolvePlacementBeat } from '../../lib/melody/placement';
 import type { Clef, KeyDef, PitchedMeasure } from '../../lib/melody/theory';
+import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { getActiveDurations } from '../../lib/rhythm/generator';
 import { gridStep, type TimeSigInfo } from '../../lib/rhythm/time';
 

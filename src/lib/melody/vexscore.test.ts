@@ -4,7 +4,9 @@ import { defaultMelodicDictationSettings } from './settings';
 import type { MelodicDictationSettings } from './settings';
 import { pitchedMeasuresEqual } from './grading';
 import type { PitchedNote } from './theory';
-import { beamableRuns, buildVexScore, CURSOR_COLOR, decomposeGap, HOVER_COLOR, WRONG_COLOR } from './vexscore';
+import { beamableRuns } from '../notation/beaming';
+import { decomposeGap } from '../notation/gaps';
+import { buildVexScore, CURSOR_COLOR, HOVER_COLOR, WRONG_COLOR } from './vexscore';
 
 // Smoke test (docs/04-notation-engine.md §B7): builds without throwing for
 // generated melodies across all settings combinations (property-style loop).
@@ -466,33 +468,34 @@ describe('decomposeGap', () => {
 // sub-beat runs of 2+ notes should ever receive a beam.
 describe('beamableRuns', () => {
   const note = (beat: number, duration: number, rest = false): PitchedNote => ({ beat, duration, rest, midi: rest ? null : 60 });
+  const isRest = (n: PitchedNote) => n.rest;
 
   it('does not beam a lone eighth note', () => {
-    expect(beamableRuns([note(0, 0.5)])).toEqual([]);
+    expect(beamableRuns([note(0, 0.5)], isRest)).toEqual([]);
   });
 
   it('beams two time-adjacent eighths into one run', () => {
     const notes = [note(0, 0.5), note(0.5, 0.5)];
-    expect(beamableRuns(notes)).toEqual([notes]);
+    expect(beamableRuns(notes, isRest)).toEqual([notes]);
   });
 
   it('does not beam eighths separated by a gap', () => {
     const notes = [note(0, 0.5), note(2, 0.5)];
-    expect(beamableRuns(notes)).toEqual([]);
+    expect(beamableRuns(notes, isRest)).toEqual([]);
   });
 
   it('does not beam eighths separated by a rest', () => {
     const notes = [note(0, 0.5), note(0.5, 0.5, true), note(1, 0.5)];
-    expect(beamableRuns(notes)).toEqual([]);
+    expect(beamableRuns(notes, isRest)).toEqual([]);
   });
 
   it('beams four adjacent sixteenths into one run', () => {
     const notes = [note(0, 0.25), note(0.25, 0.25), note(0.5, 0.25), note(0.75, 0.25)];
-    expect(beamableRuns(notes)).toEqual([notes]);
+    expect(beamableRuns(notes, isRest)).toEqual([notes]);
   });
 
   it('never beams quarter notes or longer', () => {
     const notes = [note(0, 1), note(1, 1)];
-    expect(beamableRuns(notes)).toEqual([]);
+    expect(beamableRuns(notes, isRest)).toEqual([]);
   });
 });

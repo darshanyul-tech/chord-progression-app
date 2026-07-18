@@ -1,4 +1,7 @@
-/* Ported from legacy <style> block (docs/05-topics/05-rhythm-dictation.md). */
+/* Originally ported from the legacy dark-theme <style> block
+   (docs/05-topics/05-rhythm-dictation.md); restyled 2026-07-18 to mirror
+   melodic-dictation.css's light theme so the two dictation topics read as
+   one family — the black header band and dark chrome are gone. */
 
 .rd-settings-grid {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -21,59 +24,25 @@
   box-sizing: border-box;
 }
 #rhythm-dictation-app {
-  display: grid;
-  grid-template-rows: auto auto auto auto;
-  grid-template-areas: 'header' 'staff' 'bottom' 'feedback';
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  background: var(--ecu-white);
-  font-family: Inter, 'Segoe UI', Roboto, sans-serif;
-  color: var(--ecu-black);
-  position: relative;
-  border-radius: 12px;
 }
 #rhythm-dictation-app .rd-header {
-  grid-area: header;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 1.5rem;
-  gap: 1rem;
-  background: var(--ecu-black);
-  color: var(--ecu-white);
-  border-bottom: 3px solid var(--ecu-black);
+  padding: 1rem 1.5rem 0.5rem;
 }
 #rhythm-dictation-app .rd-prompt {
   margin: 0;
   font-size: 1.02rem;
   font-weight: 500;
-  color: var(--ecu-white);
-  letter-spacing: 0.01em;
-}
-#rhythm-dictation-app .rd-header-right {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  flex-shrink: 0;
-}
-#rhythm-dictation-app #rd-score-inline {
-  font-size: 0.82rem;
-  color: rgba(255, 255, 255, 0.75);
-  font-weight: 600;
-}
-#rhythm-dictation-app .rd-staff-wrap {
-  grid-area: staff;
-  padding: 0.75rem 1rem 0.5rem;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  color: var(--text);
 }
 #rhythm-dictation-app .rd-staff-frame {
-  border: 2px solid var(--ecu-black);
-  background: var(--ecu-white);
-  padding: 1.75rem 1rem;
-  display: flex;
-  align-items: center;
-  min-height: 140px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  margin: 0 1.5rem 0.75rem;
+  padding: 0.5rem;
+  background: var(--panel-2);
 }
 #rhythm-dictation-app #rd-staff-svg {
   width: 100%;
@@ -87,20 +56,25 @@
   height: auto;
   display: block;
 }
+#rhythm-dictation-app .rd-capacity-hint {
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin: 0.35rem 0 0;
+  font-weight: 500;
+}
 #rhythm-dictation-app .rd-bottom-bar {
-  grid-area: bottom;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1.5rem 1.1rem;
-  border-top: 2px solid var(--ecu-black);
-  background: #f5f5f5;
+  padding: 0.5rem 1.5rem 1rem;
+  border-top: 1px solid var(--border);
   flex-wrap: wrap;
 }
 #rhythm-dictation-app .rd-palette {
   display: flex;
   align-items: center;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
   flex: 1 1 auto;
@@ -118,13 +92,12 @@
   flex-shrink: 0;
 }
 #rhythm-dictation-app .rd-feedback-strip {
-  grid-area: feedback;
-  min-height: 0;
+  min-height: 1.4rem;
   display: flex;
   align-items: center;
-  padding: 0.35rem 1.5rem 0.65rem;
+  padding: 0 1.5rem 1rem;
   gap: 16px;
-  font-size: 0.88rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--muted);
 }
@@ -132,22 +105,6 @@
   margin-left: auto;
   color: var(--muted);
   font-weight: 600;
-}
-#rhythm-dictation-app button {
-  background: var(--ecu-white);
-  border: 1px solid var(--border);
-  color: var(--ecu-black);
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: inherit;
-  font-weight: 600;
-}
-#rhythm-dictation-app button:hover:not(:disabled) {
-  border-color: var(--accent-outer);
-}
-#rhythm-dictation-app button:disabled {
-  opacity: 0.45;
-  cursor: default;
 }
 #rhythm-dictation-app .rd-transport-btn {
   width: 40px;
@@ -157,41 +114,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
 }
-#rhythm-dictation-app #rd-submit-btn {
-  width: auto;
-  min-width: 130px;
-  height: 42px;
-  padding: 0 1.35rem;
-  font-size: 0.95rem;
-  background: var(--accent-outer);
-  border-color: var(--accent-outer);
-  color: var(--ecu-white);
-  border-radius: 8px;
-}
-#rhythm-dictation-app #rd-submit-btn:hover:not(:disabled) {
-  filter: brightness(1.1);
-}
-#rhythm-dictation-app #rd-next-btn {
-  width: auto;
-  min-width: 90px;
-  height: 42px;
-  padding: 0 1rem;
-  background: var(--accent-outer);
-  border-color: var(--accent-outer);
-  color: var(--ecu-white);
-  border-radius: 8px;
+#rhythm-dictation-app .rd-transport-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 #rhythm-dictation-app .rd-note-btn {
   width: 52px;
   height: 52px;
-  background: var(--ecu-white);
-  border: 1px solid #aaa;
-  border-radius: 2px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 6px;
+  cursor: pointer;
   touch-action: manipulation;
 }
 #rhythm-dictation-app .rd-note-btn .rd-glyph {
@@ -210,46 +153,68 @@
   display: none;
 }
 #rhythm-dictation-app .rd-note-btn.rd-dur-disabled {
-  opacity: 0.28;
+  opacity: 0.35;
   pointer-events: none;
 }
+/* Per-glyph sizing/nudges copied from melodic-dictation.css's md-note-btn
+   size classes — VexFlow's glyphs have wildly different ink extents (a
+   whole note is a lone oval, a sixteenth carries a tall stem + flags), so
+   one fixed box can't center all of them. */
+#rhythm-dictation-app .rd-note-btn-sm .rd-glyph {
+  width: 24px;
+  height: 33px;
+}
+#rhythm-dictation-app .rd-note-btn-whole .rd-glyph {
+  width: 24px;
+  height: 33px;
+  transform: translateX(6px);
+}
+#rhythm-dictation-app .rd-note-btn-lg .rd-glyph {
+  width: 42px;
+  height: 56px;
+  transform: translate(6px, -10px);
+}
 #rhythm-dictation-app .rd-btn-armed {
-  background: #d8d8d8 !important;
-  border-color: var(--ecu-black) !important;
-  box-shadow: inset 0 0 0 2px var(--ecu-black);
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 #rhythm-dictation-app .rd-mod-btn {
   width: 52px;
   height: 52px;
-  background: var(--ecu-white);
+  background: var(--panel-2);
   /* Global `button` sets color:var(--ecu-white) for accent-filled primary
      buttons — without this override these text glyphs (·, ⌫, ✕) were white
-     text on this white background, invisible. */
-  color: var(--ecu-black);
-  border: 1px solid #aaa;
-  border-radius: 2px;
-  font-size: 16px;
+     text on this near-white background, invisible. */
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
   touch-action: manipulation;
+}
+#rhythm-dictation-app .rd-mod-btn-lg {
+  font-size: 28px;
 }
 #rhythm-dictation-app .rd-rest-btn .rd-glyph {
   width: 20px;
   height: 28px;
-  color: var(--ecu-black);
+  color: var(--text);
+  transform: translate(6px, -6px);
+}
+#rhythm-dictation-app .rd-rest-btn .rd-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
 }
 #rhythm-dictation-app .rd-mod-active {
-  background: #d8d8d8 !important;
-  border-color: var(--ecu-black) !important;
-  color: var(--ecu-black);
-  box-shadow: inset 0 0 0 2px var(--ecu-black);
-}
-#rhythm-dictation-app .rd-capacity-hint {
-  font-size: 0.72rem;
-  color: var(--muted);
-  margin: 0.35rem 0 0;
-  font-weight: 500;
+  background: var(--ecu-teal-light) !important;
+  border-color: var(--accent) !important;
+  color: var(--text);
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
 #rhythm-dictation-app .rd-palette-sep {
   width: 1px;

@@ -1,11 +1,8 @@
-import { useLocation, useNavigate } from 'react-router-dom';
 import { useUIStore } from '../state/ui';
+import trytoneLogo from '../assets/trytone-logo-with-text.png';
 
 export function HeaderBar() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const toggleDrawer = useUIStore((s) => s.toggleDrawer);
-  const onExamRoute = location.pathname === '/exam';
 
   return (
     <header className="shell-header">
@@ -20,14 +17,9 @@ export function HeaderBar() {
         </button>
         <div className="shell-header-title-group">
           <div>
-            <h1>Ear Trainer</h1>
-            <p className="sub">Train your ear — harmony, melody &amp; rhythm.</p>
+            <h1 className="sr-only">TryTone</h1>
+            <img src={trytoneLogo} alt="TryTone" className="shell-logo" />
           </div>
-        </div>
-        <div className="shell-header-actions">
-          <button type="button" onClick={() => navigate('/exam')} disabled={onExamRoute}>
-            Exam mode
-          </button>
         </div>
       </div>
     </header>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  beatFromClickX,
+  decomposeGap,
   durationClose,
   durationFitsBar,
   durationTicks,
@@ -8,11 +8,9 @@ import {
   gridStep,
   maxNotesOfDuration,
   measuresEqual,
-  measureWidth,
   metricPulseBeats,
   metricPulseCount,
   noteOverlaps,
-  noteX,
   parseTimeSig,
   snapBeat,
   sortNotes,
@@ -167,28 +165,30 @@ describe('noteOverlaps', () => {
   });
 });
 
-describe('measureWidth', () => {
-  it('divides the staff span evenly across measures', () => {
-    expect(measureWidth(4)).toBeCloseTo((960 - 128) / 4);
-  });
-});
-
-describe('beatFromClickX / noteX', () => {
-  it('round-trips approximately: noteX(beatFromClickX(x)) is close to x', () => {
-    const numMeasures = 2;
-    const measureTotalBeats = 4;
-    const gridStepVal = 0.5;
-    const mw = measureWidth(numMeasures);
-    const targetX = mw / 2; // click near the middle of measure 0
-    const beat = beatFromClickX(targetX, 0, 1, numMeasures, measureTotalBeats, gridStepVal);
-    expect(beat).toBeGreaterThanOrEqual(0);
-    expect(beat).toBeLessThanOrEqual(measureTotalBeats);
-    const x = noteX(0, beat, numMeasures, measureTotalBeats);
-    expect(Math.abs(x - targetX)).toBeLessThan(mw / 2);
+// docs/12-melodic-dictation-fixes.md MD-3: gap-decomposition feeds the
+// GhostNote padding both staff renderers use to make placed-note x-position
+// proportional to beat.
+describe('decomposeGap', () => {
+  it('returns nothing for a zero (already-full) gap', () => {
+    expect(decomposeGap(0)).toEqual([]);
   });
 
-  it('clamps the resulting beat so the note still fits before the bar end', () => {
-    const beat = beatFromClickX(10000, 0, 4, 1, 4, 1); // click far past the bar, whole note
-    expect(beat).toBe(0); // maxBeat = measureTotalBeats - duration = 0
+  it('decomposes a dotted-quarter-sized gap in one chunk', () => {
+    expect(decomposeGap(1.5)).toEqual([1.5]);
+  });
+
+  it('sums to the full bar for an empty 3/4 measure', () => {
+    const chunks = decomposeGap(3);
+    expect(chunks.reduce((s, d) => s + d, 0)).toBeCloseTo(3, 6);
+  });
+
+  it('sums exactly for an arbitrary quarter-grid gap', () => {
+    const chunks = decomposeGap(2.75);
+    expect(chunks.reduce((s, d) => s + d, 0)).toBeCloseTo(2.75, 6);
+  });
+
+  it('sums exactly for a triplet-grid gap', () => {
+    const chunks = decomposeGap(0.667);
+    expect(chunks.reduce((s, d) => s + d, 0)).toBeCloseTo(0.667, 3);
   });
 });

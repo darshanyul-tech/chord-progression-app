@@ -9,6 +9,8 @@ import {
   scheduleNote,
   type ScheduledNode,
 } from '../../lib/audio/percussion';
+import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
+import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { DUR_LABELS, TRIPLET_DURS, fillMeasure, getActiveDurations } from '../../lib/rhythm/generator';
 import {
   durationClose,
@@ -20,6 +22,7 @@ import {
   metricPulseCount,
   parseTimeSig,
   type Measure,
+  type RhythmNote,
   type TimeSigInfo,
 } from '../../lib/rhythm/time';
 import type { RhythmDictationSettings } from '../../lib/rhythm/settings';
@@ -50,6 +53,22 @@ function effectiveDuration(base: number, isDotActive: boolean): number {
   if (isDotActive && !TRIPLET_DURS.some((td) => durationClose(base, td))) return base * 1.5;
   return base;
 }
+
+// A bar should never have unaccounted-for space. Every mutation that can
+// leave a hole — a fresh/cleared/undone measure, or a direct-hit replace
+// whose new (possibly smaller) duration only partially covers whatever it
+// cleared, e.g. an eighth note replacing one beat of a quarter rest and
+// leaving the other half uncovered — runs its result through the shared
+// lib/notation/gaps.ts fillGaps, which re-derives any missing span as
+// default rests at the meter's pulse. This adapter is the only rhythm-
+// specific plug-in that framework needs (RhythmNote.isRest vs melodic's
+// PitchedNote.rest+midi — see melodic-dictation/usePractice.ts's own).
+const rhythmRestAdapter: RestAdapter<RhythmNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.isRest,
+  makeRest: (beat, duration) => ({ beat, duration, isRest: true }),
+};
 
 export function useRhythmPractice(settings: RhythmDictationSettings) {
   const audioStatus = useAudioReady();
@@ -237,7 +256,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     setTimeSig(ts);
     setNumMeasures(nMeasures);
     setCorrectPattern(pattern);
-    setUserMeasures(Array.from({ length: nMeasures }, () => []));
+    setUserMeasures(Array.from({ length: nMeasures }, () => defaultRestMeasure(ts.measureBeats, pulse, rhythmRestAdapter)));
     setHasSubmitted(false);
     setMeasureResults([]);
     setActiveMeasureIndex(0);
@@ -260,31 +279,55 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function placeNoteAt(measureIndex: number, beat: number, duration: number, isRest: boolean) {
+  function placeNoteAt(measureIndex: number, rawBeat: number, duration: number, isRest: boolean) {
     if (hasSubmitted) return;
     const dur = effectiveDuration(duration, isDotActive);
     const measure = userMeasures[measureIndex];
     if (!measure) return;
     const cap = timeSig.measureBeats;
-    if (!durationFitsBar(dur, cap) || beat + dur > cap + 0.001) {
+    const reject = () => {
       setFlashMeasure(measureIndex);
       if (channelRef.current.flashTimer !== null) clearTimeout(channelRef.current.flashTimer);
       channelRef.current.flashTimer = window.setTimeout(() => setFlashMeasure(null), 280);
+    };
+    if (!durationFitsBar(dur, cap)) {
+      reject();
       return;
     }
-    // Placing a note over existing ones replaces them — no need to
-    // backspace first (user-requested UX change from legacy's reject-and-
-    // flash-on-overlap behavior).
+    // Resolve the click/cursor's raw beat estimate into either a direct hit
+    // on an existing note (edit in place) or the nearest free slot the armed
+    // duration actually fits in — shared framework resolver
+    // (lib/notation/placement.ts), so a gap click never silently replaces a
+    // neighbour to make room.
+    const resolved = resolvePlacementBeat(measure, rawBeat, dur, cap, gridStepVal);
+    if (!resolved) {
+      reject();
+      return;
+    }
+    const { beat, isReplace } = resolved;
     const end = beat + dur;
+    // A direct hit is a deliberate "put this note here instead" — unlike a
+    // gap click, it's allowed to replace whatever the new (possibly larger)
+    // duration now spans, not just the one note originally clicked. Only
+    // reject if the new duration itself can't fit the bar from that beat.
+    if (isReplace && end > cap + 0.001) {
+      reject();
+      return;
+    }
     const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
     const replacedBeats = measure.filter(overlaps).map((n) => n.beat);
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
     setUserMeasures((prev) =>
       prev.map((m, i) =>
-        i === measureIndex ? [...m.filter((n) => !overlaps(n)), { duration: dur, isRest: !!isRest, beat }] : m,
+        i === measureIndex
+          ? fillGaps([...m.filter((n) => !overlaps(n)), { duration: dur, isRest: !!isRest, beat }], cap, pulse, rhythmRestAdapter)
+          : m,
       ),
     );
     setPlacementHistory((prev) => [
-      ...prev.filter((p) => !(p.measureIndex === measureIndex && replacedBeats.some((b) => durationClose(b, p.beat)))),
+      ...prev.filter(
+        (p) => !(p.measureIndex === measureIndex && (durationClose(p.beat, beat) || replacedBeats.some((b) => durationClose(b, p.beat)))),
+      ),
       { measureIndex, beat },
     ]);
     setActiveMeasureIndex(measureIndex);
@@ -335,6 +378,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
 
   function removeLastNote() {
     if (hasSubmitted) return;
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
     setPlacementHistory((prev) => {
       if (!prev.length) return prev;
       const last = prev[prev.length - 1]!;
@@ -343,9 +387,14 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
           if (i !== last.measureIndex) return m;
           const idx = m.findIndex((n) => durationClose(n.beat, last.beat));
           if (idx < 0) return m;
-          const next = m.slice();
-          next.splice(idx, 1);
-          return next;
+          // Refill the vacated span with default rests instead of leaving a
+          // gap — a bar never has unaccounted-for space, undo included.
+          return fillGaps(
+            m.filter((_, i2) => i2 !== idx),
+            timeSig.measureBeats,
+            pulse,
+            rhythmRestAdapter,
+          );
         }),
       );
       setActiveMeasureIndex(last.measureIndex);
@@ -355,7 +404,10 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
 
   function clearActiveMeasure() {
     if (hasSubmitted) return;
-    setUserMeasures((prev) => prev.map((m, i) => (i === activeMeasureIndex ? [] : m)));
+    const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
+    setUserMeasures((prev) =>
+      prev.map((m, i) => (i === activeMeasureIndex ? defaultRestMeasure(timeSig.measureBeats, pulse, rhythmRestAdapter) : m)),
+    );
     setPlacementHistory((prev) => prev.filter((p) => p.measureIndex !== activeMeasureIndex));
   }
 

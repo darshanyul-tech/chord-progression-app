@@ -1,5 +1,7 @@
-import { Beam, Dot, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow';
-import { sortNotes, type Measure } from '../rhythm/time';
+import { Barline, Dot, Renderer, Stave, StaveNote } from 'vexflow';
+import type { MeasureGeometry } from '../notation/geometry';
+import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
+import type { Measure, RhythmNote } from '../rhythm/time';
 import { vexDurationFor } from './vexDuration';
 
 // Rhythm staff rendering via VexFlow (replaces the legacy hand-drawn SVG
@@ -7,7 +9,18 @@ import { vexDurationFor } from './vexDuration';
 // Model-parameterized imperative render: renderStaff(container, model)
 // rebuilds the whole scene from scratch each call (04-notation-engine.md
 // Part A's imperative-island pattern; Part B4's reveal-as-second-voice
-// convention reused here for consistency).
+// convention reused here for consistency). Per-measure rendering itself is
+// the shared lib/notation framework (see lib/notation/index.ts) — this file
+// only supplies the RhythmNote adapter and the parts genuinely specific to
+// rhythm dictation (fixed-pitch percussion noteheads, no clef/key/pitch).
+
+export interface RhythmHoverPreview {
+  measureIndex: number;
+  /** Already resolved (snapped to the nearest valid slot / direct hit) — see lib/notation/placement.ts. */
+  beat: number;
+  duration: number;
+  isRest: boolean;
+}
 
 export interface RhythmStaffModel {
   beatsPerBar: number;
@@ -24,6 +37,8 @@ export interface RhythmStaffModel {
   cursorMeasureIndex: number;
   /** Beat position of the keyboard insertion cursor within cursorMeasureIndex, or null when the staff doesn't have keyboard focus (04-accessibility §14.1). */
   cursorBeat: number | null;
+  /** Ghost preview of where a mouse placement would land, or null when not hovering — mirrors Melodic Dictation's MelodyStaffModel.hover (docs/12 MD-4). */
+  hover: RhythmHoverPreview | null;
 }
 
 const CANVAS_WIDTH = 1000;
@@ -40,46 +55,28 @@ export const CURSOR_COLOR = '#005f6b';
 export const MUTED_COLOR = '#8a8a8a';
 /** Keyboard insertion-cursor highlight (distinct from the teal playback cursor). */
 export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
+/** Mouse-hover placement ghost — same color as Melodic Dictation's HOVER_COLOR (lib/melody/vexscore.ts), translucent teal. */
+export const HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
 
-function buildStaveNotes(notes: Measure): StaveNote[] {
-  const sorted = sortNotes(notes);
-  return sorted.map((n) => {
+// Rhythm dictation is single-pitch (percussion-style) — every note sits on
+// the same line, unlike melodic dictation's real MIDI-to-staff-line spelling.
+const rhythmAdapter: MeasureVoiceAdapter<RhythmNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.isRest,
+  buildNote: (n) => {
     const { duration, dots } = vexDurationFor(n.duration);
-    const note = new StaveNote({
+    const staveNote = new StaveNote({
       keys: [REST_KEY],
       duration: n.isRest ? `${duration}r` : duration,
       autoStem: !n.isRest,
     });
-    if (dots > 0) Dot.buildAndAttach([note], { all: true });
-    return note;
-  });
-}
+    if (dots > 0) Dot.buildAndAttach([staveNote], { all: true });
+    return staveNote;
+  },
+};
 
-function drawMeasureVoice(
-  context: ReturnType<Renderer['getContext']>,
-  stave: Stave,
-  notes: Measure,
-  measureTotalBeats: number,
-  style?: { fillStyle: string; strokeStyle: string },
-): void {
-  if (!notes.length) return;
-  const staveNotes = buildStaveNotes(notes);
-  if (style) staveNotes.forEach((n) => n.setStyle(style));
-  const voice = new Voice({ numBeats: measureTotalBeats, beatValue: 4 });
-  voice.setMode(Voice.Mode.SOFT);
-  voice.addTickables(staveNotes);
-  new Formatter().joinVoices([voice]).format([voice], Math.max(20, stave.getNoteEndX() - stave.getNoteStartX() - 20));
-  voice.draw(context, stave);
-  const beamable = staveNotes.filter((n) => !n.isRest());
-  if (beamable.length > 1) {
-    Beam.generateBeams(beamable).forEach((b) => {
-      if (style) b.setStyle(style);
-      b.setContext(context).draw();
-    });
-  }
-}
-
-export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel): void {
+export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel): MeasureGeometry[] {
   container.innerHTML = '';
   const {
     beatsPerBar,
@@ -93,6 +90,7 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     playbackFraction,
     cursorMeasureIndex,
     cursorBeat,
+    hover,
   } = model;
   const measureTotalBeats = beatsPerBar * (4 / beatValue);
 
@@ -102,12 +100,21 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
 
   const staveWidth = (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) / numMeasures;
   const staves: Stave[] = [];
+  const geometry: MeasureGeometry[] = [];
 
   for (let mi = 0; mi < numMeasures; mi++) {
     const x = MARGIN_LEFT + mi * staveWidth;
-    const stave = new Stave(x, STAVE_Y, staveWidth, { numLines: 1 });
+    // Full 5-line stave (was numLines: 1) — a single-line stave gives
+    // VexFlow's barlines zero height to span, so measure boundaries were
+    // invisible; five lines matches Melodic Dictation's look and makes the
+    // begin/end barlines real.
+    const stave = new Stave(x, STAVE_Y, staveWidth);
     if (mi === 0) {
+      stave.addClef('percussion');
       stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
+    }
+    if (mi === numMeasures - 1) {
+      stave.setEndBarType(Barline.type.END);
     }
     // Stave.draw() never applies setStyle() to its own line-drawing (only
     // drawWithStyle()'s Element.applyStyle wrapper does, which Stave.draw
@@ -122,6 +129,13 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       stave.setContext(context).draw();
     }
     staves.push(stave);
+    geometry.push({
+      index: mi,
+      noteStartX: stave.getNoteStartX(),
+      noteEndX: stave.getNoteEndX(),
+      topLineY: stave.getYForLine(0),
+      spacing: stave.getSpacingBetweenLines(),
+    });
 
     const userNotes = measures[mi] ?? [];
     const ok = hasSubmitted ? measureResults[mi] : undefined;
@@ -130,28 +144,36 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       // Reveal: user's (wrong) answer greyed out + correct pattern in red on
       // top, both on the same stave — greying the user voice keeps it from
       // reading as a second competing answer at the same y (Part B4).
-      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, {
-        fillStyle: MUTED_COLOR,
-        strokeStyle: MUTED_COLOR,
+      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+        style: { fillStyle: MUTED_COLOR, strokeStyle: MUTED_COLOR },
+        hoverColor: HOVER_COLOR,
       });
-      drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, {
-        fillStyle: WRONG_COLOR,
-        strokeStyle: WRONG_COLOR,
+      drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+        style: { fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR },
+        hoverColor: HOVER_COLOR,
       });
     } else {
-      drawMeasureVoice(context, stave, userNotes, measureTotalBeats);
+      const hoverNote: RhythmNote | null =
+        !hasSubmitted && hover && hover.measureIndex === mi
+          ? { beat: hover.beat, duration: hover.duration, isRest: hover.isRest }
+          : null;
+      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+        hoverNote,
+        hoverColor: HOVER_COLOR,
+      });
     }
 
     if (hasSubmitted) {
       const cx = stave.getNoteEndX() - 10;
+      const topY = stave.getYForLine(0);
       context.save();
       context.setFillStyle(ok ? OK_COLOR : WRONG_COLOR);
       context.beginPath();
-      context.arc(cx, STAVE_Y - 14, 7, 0, Math.PI * 2, false);
+      context.arc(cx, topY - 14, 7, 0, Math.PI * 2, false);
       context.fill();
       context.setFillStyle('#fff');
       context.setFont('Arial', 10, 'bold');
-      context.fillText(ok ? '✓' : '✗', cx - 4, STAVE_Y - 10);
+      context.fillText(ok ? '✓' : '✗', cx - 4, topY - 10);
       context.restore();
     }
   }
@@ -160,25 +182,28 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     const stave = staves[cursorMeasureIndex]!;
     const rel = Math.max(0, Math.min(1, cursorBeat / measureTotalBeats));
     const cx = stave.getNoteStartX() + rel * (stave.getNoteEndX() - stave.getNoteStartX());
+    const topY = stave.getYForLine(0);
     context.save();
     context.setFillStyle(KEYBOARD_CURSOR_COLOR);
     context.beginPath();
-    context.moveTo(cx - 5, STAVE_Y - 12);
-    context.lineTo(cx + 5, STAVE_Y - 12);
-    context.lineTo(cx, STAVE_Y - 4);
+    context.moveTo(cx - 5, topY - 12);
+    context.lineTo(cx + 5, topY - 12);
+    context.lineTo(cx, topY - 4);
     context.closePath();
     context.fill();
     context.restore();
   }
 
-  if (playbackFraction !== null) {
+  if (playbackFraction !== null && staves[0]) {
+    const topY = staves[0]!.getYForLine(0);
+    const bottomY = staves[0]!.getYForLine(4);
     const cx = MARGIN_LEFT + playbackFraction * (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT);
     context.save();
     context.setStrokeStyle(CURSOR_COLOR);
     context.setLineWidth(1.5);
     context.beginPath();
-    context.moveTo(cx, STAVE_Y - 10);
-    context.lineTo(cx, STAVE_Y + 50);
+    context.moveTo(cx, topY - 10);
+    context.lineTo(cx, bottomY + 10);
     context.stroke();
     context.restore();
   }
@@ -194,4 +219,6 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     svg.style.removeProperty('width');
     svg.style.removeProperty('height');
   }
+
+  return geometry;
 }

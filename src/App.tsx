@@ -38,7 +38,7 @@ const router = createHashRouter([
 
 function App() {
   return (
-    <ErrorBoundary label="Ear Trainer">
+    <ErrorBoundary label="TryTone">
       <RouterProvider router={router} />
     </ErrorBoundary>
   );

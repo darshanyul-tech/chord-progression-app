@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import type { PitchedMeasure } from '../melody/theory';
+import type { MeasureGeometry } from './geometry';
 import { findMeasureAt, resolvePlacementBeat } from './placement';
-import type { PitchedMeasure } from './theory';
-import type { MeasureGeometry } from './vexscore';
 
 const note = (beat: number, duration: number, midi = 60): PitchedMeasure[number] => ({ beat, duration, rest: false, midi });
 
@@ -120,6 +120,36 @@ describe('resolvePlacementBeat', () => {
       // should accept any click closer to it than to candidate 1.
       const result = resolvePlacementBeat(measure, 2.1, 1, 3, 1);
       expect(result).toEqual({ beat: 2, isReplace: false });
+    });
+  });
+
+  // The boundary margin near an existing note/candidate is pinned to
+  // gridStepVal, not to whichever note or armed duration happens to be
+  // involved — a snap zone's own position/confidence never shifts just
+  // because you're currently arming a different-sized duration than
+  // whatever's already occupying the neighbouring zone.
+  describe('boundary margin is fixed to the grid step, not to note/armed duration', () => {
+    it('resolves the same near-boundary click confidently to the same beat regardless of armed duration', () => {
+      const measure: PitchedMeasure = [note(0, 1)]; // occupies beat 0-1
+      const rawBeat = 1.1; // just past the note's edge, within the fixed grid-step margin
+      const asQuarter = resolvePlacementBeat(measure, rawBeat, 1, 4, 0.25);
+      const asEighth = resolvePlacementBeat(measure, rawBeat, 0.5, 4, 0.25);
+      expect(asQuarter).toEqual({ beat: 1, isReplace: false });
+      expect(asEighth).toEqual({ beat: 1, isReplace: false });
+    });
+
+    it('a half note occupying two quarter-grid zones does not shift where the next zone starts', () => {
+      // gridStepVal=1 reflects a quarter-note-only grid — "zone 1/2/3/4" at
+      // beats 0/1/2/3. A half note at beat 0 spans zones 1-2; zone 3 (beat 2)
+      // must still resolve at exactly the same confidence threshold as it
+      // would if two separate quarters occupied zones 1-2 instead.
+      const halfNoteMeasure: PitchedMeasure = [note(0, 2)];
+      const twoQuartersMeasure: PitchedMeasure = [note(0, 1), note(1, 1)];
+      const rawBeat = 2.35;
+      const afterHalfNote = resolvePlacementBeat(halfNoteMeasure, rawBeat, 1, 4, 1);
+      const afterTwoQuarters = resolvePlacementBeat(twoQuartersMeasure, rawBeat, 1, 4, 1);
+      expect(afterHalfNote).toEqual({ beat: 2, isReplace: false });
+      expect(afterTwoQuarters).toEqual({ beat: 2, isReplace: false });
     });
   });
 });

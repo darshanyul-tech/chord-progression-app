@@ -1,13 +1,16 @@
 import { candidateBeats } from '../rhythm/generator';
-import type { PitchedMeasure } from './theory';
-import type { MeasureGeometry } from './vexscore';
+import type { MeasureGeometry } from './geometry';
+
+/** The only note shape the resolver needs — both melodic's PitchedMeasure and rhythm's Measure satisfy it. */
+export type PlacedNote = { beat: number; duration: number };
 
 // docs/12-melodic-dictation-fixes.md MD-3. The single resolver both the
 // commit path (usePractice's placeNoteAt) and the hover preview
-// (VexStaffHost) call, so a mouse placement can never land anywhere other
-// than where its own ghost preview showed it. Reuses rhythm/generator.ts's
-// candidateBeats (already the exact-fit-without-overlap beat search the
-// rhythm generator uses to place notes) instead of re-deriving it.
+// (VexStaffHost/RhythmStaffHost) call, so a mouse placement can never land
+// anywhere other than where its own ghost preview showed it. Reuses
+// rhythm/generator.ts's candidateBeats (already the exact-fit-without-
+// overlap beat search the rhythm generator uses to place notes) instead of
+// re-deriving it.
 
 export interface ResolvedPlacement {
   /** The beat the note will actually be placed at — may differ from rawBeat (snapped to a free slot, or to a direct hit). */
@@ -23,7 +26,22 @@ export interface ResolvedPlacement {
 // filling the next beat. Shrinking the hit-zone to a note's own middle
 // keeps a real "click this note to edit it" target while leaving the
 // boundary near a free neighbour free to resolve there instead.
-const HIT_MARGIN = 0.25;
+//
+// The margin itself is pinned to gridStepVal (the smallest addressable
+// position for the current question) rather than scaled to whichever
+// note's or armed duration's length happens to be involved — that's what
+// keeps a measure's snap zones anchored to the same beat positions no
+// matter what's placed in them. E.g. in 4/4 on a quarter-note grid, filling
+// zone 1 with a half note (spanning zones 1-2) never moves zone 3's own
+// boundary; only whether zones 1-2 are still free changes. Capped to a
+// fraction of the referenced span so a note/candidate no longer than one
+// grid step still keeps a non-empty confident core.
+const BOUNDARY_MARGIN_FRACTION = 0.3;
+const BOUNDARY_MARGIN_CAP_FRACTION = 0.4;
+
+function boundaryMargin(gridStepVal: number, referenceDuration: number): number {
+  return Math.min(gridStepVal * BOUNDARY_MARGIN_FRACTION, referenceDuration * BOUNDARY_MARGIN_CAP_FRACTION);
+}
 
 function coreContains(clamped: number, beat: number, duration: number, leftMargin: number, rightMargin: number): boolean {
   return clamped >= beat + leftMargin - 0.001 && clamped < beat + duration - rightMargin - 0.001;
@@ -41,7 +59,7 @@ function coreContains(clamped: number, beat: number, duration: number, leftMargi
  * for this duration (caller should reject/flash rather than guess).
  */
 export function resolvePlacementBeat(
-  measure: PitchedMeasure,
+  measure: readonly PlacedNote[],
   rawBeat: number,
   armedDuration: number,
   measureTotalBeats: number,
@@ -49,7 +67,10 @@ export function resolvePlacementBeat(
 ): ResolvedPlacement | null {
   const clamped = Math.max(0, Math.min(measureTotalBeats, rawBeat));
 
-  const coreHit = measure.find((n) => coreContains(clamped, n.beat, n.duration, n.duration * HIT_MARGIN, n.duration * HIT_MARGIN));
+  const coreHit = measure.find((n) => {
+    const m = boundaryMargin(gridStepVal, n.duration);
+    return coreContains(clamped, n.beat, n.duration, m, m);
+  });
   if (coreHit) return { beat: coreHit.beat, isReplace: true };
 
   const spans = measure.map((n) => ({ start: n.beat, end: n.beat + n.duration }));
@@ -69,14 +90,9 @@ export function resolvePlacementBeat(
     // in that overlap.
     const touchesLeft = (c: number) => measure.some((n) => Math.abs(n.beat + n.duration - c) < 0.01);
     const touchesRight = (c: number) => measure.some((n) => Math.abs(n.beat - (c + armedDuration)) < 0.01);
+    const candidateMargin = boundaryMargin(gridStepVal, armedDuration);
     const confidentMatches = candidates.filter((c) =>
-      coreContains(
-        clamped,
-        c,
-        armedDuration,
-        touchesLeft(c) ? armedDuration * HIT_MARGIN : 0,
-        touchesRight(c) ? armedDuration * HIT_MARGIN : 0,
-      ),
+      coreContains(clamped, c, armedDuration, touchesLeft(c) ? candidateMargin : 0, touchesRight(c) ? candidateMargin : 0),
     );
     if (confidentMatches.length) {
       const nearestConfident = confidentMatches.reduce((best, c) =>

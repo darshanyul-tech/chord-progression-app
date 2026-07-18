@@ -3,8 +3,9 @@ import { RhythmStaffHost } from './RhythmStaffHost';
 import { NotePalette, NotePaletteRestToggle } from '../../components/NotePalette';
 import { EXAM_PALETTE_ENTRIES } from '../../components/notePaletteEntries';
 import type { ExamDictationProps, ExamDictationResultProps } from '../../exam/types';
+import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { getActiveDurations } from '../../lib/rhythm/generator';
-import { beatFromClickX, durationFitsBar, gridStep, measuresEqual, type Measure, type TimeSigInfo } from '../../lib/rhythm/time';
+import { durationFitsBar, gridStep, measuresEqual, type Measure, type TimeSigInfo } from '../../lib/rhythm/time';
 
 export interface RhythmDictationQuestion {
   typeId: 'rhythmDictation';
@@ -29,11 +30,19 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
   const measures = (answer as Measure[] | null) ?? Array.from({ length: q.numMeasures }, () => []);
   const gridStepVal = gridStep(getActiveDurations(PALETTE_DURATIONS, false, q.timeSig.measureBeats));
 
-  function placeNoteAt(measureIndex: number, beat: number, duration: number, isRest: boolean) {
+  function placeNoteAt(measureIndex: number, rawBeat: number, duration: number, isRest: boolean) {
     if (disabled) return;
     const cap = q.timeSig.measureBeats;
-    if (!durationFitsBar(duration, cap) || beat + duration > cap + 0.001) return;
+    if (!durationFitsBar(duration, cap)) return;
+    const measure = measures[measureIndex] ?? [];
+    // Same click resolver as practice mode (lib/notation/placement.ts) — the
+    // staff host now reports a raw proportional beat from the real drawn
+    // geometry, and this maps it to a direct hit or the nearest free slot.
+    const resolved = resolvePlacementBeat(measure, rawBeat, duration, cap, gridStepVal);
+    if (!resolved) return;
+    const { beat } = resolved;
     const end = beat + duration;
+    if (end > cap + 0.001) return;
     const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
     const next = measures.map((m, i) =>
       i === measureIndex ? [...m.filter((n) => !overlaps(n)), { beat, duration, isRest }] : m,
@@ -58,10 +67,10 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
             cursorMeasureIndex: 0,
             cursorBeat: null,
           }}
-          onClick={(measureIndex, clickX) => {
-            const beat = beatFromClickX(clickX, measureIndex, armedDuration, q.numMeasures, q.timeSig.measureBeats, gridStepVal);
-            placeNoteAt(measureIndex, beat, armedDuration, armedIsRest);
-          }}
+          gridStepVal={gridStepVal}
+          armedDuration={armedDuration}
+          armedIsRest={armedIsRest}
+          onClick={(measureIndex, rawBeat) => placeNoteAt(measureIndex, rawBeat, armedDuration, armedIsRest)}
         />
       </div>
       <div className="note-palette-row" style={{ marginTop: '0.5rem' }}>
@@ -95,6 +104,11 @@ export function RhythmDictationResult({ question, answer }: ExamDictationResultP
           cursorMeasureIndex: 0,
           cursorBeat: null,
         }}
+        // Read-only result view (hasSubmitted: true above) never shows a
+        // hover ghost, so these three are inert placeholders.
+        gridStepVal={0.25}
+        armedDuration={1}
+        armedIsRest={false}
         onClick={() => {}}
       />
     </div>

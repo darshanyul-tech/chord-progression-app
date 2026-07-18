@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import '../../styles/topics/rhythm-dictation.css';
 import { audio } from '../../lib/audio/engine';
 import { TRIPLET_DURS } from '../../lib/rhythm/generator';
-import { beatFromClickX, durationClose, durationFitsBar } from '../../lib/rhythm/time';
+import { durationClose, durationFitsBar } from '../../lib/rhythm/time';
 import { useIsActiveTopic } from '../../hooks/useIsActiveTopic';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useRhythmDictationSettings } from '../../state/settings/rhythm-dictation';
@@ -11,21 +11,23 @@ import { RhythmSettings } from './Settings';
 import { RhythmStaffHost } from './RhythmStaffHost';
 import { useRhythmPractice } from './usePractice';
 
-const PALETTE: { duration: number; label: string; title: string }[] = [
-  { duration: 4, label: '1', title: 'Whole note (1)' },
-  { duration: 2, label: '2', title: 'Half note (2)' },
-  { duration: 1, label: '3', title: 'Quarter note (3)' },
-  { duration: 0.5, label: '4', title: 'Eighth note (4)' },
-  { duration: 0.25, label: '5', title: 'Sixteenth note (5)' },
-  { duration: 0.333, label: '6', title: 'Triplet eighth (6)' },
-  { duration: 1.5, label: '7', title: 'Dotted quarter (7)' },
-  { duration: 0.75, label: '8', title: 'Dotted eighth (8)' },
-  { duration: 3, label: 'H.', title: 'Dotted half' },
+// Base values only — dotted variants are reached by arming a base value and
+// toggling Dot, exactly as Melodic Dictation does (its palette comment
+// explains the composition rationale); the old dedicated dotted-quarter/
+// dotted-eighth/dotted-half buttons are gone with them. Triplet entries stay
+// rhythm-specific, shown only when triplets are enabled in Settings.
+const PALETTE: { duration: number; label: string; title: string; size: 'whole' | 'sm' | 'lg' }[] = [
+  { duration: 4, label: '1', title: 'Whole note (1)', size: 'whole' },
+  { duration: 2, label: '2', title: 'Half note (2)', size: 'sm' },
+  { duration: 1, label: '3', title: 'Quarter note (3)', size: 'sm' },
+  { duration: 0.5, label: '4', title: 'Eighth note (4)', size: 'lg' },
+  { duration: 0.25, label: '5', title: 'Sixteenth note (5)', size: 'lg' },
 ];
-const TRIPLET_QUARTER = { duration: 0.667, label: 'TQ', title: 'Triplet quarter' };
+const TRIPLET_EIGHTH = { duration: 0.333, label: '6', title: 'Triplet eighth (6)', size: 'lg' as const };
+const TRIPLET_QUARTER = { duration: 0.667, label: 'TQ', title: 'Triplet quarter', size: 'sm' as const };
 
 const KEY_TO_DURATION: Record<string, number> = {
-  '1': 4, '2': 2, '3': 1, '4': 0.5, '5': 0.25, '6': 0.333, '7': 1.5, '8': 0.75,
+  '1': 4, '2': 2, '3': 1, '4': 0.5, '5': 0.25, '6': 0.333,
 };
 
 export function RhythmDictationTopic() {
@@ -84,15 +86,15 @@ export function RhythmDictationTopic() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, practice.activeMeasureIndex, practice.numMeasures, practice.submitEnabled, settings.triplets]);
 
-  function handleStaffClick(measureIndex: number, clickX: number) {
+  function handleStaffClick(measureIndex: number, rawBeat: number) {
     practice.setActiveMeasureIndex(measureIndex);
-    if (practice.hasSubmitted || !practice.armedDuration) return;
-    const dur = practice.effectiveDuration(practice.armedDuration);
-    const beat = beatFromClickX(clickX, measureIndex, dur, practice.numMeasures, practice.timeSig.measureBeats, practice.gridStepVal);
-    practice.placeNoteAt(measureIndex, beat, practice.armedDuration, practice.armedIsRest);
+    if (practice.hasSubmitted) return;
+    practice.placeNoteAt(measureIndex, rawBeat, practice.armedDuration, practice.armedIsRest);
   }
 
-  const paletteButtons = settings.triplets ? [...PALETTE, TRIPLET_QUARTER].sort((a, b) => a.duration - b.duration) : PALETTE;
+  const paletteButtons = settings.triplets
+    ? [...PALETTE, TRIPLET_EIGHTH, TRIPLET_QUARTER].sort((a, b) => a.duration - b.duration)
+    : PALETTE;
   const ready = practice.audioStatus === 'ready';
 
   return (
@@ -130,36 +132,32 @@ export function RhythmDictationTopic() {
             <p className="rd-prompt">
               {ready ? 'Notate the played rhythm.' : 'Press Initialize Audio above to hear questions.'}
             </p>
-            <div className="rd-header-right">
-              <span id="rd-score-inline">
-                {practice.score.correct} / {practice.score.total}
-              </span>
-            </div>
           </header>
 
-          <div className="rd-staff-wrap">
-            <div className="rd-staff-frame">
-              <RhythmStaffHost
-                model={{
-                  beatsPerBar: practice.timeSig.beatsPerBar,
-                  beatValue: practice.timeSig.beatValue,
-                  numMeasures: practice.numMeasures,
-                  measures: practice.userMeasures,
-                  hasSubmitted: practice.hasSubmitted,
-                  measureResults: practice.measureResults,
-                  correctPattern: practice.correctPattern,
-                  flashMeasure: practice.flashMeasure,
-                  playbackFraction: practice.playbackFraction,
-                  cursorMeasureIndex: practice.activeMeasureIndex,
-                  cursorBeat: practice.cursorBeat,
-                }}
-                onClick={handleStaffClick}
-                onCursorMove={practice.moveCursor}
-                onPlaceAtCursor={practice.placeAtCursor}
-                onCursorFocus={practice.focusCursor}
-                onCursorBlur={practice.blurCursor}
-              />
-            </div>
+          <div className="rd-staff-frame">
+            <RhythmStaffHost
+              model={{
+                beatsPerBar: practice.timeSig.beatsPerBar,
+                beatValue: practice.timeSig.beatValue,
+                numMeasures: practice.numMeasures,
+                measures: practice.userMeasures,
+                hasSubmitted: practice.hasSubmitted,
+                measureResults: practice.measureResults,
+                correctPattern: practice.correctPattern,
+                flashMeasure: practice.flashMeasure,
+                playbackFraction: practice.playbackFraction,
+                cursorMeasureIndex: practice.activeMeasureIndex,
+                cursorBeat: practice.cursorBeat,
+              }}
+              gridStepVal={practice.gridStepVal}
+              armedDuration={practice.effectiveDuration(practice.armedDuration)}
+              armedIsRest={practice.armedIsRest}
+              onClick={handleStaffClick}
+              onCursorMove={practice.moveCursor}
+              onPlaceAtCursor={practice.placeAtCursor}
+              onCursorFocus={practice.focusCursor}
+              onCursorBlur={practice.blurCursor}
+            />
             <p className="rd-capacity-hint" aria-live="polite">
               {practice.capacityHint}
             </p>
@@ -169,22 +167,44 @@ export function RhythmDictationTopic() {
             <div className={`rd-palette${paletteFlash ? ' rd-palette-flash' : ''}`}>
               {paletteButtons.map((btn) => {
                 const isTriplet = TRIPLET_DURS.some((td) => durationClose(td, btn.duration));
-                if (isTriplet && !settings.triplets) return null;
+                // Gate and preview the *effective* (dot-adjusted) duration —
+                // arming "Quarter" while Dot is on means the actual value
+                // being placed is a dotted quarter, so that's what needs to
+                // be checked against settings/bar-fit and shown in the icon
+                // (same composition as Melodic Dictation's palette).
+                const effective = practice.effectiveDuration(btn.duration);
                 const allowed =
-                  practice.activeDurations.some((d) => durationClose(d, btn.duration)) || (isTriplet && settings.triplets);
-                const fits = durationFitsBar(practice.effectiveDuration(btn.duration), practice.timeSig.measureBeats);
+                  practice.activeDurations.some((d) => durationClose(d, effective)) || (isTriplet && settings.triplets);
+                const fits = durationFitsBar(effective, practice.timeSig.measureBeats);
                 const disabled = !allowed || !fits;
                 const armed = durationClose(practice.armedDuration, btn.duration);
+                const effectiveTitle =
+                  practice.isDotActive && !isTriplet
+                    ? btn.title.replace(/^(\S+)/, (word) => `Dotted ${word.toLowerCase()}`)
+                    : btn.title;
+                // Explain *why* a duration is greyed out, mirroring Melodic
+                // Dictation: unchecked in settings vs. checked but too big
+                // for the current bar.
+                let title = effectiveTitle;
+                if (disabled) {
+                  const checkedInSettings = settings.durations.some((d) => durationClose(d, effective));
+                  if (!checkedInSettings && !isTriplet) {
+                    title = `${effectiveTitle} — not enabled in Note & rest values above`;
+                  } else {
+                    const sigLabel = `${practice.timeSig.beatsPerBar}/${practice.timeSig.beatValue}`;
+                    title = `${effectiveTitle} — doesn't fit this ${sigLabel} bar`;
+                  }
+                }
                 return (
                   <button
                     key={btn.duration}
                     type="button"
-                    className={`rd-note-btn${armed ? ' rd-btn-armed' : ''}${disabled ? ' rd-dur-disabled' : ''}`}
-                    title={btn.title}
+                    className={`rd-note-btn rd-note-btn-${btn.size}${armed ? ' rd-btn-armed' : ''}${disabled ? ' rd-dur-disabled' : ''}`}
+                    title={title}
                     aria-pressed={armed}
                     onClick={() => practice.armDuration(btn.duration)}
                   >
-                    <NoteGlyphIcon duration={btn.duration} />
+                    <NoteGlyphIcon duration={effective} />
                     <span>{btn.label}</span>
                   </button>
                 );
@@ -201,7 +221,7 @@ export function RhythmDictationTopic() {
               </button>
               <button
                 type="button"
-                className={`rd-mod-btn${practice.isDotActive ? ' rd-mod-active' : ''}`}
+                className={`rd-mod-btn rd-mod-btn-lg${practice.isDotActive ? ' rd-mod-active' : ''}`}
                 title="Dot (D)"
                 aria-pressed={practice.isDotActive}
                 onClick={practice.toggleDot}
