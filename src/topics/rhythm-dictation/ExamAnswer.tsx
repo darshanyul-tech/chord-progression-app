@@ -70,6 +70,7 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
           gridStepVal={gridStepVal}
           armedDuration={armedDuration}
           armedIsRest={armedIsRest}
+          isTieActive={false}
           onClick={(measureIndex, rawBeat) => placeNoteAt(measureIndex, rawBeat, armedDuration, armedIsRest)}
         />
       </div>
@@ -105,10 +106,11 @@ export function RhythmDictationResult({ question, answer }: ExamDictationResultP
           cursorBeat: null,
         }}
         // Read-only result view (hasSubmitted: true above) never shows a
-        // hover ghost, so these three are inert placeholders.
+        // hover ghost, so these four are inert placeholders.
         gridStepVal={0.25}
         armedDuration={1}
         armedIsRest={false}
+        isTieActive={false}
         onClick={() => {}}
       />
     </div>

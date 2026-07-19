@@ -5,6 +5,7 @@ import { ExamResults } from './ExamResults';
 import { ExamSetup } from './ExamSetup';
 import { useExamMachine } from './useExamMachine';
 import { useUIStore } from '../state/ui';
+import { topicPath } from '../topics/registry';
 // Exam mode can be reached without TopicHost ever mounting (D9a only keeps
 // topics mounted from the /topic/:id route), so these shared classes
 // (.bars/.guess-row, .chord-choice-grid/.chord-answer-group) are pulled in
@@ -31,7 +32,7 @@ export function ExamRoute() {
   useEffect(() => () => setExamActive(false), [setExamActive]);
 
   function goToLastTopic() {
-    navigate(`/topic/${lastActiveTopicId}`);
+    navigate(topicPath(lastActiveTopicId));
   }
 
   if (machine.phase === 'setup') {

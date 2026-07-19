@@ -1,6 +1,6 @@
 import '../../styles/topics/custom-topic.css';
 import { useNavigate } from 'react-router-dom';
-import { getTopic } from '../registry';
+import { getTopic, topicPath } from '../registry';
 import { useCustomPresets } from '../../state/customPresets';
 
 // Custom Topics v1 is settings presets, not exercise authoring
@@ -17,7 +17,7 @@ export function CustomTopicManagementPage() {
 
   function open(id: string, topicId: string) {
     applyPreset(id);
-    navigate(`/topic/${topicId}`);
+    navigate(topicPath(topicId));
   }
 
   function rename(id: string, currentName: string) {

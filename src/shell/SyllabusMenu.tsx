@@ -1,10 +1,24 @@
 import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CATEGORY_ORDER, CATEGORY_TITLES, TOPICS } from '../topics/registry';
+import {
+  CATEGORY_TITLES,
+  SECTION_CATEGORY_ORDER,
+  TOPICS,
+  topicPath,
+  type SectionId,
+} from '../topics/registry';
 import { useCustomPresets } from '../state/customPresets';
 import { useUIStore } from '../state/ui';
 
-const TOPIC_PATH_PREFIX = '/topic/';
+const TOPIC_ID_PATTERN = /\/topic\/([^/]+)$/;
+
+// The active section is read from the route, not stored state — the sidebar
+// always reflects whichever section's URL is current (13-home-and-sections.md
+// §2/§7). Custom presets are aural-only in v1 (docs/13 §1 backlog), so they
+// only ever render under the aural 'custom' category.
+function sectionFromPath(pathname: string): SectionId {
+  return pathname.startsWith('/theory/') ? 'theory' : 'aural';
+}
 
 export function SyllabusMenu() {
   const navigate = useNavigate();
@@ -16,12 +30,13 @@ export function SyllabusMenu() {
   const applyPreset = useCustomPresets((s) => s.applyPreset);
   const sidebarRef = useRef<HTMLElement>(null);
 
-  const activeId = location.pathname.startsWith(TOPIC_PATH_PREFIX)
-    ? location.pathname.slice(TOPIC_PATH_PREFIX.length)
-    : undefined;
+  const section = sectionFromPath(location.pathname);
+  const categoryOrder = SECTION_CATEGORY_ORDER[section];
+  const topicMatch = location.pathname.match(TOPIC_ID_PATTERN);
+  const activeId = topicMatch ? topicMatch[1] : undefined;
 
   function go(id: string) {
-    navigate(`/topic/${id}`);
+    navigate(topicPath(id));
     closeDrawer();
   }
 
@@ -29,7 +44,7 @@ export function SyllabusMenu() {
   // then navigates to the topic itself — no per-preset routes (docs/05-topics/14 §4).
   function openPreset(id: string, topicId: string) {
     applyPreset(id);
-    navigate(`/topic/${topicId}`);
+    navigate(topicPath(topicId));
     closeDrawer();
   }
 
@@ -76,8 +91,10 @@ export function SyllabusMenu() {
       className={`syllabus-sidebar${drawerOpen ? ' open' : ''}`}
     >
       <div className="syllabus-nav">
-        {CATEGORY_ORDER.map((category) => {
-          const visibleTopics = TOPICS.filter((t) => t.category === category && !t.hidden);
+        {categoryOrder.map((category) => {
+          const visibleTopics = TOPICS.filter(
+            (t) => t.category === category && (t.section ?? 'aural') === section && !t.hidden,
+          );
           if (!visibleTopics.length) return null;
           return (
             <div key={category}>

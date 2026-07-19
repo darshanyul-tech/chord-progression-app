@@ -58,7 +58,11 @@ export type CategoryId =
   | 'pitch-melody'
   | 'repertoire'
   | 'musical-elements'
-  | 'custom';
+  | 'custom'
+  | 'theory-reading'
+  | 'theory-keys'
+  | 'theory-writing'
+  | 'theory-transposition';
 
 export const CATEGORY_TITLES: Record<CategoryId, string> = {
   'intervals-scales': 'Intervals & Scales',
@@ -69,9 +73,14 @@ export const CATEGORY_TITLES: Record<CategoryId, string> = {
   repertoire: 'Repertoire',
   'musical-elements': 'Musical Elements',
   custom: 'Custom Topics',
+  'theory-reading': 'Reading & Notation',
+  'theory-keys': 'Keys & Degrees',
+  'theory-writing': 'Writing',
+  'theory-transposition': 'Transposition',
 };
 
-// Category display order (02-ui-shell-and-navigation.md §3)
+// Category display order (02-ui-shell-and-navigation.md §3) — aural section only.
+// Use SECTION_CATEGORY_ORDER[section] for section-aware rendering (13-home-and-sections.md §3).
 export const CATEGORY_ORDER: CategoryId[] = [
   'intervals-scales',
   'chords',
@@ -83,6 +92,40 @@ export const CATEGORY_ORDER: CategoryId[] = [
   'custom',
 ];
 
+export type SectionId = 'aural' | 'theory';
+
+export interface SectionDef {
+  id: SectionId;
+  title: string;
+  /** Short label for the header's section nav (13-home-and-sections.md §6) — title is the longer HomePage card heading. */
+  navLabel: string;
+  blurb: string;
+}
+
+// 13-home-and-sections.md §4/§6 — HomePage and HeaderBar render from this,
+// never a hand-maintained list.
+export const SECTIONS: SectionDef[] = [
+  {
+    id: 'aural',
+    title: 'Aural Training',
+    navLabel: 'Aural',
+    blurb: 'Interval, chord, rhythm and melody recognition, dictation and singing — training by ear.',
+  },
+  {
+    id: 'theory',
+    title: 'Theory',
+    navLabel: 'Theory',
+    blurb: 'Note reading, key signatures, scale and chord writing, transposition — written music theory.',
+  },
+];
+
+// 13-home-and-sections.md §3/§5 — theory's category order (its own 4 categories,
+// in this order); aural keeps using CATEGORY_ORDER verbatim.
+export const SECTION_CATEGORY_ORDER: Record<SectionId, CategoryId[]> = {
+  aural: CATEGORY_ORDER,
+  theory: ['theory-reading', 'theory-keys', 'theory-writing', 'theory-transposition'],
+};
+
 export interface TopicDefinition {
   id: string;
   title: string;
@@ -93,6 +136,8 @@ export interface TopicDefinition {
   examTypes?: () => Promise<ExamTypeDefinition[]>;
   /** Overrides the generic placeholder copy (02-ui-shell §4). */
   placeholderCopy?: string;
+  /** Which top-level section this topic belongs to. Optional, defaults to 'aural' — every pre-existing entry stays untouched (13-home-and-sections.md §3). */
+  section?: SectionId;
   /**
    * Parked topics: kept in the inventory (ids, categories, and any future
    * code stay valid) but removed from the visible front end — the syllabus
@@ -273,11 +318,107 @@ export const TOPICS: TopicDefinition[] = [
     Component: CustomTopicManagementPage,
     // No exam contribution — presets have no questions of their own (docs/05-topics/14 §4).
   },
+
+  // Theory section (13-home-and-sections.md §5). All nine ship as visible
+  // placeholders in the shell phase, flipping to active topic by topic as
+  // later phases (docs/16 Phases 28-33) build them.
+  {
+    id: 'note-reading',
+    title: 'Note Reading',
+    category: 'theory-reading',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'key-signatures',
+    title: 'Key Signatures',
+    category: 'theory-reading',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'scale-degrees',
+    title: 'Scale Degrees',
+    category: 'theory-keys',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'scale-home-keys',
+    title: 'Scale Home Keys',
+    category: 'theory-keys',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'interval-writing',
+    title: 'Interval Writing',
+    category: 'theory-writing',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'scale-writing',
+    title: 'Scale Writing',
+    category: 'theory-writing',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'chord-writing',
+    title: 'Chord Writing',
+    category: 'theory-writing',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'transposition',
+    title: 'Transposition',
+    category: 'theory-transposition',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
+  {
+    id: 'meter-transposition',
+    title: 'Meter Transposition',
+    category: 'theory-transposition',
+    status: 'placeholder',
+    section: 'theory',
+    theme: 'light',
+  },
 ];
 
-// Default route on first load (matches legacy default tab, 02-ui-shell §3).
+// Default route on first load within the aural section (matches legacy default tab, 02-ui-shell §3).
 export const DEFAULT_TOPIC_ID = 'chord-progressions';
+
+// 13-home-and-sections.md §3 — default topic per section; aliases DEFAULT_TOPIC_ID
+// for aural so nothing that already depends on it breaks.
+export const DEFAULT_TOPIC_BY_SECTION: Record<SectionId, string> = {
+  aural: DEFAULT_TOPIC_ID,
+  theory: 'note-reading',
+};
 
 export function getTopic(id: string): TopicDefinition | undefined {
   return TOPICS.find((t) => t.id === id);
+}
+
+export function sectionOfTopic(id: string): SectionId {
+  return getTopic(id)?.section ?? 'aural';
+}
+
+export function topicsForSection(section: SectionId): TopicDefinition[] {
+  return TOPICS.filter((t) => (t.section ?? 'aural') === section);
+}
+
+/** The canonical route for a topic — section-aware, so callers never hand-build `/topic/...` paths (13-home-and-sections.md §2). */
+export function topicPath(id: string): string {
+  return `/${sectionOfTopic(id)}/topic/${id}`;
 }

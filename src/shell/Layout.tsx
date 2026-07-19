@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Footer } from './Footer';
 import { HeaderBar } from './HeaderBar';
 import { SyllabusMenu } from './SyllabusMenu';
 import { useUIStore } from '../state/ui';
@@ -19,13 +20,7 @@ export function Layout({ children }: { children: ReactNode }) {
         />
         <main className="shell-main">{children}</main>
       </div>
-      <footer>
-        TryTone with rhythm dictation tab &middot; progression audio by{' '}
-        <a href="https://tonejs.github.io/" target="_blank" rel="noopener">
-          Tone.js
-        </a>{' '}
-        + Salamander samples. &middot; v{__APP_VERSION__}
-      </footer>
+      <Footer />
     </>
   );
 }

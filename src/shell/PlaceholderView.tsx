@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import type { TopicDefinition } from '../topics/registry';
+import { topicPath, type TopicDefinition } from '../topics/registry';
 import { useUIStore } from '../state/ui';
 
 export function PlaceholderView({ topic }: { topic: TopicDefinition }) {
@@ -12,7 +12,7 @@ export function PlaceholderView({ topic }: { topic: TopicDefinition }) {
         {topic.placeholderCopy ?? "This topic is part of the syllabus but isn't built yet."}
       </p>
       <p>
-        <Link to={`/topic/${lastActiveTopicId}`}>Back</Link>
+        <Link to={topicPath(lastActiveTopicId)}>Back</Link>
       </p>
     </section>
   );

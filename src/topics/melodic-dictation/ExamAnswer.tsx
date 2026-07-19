@@ -82,6 +82,7 @@ export function MelodicDictationAnswer({ question, answer, onAnswer, disabled }:
           armedDuration={armedDuration}
           armedIsRest={armedIsRest}
           armedAccidental={armedAccidental}
+          isTieActive={false}
           onPlace={placeNoteAt}
         />
       </div>
@@ -138,6 +139,7 @@ export function MelodicDictationResult({ question, answer }: ExamDictationResult
         armedDuration={1}
         armedIsRest={false}
         armedAccidental=""
+        isTieActive={false}
         onPlace={() => {}}
       />
     </div>
