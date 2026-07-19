@@ -2,7 +2,7 @@ import { Barline, Dot, Renderer, Stave, StaveNote } from 'vexflow';
 import type { MeasureGeometry } from '../notation/geometry';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
 import { drawTies } from '../notation/ties';
-import type { Measure, RhythmNote } from '../rhythm/time';
+import { durationClose, type Measure, type RhythmNote } from '../rhythm/time';
 import { vexDurationFor } from './vexDuration';
 
 // Rhythm staff rendering via VexFlow (replaces the legacy hand-drawn SVG
@@ -78,6 +78,57 @@ const rhythmAdapter: MeasureVoiceAdapter<RhythmNote> = {
     return staveNote;
   },
 };
+
+const TRIPLET_EIGHTH_DUR = 0.333;
+const TRIPLET_QUARTER_DUR = 0.667;
+
+function isTripletDuration(d: number): boolean {
+  return durationClose(d, TRIPLET_EIGHTH_DUR) || durationClose(d, TRIPLET_QUARTER_DUR);
+}
+
+/**
+ * Groups consecutive, contiguous triplet-duration notes (0.333/0.667) that
+ * together complete exactly one beat into one Tuplet bracket per beat — e.g.
+ * three triplet eighths, or a triplet quarter + triplet eighth in either
+ * order (docs/15-theory-topics/09 §3's cells 2-4). Notes are matched by
+ * identity against `notes` (must already be beat-ascending), so this is safe
+ * to run on any RhythmNote sequence, not just Meter Transposition's own
+ * generated content — it also retroactively brackets any triplet a user
+ * freely draws in Rhythm Dictation.
+ */
+export function detectTupletGroups(notes: readonly RhythmNote[]): RhythmNote[][] {
+  const groups: RhythmNote[][] = [];
+  let i = 0;
+  while (i < notes.length) {
+    const n = notes[i]!;
+    if (n.isRest || !isTripletDuration(n.duration)) {
+      i++;
+      continue;
+    }
+    const run: RhythmNote[] = [n];
+    let sum = n.duration;
+    let j = i + 1;
+    while (sum < 0.99 && j < notes.length) {
+      const next = notes[j]!;
+      const prev = run[run.length - 1]!;
+      const contiguous = durationClose(next.beat, prev.beat + prev.duration);
+      if (!contiguous || next.isRest || !isTripletDuration(next.duration)) break;
+      run.push(next);
+      sum += next.duration;
+      j++;
+    }
+    if (durationClose(sum, 1)) {
+      groups.push(run);
+      i = j;
+    } else {
+      // Not a clean beat-completing run (shouldn't happen with valid v1
+      // cells, but a freehand Rhythm Dictation bar could produce an odd
+      // leftover) — skip past this note rather than bracket a partial group.
+      i++;
+    }
+  }
+  return groups;
+}
 
 export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel): MeasureGeometry[] {
   container.innerHTML = '';
@@ -174,11 +225,13 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         style: { fillStyle: MUTED_COLOR, strokeStyle: MUTED_COLOR },
         hoverColor: HOVER_COLOR,
+        tupletGroups: detectTupletGroups,
       });
       userMap.forEach((v, k) => noteToStave.set(k, v));
       drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         style: { fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR },
         hoverColor: HOVER_COLOR,
+        tupletGroups: detectTupletGroups,
       });
     } else {
       const hoverNote: RhythmNote | null =
@@ -189,6 +242,7 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         hoverNote,
         hoverColor: HOVER_COLOR,
+        tupletGroups: detectTupletGroups,
       });
       userMap.forEach((v, k) => noteToStave.set(k, v));
     }

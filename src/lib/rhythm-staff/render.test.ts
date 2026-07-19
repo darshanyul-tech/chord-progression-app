@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { Measure } from '../rhythm/time';
-import { CURSOR_COLOR, HOVER_COLOR, KEYBOARD_CURSOR_COLOR, MUTED_COLOR, WRONG_COLOR, renderStaff, type RhythmStaffModel } from './render';
+import {
+  CURSOR_COLOR,
+  detectTupletGroups,
+  HOVER_COLOR,
+  KEYBOARD_CURSOR_COLOR,
+  MUTED_COLOR,
+  WRONG_COLOR,
+  renderStaff,
+  type RhythmStaffModel,
+} from './render';
 
 const userMeasure: Measure = [{ beat: 0, duration: 4, isRest: false }];
 const correctMeasure: Measure = [{ beat: 0, duration: 2, isRest: false }];
@@ -384,5 +393,109 @@ describe('renderStaff beaming', () => {
         ],
       ]),
     ).toBe(0);
+  });
+});
+
+// Prerequisite display fix for Meter Transposition (docs/15-theory-topics/09
+// §3): triplet-duration notes (0.333/0.667) used to render as plain eighths/
+// quarters with no bracket. detectTupletGroups is the pure detection core;
+// renderStaff wires it into both drawMeasureVoice call sites so the bracket
+// shows up in every reveal state, not just the happy path.
+describe('renderStaff triplet brackets', () => {
+  it('detectTupletGroups groups a run of three triplet eighths completing one beat', () => {
+    const notes: Measure = [
+      { beat: 0, duration: 0.333, isRest: false },
+      { beat: 0.333, duration: 0.333, isRest: false },
+      { beat: 0.667, duration: 0.333, isRest: false },
+      { beat: 1, duration: 3, isRest: true },
+    ];
+    const groups = detectTupletGroups(notes);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toHaveLength(3);
+  });
+
+  it('detectTupletGroups groups a lone triplet-quarter + triplet-eighth beat once', () => {
+    const notes: Measure = [
+      { beat: 0, duration: 0.667, isRest: false },
+      { beat: 0.667, duration: 0.333, isRest: false },
+      { beat: 1, duration: 3, isRest: true },
+    ];
+    const groups = detectTupletGroups(notes);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toHaveLength(2);
+  });
+
+  it('detectTupletGroups produces no groups for a non-triplet bar', () => {
+    const notes: Measure = [
+      { beat: 0, duration: 1, isRest: false },
+      { beat: 1, duration: 0.5, isRest: false },
+      { beat: 1.5, duration: 0.5, isRest: false },
+      { beat: 2, duration: 2, isRest: true },
+    ];
+    expect(detectTupletGroups(notes)).toHaveLength(0);
+  });
+
+  it('detectTupletGroups groups two consecutive triplet beats separately, not as one bracket', () => {
+    const notes: Measure = [
+      { beat: 0, duration: 0.333, isRest: false },
+      { beat: 0.333, duration: 0.333, isRest: false },
+      { beat: 0.667, duration: 0.333, isRest: false },
+      { beat: 1, duration: 0.333, isRest: false },
+      { beat: 1.333, duration: 0.333, isRest: false },
+      { beat: 1.667, duration: 0.333, isRest: false },
+      { beat: 2, duration: 2, isRest: true },
+    ];
+    const groups = detectTupletGroups(notes);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]).toHaveLength(3);
+    expect(groups[1]).toHaveLength(3);
+  });
+
+  it('renders a .vf-tuplet bracket for a triplet-eighth run', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [
+          [
+            { beat: 0, duration: 0.333, isRest: false },
+            { beat: 0.333, duration: 0.333, isRest: false },
+            { beat: 0.667, duration: 0.333, isRest: false },
+            { beat: 1, duration: 3, isRest: true },
+          ],
+        ],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-tuplet').length).toBe(1);
+  });
+
+  it('renders no .vf-tuplet bracket for a plain non-triplet bar', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({}));
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-tuplet').length).toBe(0);
+  });
+
+  it('still shows a triplet bracket in the reveal (user-wrong) voice', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        hasSubmitted: true,
+        measureResults: [false],
+        measures: [
+          [
+            { beat: 0, duration: 0.333, isRest: false },
+            { beat: 0.333, duration: 0.333, isRest: false },
+            { beat: 0.667, duration: 0.333, isRest: false },
+            { beat: 1, duration: 3, isRest: true },
+          ],
+        ],
+        correctPattern: [[{ beat: 0, duration: 1, isRest: false }, { beat: 1, duration: 3, isRest: true }]],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-tuplet').length).toBe(1);
   });
 });

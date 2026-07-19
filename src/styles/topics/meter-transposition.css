@@ -1,0 +1,140 @@
+/* Meter Transposition reuses Rhythm Dictation's rd-* class family (docs/15-
+   theory-topics/09 §5 — "Rhythm Dictation's own bottom-bar structure
+   verbatim") but rhythm-dictation.css scopes every rule under
+   #rhythm-dictation-app, so those rules don't apply outside that id. This
+   file duplicates the subset actually used here under a topic-scoped
+   #meter-transposition-app root instead of widening rhythm-dictation.css's
+   own selectors (which would risk bleeding this topic's layout choices back
+   onto Rhythm Dictation). Two source-above-answer frames sit inside one
+   .rhythm-card-wrap card, mirroring Transposition's single-frame layout one
+   level down (docs §5's "source rhythm on top, answer stave directly below
+   it, same practice card"). */
+
+#meter-transposition-app,
+#meter-transposition-app * {
+  box-sizing: border-box;
+}
+#meter-transposition-app {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+#meter-transposition-app .rd-header {
+  padding: 1rem 1.5rem 0.5rem;
+}
+#meter-transposition-app .rd-prompt {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--text);
+}
+#meter-transposition-app .rd-staff-frame {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  margin: 0 1.5rem 0.75rem;
+  padding: 0.5rem;
+  background: var(--panel-2);
+}
+#meter-transposition-app .mt-source-frame {
+  background: var(--panel);
+}
+#meter-transposition-app .rd-staff-frame svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+#meter-transposition-app #rd-staff-svg {
+  width: 100%;
+  min-height: 72px;
+  cursor: crosshair;
+  display: block;
+  touch-action: manipulation;
+}
+#meter-transposition-app .rd-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 1.5rem 1rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+#meter-transposition-app .rd-palette {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1 1 auto;
+  min-width: 0;
+  border-radius: 4px;
+}
+#meter-transposition-app .rd-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+#meter-transposition-app .rd-feedback-strip {
+  min-height: 1.4rem;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem 1rem;
+  gap: 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+#meter-transposition-app .rd-note-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#meter-transposition-app .rd-note-btn .rd-glyph {
+  width: 34px;
+  height: 46px;
+  display: block;
+  overflow: visible;
+}
+#meter-transposition-app .rd-glyph svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+#meter-transposition-app .rd-note-btn-sm .rd-glyph {
+  width: 24px;
+  height: 33px;
+}
+#meter-transposition-app .rd-btn-armed {
+  border-color: var(--accent) !important;
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+#meter-transposition-app .rd-mod-btn {
+  width: 52px;
+  height: 52px;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+#meter-transposition-app .rd-palette-sep {
+  width: 1px;
+  height: 36px;
+  background: var(--border);
+  margin: 0 4px;
+}

@@ -52,16 +52,6 @@ describe('App shell', () => {
     expect(activeButtons[0]).toHaveTextContent('Note Reading');
   });
 
-  it('a not-yet-built theory topic still shows the shared placeholder view', () => {
-    const { container } = render(<App />);
-    const homeGrid = within(container.querySelector('.home-section-grid')!);
-    fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
-    // Meter Transposition remains a placeholder through Phase 32 (flips in Phase 33).
-    fireEvent.click(screen.getByRole('button', { name: /Meter Transposition/ }));
-    expect(screen.getByRole('heading', { name: 'Meter Transposition' })).toBeInTheDocument();
-    expect(screen.getByText("This topic is part of the syllabus but isn't built yet.")).toBeInTheDocument();
-  });
-
   it('an old-style /topic/:id URL redirects into the aural section', () => {
     window.location.hash = '#/topic/rhythm-dictation';
     render(<App />);

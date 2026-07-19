@@ -167,20 +167,20 @@ function renderMiniNote(container: HTMLDivElement, duration: number, isRest: boo
   };
 }
 
-export function NoteGlyphIcon({ duration }: { duration: number }) {
+/** General form of NoteGlyphIcon/RestGlyphIcon below — renders the actual glyph for any (duration, isRest) pair, e.g. a dotted-crotchet rest or a triplet quaver's own shape, not just a generic "rest mode" marker. */
+export function GlyphIcon({ duration, isRest }: { duration: number; isRest: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (ref.current) return renderMiniNote(ref.current, duration, false);
+    if (ref.current) return renderMiniNote(ref.current, duration, isRest);
     return undefined;
-  }, [duration]);
+  }, [duration, isRest]);
   return <div ref={ref} className="rd-glyph" aria-hidden="true" />;
 }
 
+export function NoteGlyphIcon({ duration }: { duration: number }) {
+  return <GlyphIcon duration={duration} isRest={false} />;
+}
+
 export function RestGlyphIcon() {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (ref.current) return renderMiniNote(ref.current, 1, true);
-    return undefined;
-  }, []);
-  return <div ref={ref} className="rd-glyph" aria-hidden="true" />;
+  return <GlyphIcon duration={1} isRest={true} />;
 }

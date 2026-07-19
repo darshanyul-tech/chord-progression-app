@@ -1,4 +1,4 @@
-import { Formatter, Voice, type Renderer, type Stave, type StaveNote } from 'vexflow';
+import { Formatter, Tuplet, Voice, type Renderer, type Stave, type StaveNote } from 'vexflow';
 import { generateBeamedRuns } from './beaming';
 import { buildGapPaddedTickables, type TickableAdapter } from './tickables';
 
@@ -13,6 +13,17 @@ export interface DrawMeasureVoiceOptions<T> {
   hoverColor: string;
   /** Runs once the tickables are in the voice, before formatting — melodic dictation hooks in Accidental.applyAccidentals() here. */
   beforeFormat?: (voice: Voice) => void;
+  /**
+   * Groups of real notes (identity-matched against `notes`) that should be
+   * bracketed as a tuplet — every group in this app is a straight 3-in-the-
+   * time-of-2 triplet (the only ratio lib/rhythm ever produces), so that
+   * ratio is hardcoded here rather than threaded through as an option.
+   * Constructed *before* the Voice/Formatter run (VexFlow's Tuplet applies a
+   * tick-multiplier to its notes on construction, which the Formatter must
+   * see to space them proportionally — docs/15-theory-topics/09's prereq
+   * display fix) and drawn after voice.draw(), same ordering as beams below.
+   */
+  tupletGroups?: (sorted: readonly T[]) => T[][];
 }
 
 /**
@@ -42,7 +53,7 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   adapter: MeasureVoiceAdapter<T>,
   options: DrawMeasureVoiceOptions<T>,
 ): Map<T, StaveNote> {
-  const { style, hoverNote = null, hoverColor, beforeFormat } = options;
+  const { style, hoverNote = null, hoverColor, beforeFormat, tupletGroups } = options;
 
   // A hover ghost is rendered as a real tickable in this same voice, not a
   // hand-drawn overlay — that's what makes its position and glyph exact
@@ -66,6 +77,17 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
 
   const { tickables, noteToStave } = buildGapPaddedTickables(sorted, measureTotalBeats, adapter, ghostRef, style, hoverColor);
 
+  // Tuplets must be constructed before the Voice/Formatter run below — the
+  // constructor is what applies VexFlow's tick-multiplier to each note
+  // (numNotes:3, notesOccupied:2 for a straight triplet), and the Formatter
+  // reads that multiplier to space the group as 2 beats' worth of room
+  // instead of the 3 its raw eighth/quarter durations would otherwise claim.
+  const tuplets = tupletGroups
+    ? tupletGroups(sorted)
+        .filter((group) => group.length > 0)
+        .map((group) => new Tuplet(group.map((n) => noteToStave.get(n)!).filter((n): n is StaveNote => !!n), { numNotes: 3, notesOccupied: 2 }))
+    : [];
+
   const voice = new Voice({ numBeats: measureTotalBeats, beatValue: 4 });
   voice.setMode(Voice.Mode.SOFT);
   voice.addTickables(tickables);
@@ -79,5 +101,9 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
 
   voice.draw(context, stave);
   beams.forEach((b) => b.setContext(context).draw());
+  // Tuplet brackets read note x-positions (getStemX/getTieLeftX), which only
+  // exist once the Formatter/voice.draw() above have positioned the notes —
+  // same after-draw ordering as beams.
+  tuplets.forEach((t) => t.setContext(context).draw());
   return noteToStave;
 }
