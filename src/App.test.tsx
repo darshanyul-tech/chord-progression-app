@@ -50,8 +50,9 @@ describe('App shell', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
-    fireEvent.click(screen.getByRole('button', { name: /Scale Degrees/ }));
-    expect(screen.getByRole('heading', { name: 'Scale Degrees' })).toBeInTheDocument();
+    // Interval Writing remains a placeholder through Phase 29 (flips in Phase 30).
+    fireEvent.click(screen.getByRole('button', { name: /Interval Writing/ }));
+    expect(screen.getByRole('heading', { name: 'Interval Writing' })).toBeInTheDocument();
     expect(screen.getByText("This topic is part of the syllabus but isn't built yet.")).toBeInTheDocument();
   });
 

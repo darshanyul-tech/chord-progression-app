@@ -33,6 +33,12 @@ const NoteReadingTopic = lazy(() =>
 const KeySignaturesTopic = lazy(() =>
   import('./key-signatures/KeySignaturesTopic').then((m) => ({ default: m.KeySignaturesTopic })),
 );
+const ScaleDegreesTopic = lazy(() =>
+  import('./scale-degrees/ScaleDegreesTopic').then((m) => ({ default: m.ScaleDegreesTopic })),
+);
+const ScaleHomeKeysTopic = lazy(() =>
+  import('./scale-home-keys/ScaleHomeKeysTopic').then((m) => ({ default: m.ScaleHomeKeysTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -352,17 +358,21 @@ export const TOPICS: TopicDefinition[] = [
     id: 'scale-degrees',
     title: 'Scale Degrees',
     category: 'theory-keys',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: ScaleDegreesTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'scale-home-keys',
     title: 'Scale Home Keys',
     category: 'theory-keys',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: ScaleHomeKeysTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'interval-writing',
