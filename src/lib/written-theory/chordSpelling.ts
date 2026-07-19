@@ -66,7 +66,18 @@ export function spellChord(root: SpelledPitch, q: WrittenChordQuality, inversion
   return rotated;
 }
 
-/** Pool filter every writing topic uses — inversion never changes which accidentals appear, so root position is enough to check. */
+/**
+ * Pool filter every writing topic uses — inversion never changes which
+ * accidentals appear, so root position is enough to check. A root/quality
+ * combination can in principle need a *triple* accidental (e.g. B# augmented
+ * needs F###, an offset outside spelledPitch's ±2 semitone range) — that's
+ * "needs a double accidental or worse" too, so the underlying throw counts
+ * as excluded rather than propagating.
+ */
 export function chordNeedsDoubleAccidentals(root: SpelledPitch, q: WrittenChordQuality): boolean {
-  return rootPositionStack(root, q).some((p) => p.acc === '##' || p.acc === 'bb');
+  try {
+    return rootPositionStack(root, q).some((p) => p.acc === '##' || p.acc === 'bb');
+  } catch {
+    return true;
+  }
 }

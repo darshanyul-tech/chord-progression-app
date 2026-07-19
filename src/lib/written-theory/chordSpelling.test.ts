@@ -65,6 +65,16 @@ describe('chordNeedsDoubleAccidentals — pool filter', () => {
     expect(chordNeedsDoubleAccidentals({ letter: 'E', acc: 'b', octave: 4 }, chordQualityById('min'))).toBe(false);
     expect(chordNeedsDoubleAccidentals({ letter: 'F', acc: '#', octave: 4 }, chordQualityById('maj'))).toBe(false);
   });
+
+  it('excludes B# augmented (its fifth needs a triple sharp, F###) without throwing', () => {
+    // Regression: the augmented 5th skips a letter from an already-sharped
+    // root, which can exceed spelledPitch's ±2 semitone offset range —
+    // chordNeedsDoubleAccidentals must report this as excluded, not crash.
+    expect(() =>
+      chordNeedsDoubleAccidentals({ letter: 'B', acc: '#', octave: 4 }, chordQualityById('aug')),
+    ).not.toThrow();
+    expect(chordNeedsDoubleAccidentals({ letter: 'B', acc: '#', octave: 4 }, chordQualityById('aug'))).toBe(true);
+  });
 });
 
 describe('chordQualityById', () => {

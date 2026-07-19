@@ -42,6 +42,12 @@ const ScaleHomeKeysTopic = lazy(() =>
 const IntervalWritingTopic = lazy(() =>
   import('./interval-writing/IntervalWritingTopic').then((m) => ({ default: m.IntervalWritingTopic })),
 );
+const ScaleWritingTopic = lazy(() =>
+  import('./scale-writing/ScaleWritingTopic').then((m) => ({ default: m.ScaleWritingTopic })),
+);
+const ChordWritingTopic = lazy(() =>
+  import('./chord-writing/ChordWritingTopic').then((m) => ({ default: m.ChordWritingTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -391,17 +397,21 @@ export const TOPICS: TopicDefinition[] = [
     id: 'scale-writing',
     title: 'Scale Writing',
     category: 'theory-writing',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: ScaleWritingTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'chord-writing',
     title: 'Chord Writing',
     category: 'theory-writing',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: ChordWritingTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'transposition',
