@@ -5,6 +5,7 @@ import {
   lineToLetterOctave,
   naturalMidiFor,
   resolveRangeWindow,
+  resolveStaffPosition,
   scaleDegreePool,
   staffLineFor,
 } from './theory';
@@ -89,5 +90,28 @@ describe('staffLineFor / lineToLetterOctave round-trip (B7)', () => {
         }
       }
     });
+  });
+});
+
+describe('resolveStaffPosition (docs/14-theory-engine.md §8, shared by VexStaffHost and the theory staff inputs)', () => {
+  it('inverts the y->line mapping exactly for every staff line, both clefs', () => {
+    const topLineY = 0;
+    const spacing = 10;
+    (['treble', 'bass', 'alto', 'tenor'] as const).forEach((clef) => {
+      for (let letterIndex = 0; letterIndex < 7; letterIndex++) {
+        for (let octave = 3; octave <= 5; octave++) {
+          const kpLine = staffLineFor(letterIndex, octave, clef);
+          const y = topLineY + (5 - kpLine) * spacing;
+          const resolved = resolveStaffPosition(y, topLineY, spacing, clef);
+          expect(resolved).toEqual({ letterIndex, octave, naturalMidi: naturalMidiFor(letterIndex, octave) });
+        }
+      }
+    });
+  });
+
+  it('the middle line resolves to the same position regardless of topLineY/spacing scale', () => {
+    const a = resolveStaffPosition(20, 0, 10, 'treble');
+    const b = resolveStaffPosition(140, 100, 20, 'treble');
+    expect(a).toEqual(b);
   });
 });

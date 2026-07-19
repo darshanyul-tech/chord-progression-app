@@ -39,6 +39,9 @@ const ScaleDegreesTopic = lazy(() =>
 const ScaleHomeKeysTopic = lazy(() =>
   import('./scale-home-keys/ScaleHomeKeysTopic').then((m) => ({ default: m.ScaleHomeKeysTopic })),
 );
+const IntervalWritingTopic = lazy(() =>
+  import('./interval-writing/IntervalWritingTopic').then((m) => ({ default: m.IntervalWritingTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -378,9 +381,11 @@ export const TOPICS: TopicDefinition[] = [
     id: 'interval-writing',
     title: 'Interval Writing',
     category: 'theory-writing',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: IntervalWritingTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'scale-writing',

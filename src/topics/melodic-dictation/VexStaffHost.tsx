@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildVexScore, type MelodyStaffModel } from '../../lib/melody/vexscore';
-import { NATURAL_LETTERS, lineToLetterOctave, naturalMidiFor, tiePreview, type NoteSpelling } from '../../lib/melody/theory';
+import { NATURAL_LETTERS, resolveStaffPosition, tiePreview, type NoteSpelling } from '../../lib/melody/theory';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
 import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
 
@@ -125,15 +125,12 @@ export function VexStaffHost({
     return { x: loc.x, y: loc.y };
   }
 
-  // y → pitch: invert VexFlow's own getYForNote()/getYForLine() relationship
-  // (getYForNote(kpLine) === getYForLine(5 - kpLine), verified against
-  // vexflow/src/stave.ts) using only the topLineY/spacing this render
-  // already captured — no VexFlow instance needed at click time.
+  // y → pitch: resolveStaffPosition (lib/melody/theory.ts) does the
+  // geometry inversion, shared with the theory section's staff inputs
+  // (docs/14-theory-engine.md §8). What's specific to melodic dictation is
+  // just applying the armed accidental on top.
   function midiFromY(y: number, geo: MeasureGeometry): { midi: number; spelling?: NoteSpelling } {
-    const topConventionLine = (y - geo.topLineY) / geo.spacing;
-    const kpLine = Math.round((5 - topConventionLine) * 2) / 2;
-    const { letterIndex, octave } = lineToLetterOctave(kpLine, model.clef);
-    const naturalMidi = naturalMidiFor(letterIndex, octave);
+    const { letterIndex, octave, naturalMidi } = resolveStaffPosition(y, geo.topLineY, geo.spacing, model.clef);
     const midi = naturalMidi + (armedAccidental === '#' ? 1 : armedAccidental === 'b' ? -1 : 0);
     // Pin the *cursor's* natural letter/octave, not one re-derived from the
     // resulting pc — that's what stops a Sharp on the E line (naturalMidi+1

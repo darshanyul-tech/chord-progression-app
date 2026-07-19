@@ -179,3 +179,27 @@ export function lineToLetterOctave(line: number, clef: Clef): { letterIndex: num
 export function naturalMidiFor(letterIndex: number, octave: number): number {
   return (octave + 1) * 12 + NATURAL_PC[NATURAL_LETTERS[letterIndex]!]!;
 }
+
+export interface StaffPositionResolution {
+  letterIndex: number;
+  octave: number;
+  naturalMidi: number;
+}
+
+/**
+ * y-position -> staff position, inverting VexFlow's own getYForNote(kpLine)
+ * === getYForLine(5 - kpLine) relationship using only the topLineY/spacing a
+ * render pass already captured (no VexFlow instance needed at click time).
+ * Shared by every staff host that lets a click/hover resolve a y-coordinate
+ * to a pitch — VexStaffHost (melodic dictation) and the theory section's
+ * SlotStaffInput/ChordStaffInput (docs/14-theory-engine.md §8). Returns the
+ * bare natural position; callers apply their own accidental rule on top
+ * (melodic dictation: armed-or-natural; theory: armed, else the key
+ * signature's implied accidental, else natural — docs/14 §8a).
+ */
+export function resolveStaffPosition(y: number, topLineY: number, spacing: number, clef: Clef): StaffPositionResolution {
+  const topConventionLine = (y - topLineY) / spacing;
+  const kpLine = Math.round((5 - topConventionLine) * 2) / 2;
+  const { letterIndex, octave } = lineToLetterOctave(kpLine, clef);
+  return { letterIndex, octave, naturalMidi: naturalMidiFor(letterIndex, octave) };
+}

@@ -41,18 +41,20 @@ describe('App shell', () => {
     // Theory's default topic (note-reading) is active as of Phase 28 — it's
     // lazy-loaded (registry.ts), so its content appears after Suspense
     // resolves, hence findByRole rather than a synchronous getByRole.
-    // Generous timeout — under full-suite parallel load the dynamic import
-    // behind Suspense can take longer than the 1000ms default.
-    expect(await screen.findByRole('heading', { name: 'Name the note' }, { timeout: 5000 })).toBeInTheDocument();
+    // Generous timeout — under full-suite parallel load (this suite has
+    // grown a lot; the dynamic import behind Suspense competes with every
+    // other file's own VexFlow-heavy setup) the default 1000ms is nowhere
+    // near enough.
+    expect(await screen.findByRole('heading', { name: 'Name the note' }, { timeout: 15000 })).toBeInTheDocument();
   });
 
   it('a not-yet-built theory topic still shows the shared placeholder view', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
-    // Interval Writing remains a placeholder through Phase 29 (flips in Phase 30).
-    fireEvent.click(screen.getByRole('button', { name: /Interval Writing/ }));
-    expect(screen.getByRole('heading', { name: 'Interval Writing' })).toBeInTheDocument();
+    // Scale Writing remains a placeholder through Phase 30 (flips in Phase 31).
+    fireEvent.click(screen.getByRole('button', { name: /Scale Writing/ }));
+    expect(screen.getByRole('heading', { name: 'Scale Writing' })).toBeInTheDocument();
     expect(screen.getByText("This topic is part of the syllabus but isn't built yet.")).toBeInTheDocument();
   });
 

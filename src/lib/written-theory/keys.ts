@@ -117,6 +117,20 @@ export function degreeOfLetter(k: TheoryKey, letter: string, acc: Accidental): n
   return idx < 0 ? null : idx + 1;
 }
 
+/**
+ * The accidental a key's signature applies to every instance of a given
+ * letter (not just its own scale-degree use) — e.g. in D major every F is
+ * implicitly sharped. Used by SlotStaffInput's spelling rule (docs/14
+ * §8a/§10): armed accidental wins, else the signature's own accidental for
+ * that letter, else natural. Safe for minor keys too — natural minor is a
+ * rotation of the relative major's own diatonic spelling, so it carries the
+ * same per-letter accidentals as the shared signature.
+ */
+export function signatureAccidentalForLetter(k: TheoryKey, letter: string): Accidental {
+  const degree = scaleSpelling(k).find((d) => d.letter === letter);
+  return degree?.acc ?? '';
+}
+
 /** Sanity helper used by tests: the raw MIDI pitch class (0-11) of a key's tonic. */
 export function tonicPitchClass(k: TheoryKey): number {
   return ((spelledToMidi({ ...k.tonic, octave: 4 }) % 12) + 12) % 12;

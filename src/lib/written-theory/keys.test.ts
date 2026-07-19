@@ -4,6 +4,7 @@ import {
   degreeOfLetter,
   keysWithin,
   scaleSpelling,
+  signatureAccidentalForLetter,
   theoryKeyById,
   THEORY_KEYS,
   tonicPitchClass,
@@ -129,6 +130,35 @@ describe('degreeOfLetter', () => {
 
   it('returns null for a non-diatonic letter+accidental', () => {
     expect(degreeOfLetter(theoryKeyById('C'), 'C', '#')).toBeNull();
+  });
+});
+
+describe('signatureAccidentalForLetter', () => {
+  it('D major: every F is implicitly sharp (not just the scale-degree use)', () => {
+    expect(signatureAccidentalForLetter(theoryKeyById('D'), 'F')).toBe('#');
+    expect(signatureAccidentalForLetter(theoryKeyById('D'), 'C')).toBe('#');
+    expect(signatureAccidentalForLetter(theoryKeyById('D'), 'G')).toBe('');
+  });
+
+  it('Bb major: B and E are implicitly flat', () => {
+    expect(signatureAccidentalForLetter(theoryKeyById('Bb'), 'B')).toBe('b');
+    expect(signatureAccidentalForLetter(theoryKeyById('Bb'), 'E')).toBe('b');
+  });
+
+  it('C major / Am: every letter is natural', () => {
+    for (const letter of ['C', 'D', 'E', 'F', 'G', 'A', 'B']) {
+      expect(signatureAccidentalForLetter(theoryKeyById('C'), letter)).toBe('');
+      expect(signatureAccidentalForLetter(theoryKeyById('Am'), letter)).toBe('');
+    }
+  });
+
+  it('a minor key carries the same per-letter accidentals as its relative major', () => {
+    for (const k of THEORY_KEYS.filter((k) => k.mode === 'minor')) {
+      const relative = theoryKeyById(k.relativeId);
+      for (const letter of ['C', 'D', 'E', 'F', 'G', 'A', 'B']) {
+        expect(signatureAccidentalForLetter(k, letter)).toBe(signatureAccidentalForLetter(relative, letter));
+      }
+    }
   });
 });
 
