@@ -65,4 +65,41 @@ describe('spellMidi / midiToVexKey', () => {
       expect(spelled.octave).toBe(4);
     });
   });
+
+  it('honors an explicit preferAccidental for a chromatic (out-of-key) pc — the melodic-dictation Sharp/Flat bug', () => {
+    // C major has no sharps or flats: pc 1 (C#/Db) is purely chromatic there,
+    // and the default table ties toward flat (sharpKey: false). Before this
+    // fix, spellMidi had no way to honor an explicit Sharp choice at all —
+    // every chromatic note rendered as a flat regardless of which accidental
+    // button placed it.
+    const c = keyById('C');
+    expect(spellMidi(61, c, '#')).toEqual({ letter: 'C', accidental: '#', octave: 4 });
+    expect(spellMidi(61, c, 'b')).toEqual({ letter: 'D', accidental: 'b', octave: 4 });
+    expect(spellMidi(61, c)).toEqual({ letter: 'D', accidental: 'b', octave: 4 }); // unchanged default
+  });
+
+  it('ignores preferAccidental for a pc that is diatonic to the key, even if it needs an accidental', () => {
+    // F# (pc 6) is G major's diatonic 4th degree — it must always render as
+    // F# there (matching the key signature), never as Gb, regardless of
+    // which accidental button was armed when the note was placed.
+    const g = keyById('G');
+    expect(spellMidi(66, g, 'b')).toEqual({ letter: 'F', accidental: '#', octave: 4 });
+    expect(spellMidi(66, g, '#')).toEqual({ letter: 'F', accidental: '#', octave: 4 });
+  });
+
+  it('ignores preferAccidental for a natural-letter pc even when non-diatonic (avoids an octave-crossing respelling like B#/Cb)', () => {
+    // pc 0 (C) is non-diatonic to E major, but it already has its own
+    // natural-letter spelling (plain C) via the courtesy-natural rule —
+    // respelling it as "B#" to honor a Sharp hint would silently shift the
+    // octave digit (B#3 sounds the same as C4, not "B#4").
+    const e = keyById('E');
+    expect(spellMidi(60, e, '#')).toEqual({ letter: 'C', accidental: '', octave: 4 });
+  });
+
+  it('midiToVexKey threads preferAccidental through to the VexFlow key string', () => {
+    const c = keyById('C');
+    expect(midiToVexKey(61, c, '#')).toBe('c#/4');
+    expect(midiToVexKey(61, c, 'b')).toBe('db/4');
+    expect(midiToVexKey(61, c)).toBe('db/4');
+  });
 });

@@ -12,6 +12,8 @@ export interface RhythmNote {
   beat: number;
   duration: number;
   isRest: boolean;
+  /** Tied to the immediately preceding note (same measure, or the previous measure's last note) — display only, never graded. */
+  tied?: boolean;
 }
 export type Measure = RhythmNote[];
 

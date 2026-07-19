@@ -6,9 +6,10 @@ import { disconnectScheduled, scheduleMetroClick, type ScheduledNode } from '../
 import { generateMelody } from '../../lib/melody/generator';
 import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/grading';
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
-import { keyById, resolveRangeWindow, type Clef, type KeyDef, type PitchedMeasure } from '../../lib/melody/theory';
+import { spellMidi } from '../../lib/melody/spelling';
+import { keyById, resolveRangeWindow, tiePreview, type Clef, type KeyDef, type NoteSpelling, type PitchedMeasure } from '../../lib/melody/theory';
 import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
-import { resolvePlacementBeat } from '../../lib/notation/placement';
+import { findPrecedingNote, resolvePlacementBeat } from '../../lib/notation/placement';
 import { candidateBeats, DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
 import { durationClose, durationFitsBar, gridStep, maxNotesOfDuration, metricPulseBeats, metricPulseCount, type TimeSigInfo } from '../../lib/rhythm/time';
 import { midiToNoteName } from '../../lib/theory';
@@ -92,6 +93,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   const [armedDuration, setArmedDuration] = useState(1);
   const [armedIsRest, setArmedIsRest] = useState(false);
   const [isDotActive, setIsDotActive] = useState(false);
+  const [isTieActive, setIsTieActive] = useState(false);
   const [armedAccidental, setArmedAccidental] = useState<'' | '#' | 'b'>('');
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasListened, setHasListened] = useState(false);
@@ -291,7 +293,14 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     audio.sampler.triggerAttackRelease(midiToNoteName(midi), 0.35, audio.now());
   }
 
-  function placeNoteAt(measureIndex: number, rawBeat: number, duration: number, isRest: boolean, midi: number | null) {
+  function placeNoteAt(
+    measureIndex: number,
+    rawBeat: number,
+    duration: number,
+    isRest: boolean,
+    midi: number | null,
+    spellingOverride?: NoteSpelling,
+  ) {
     if (hasSubmitted) return;
     const dur = effectiveDuration(duration);
     const measure = userMeasures[measureIndex];
@@ -325,17 +334,47 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       reject();
       return;
     }
+    // A tied note sounds into the note in front of it — so if the note
+    // immediately preceding this position is tied, the note being placed
+    // here is that tie's other end and must sound the same pitch; inherit
+    // it (and its spelling) regardless of which line was clicked. Shares
+    // tiePreview with the hover ghost so preview and commit can't disagree.
+    // (Arming Tie for *this* note is separate — it just tags the new note
+    // itself as tied-forward; see the `tied` field on the note below.)
+    let effectiveMidi = midi;
+    let inheritedSpelling: NoteSpelling | undefined;
+    let inheritedFromTie = false;
+    if (!isRest && midi !== null) {
+      const preview = tiePreview(userMeasures, measureIndex, beat, midi);
+      if (preview.fromTiedPredecessor) {
+        effectiveMidi = preview.midi;
+        inheritedSpelling = preview.spelling;
+        inheritedFromTie = true;
+      }
+    }
     // Clamp clicks far above/below the staff to the current range window
     // instead of placing an absurd pitch — flash to signal the clamp.
-    let placedMidi = midi;
-    if (!isRest && midi !== null) {
+    let placedMidi = effectiveMidi;
+    let placedSpelling = inheritedFromTie ? inheritedSpelling : spellingOverride;
+    if (!isRest && effectiveMidi !== null) {
       const rangeWindow = resolveRangeWindow(key, clef, settings.range);
-      const clamped = Math.max(rangeWindow.lowMidi, Math.min(rangeWindow.highMidi, midi));
-      if (clamped !== midi) {
+      const clamped = Math.max(rangeWindow.lowMidi, Math.min(rangeWindow.highMidi, effectiveMidi));
+      if (clamped !== effectiveMidi) {
         placedMidi = clamped;
+        // The override was pinned to a pitch that's no longer valid once
+        // clamped — fall through to the pc-based fallback below instead.
+        placedSpelling = undefined;
         setFlashMeasure(measureIndex);
         window.setTimeout(() => setFlashMeasure(null), 280);
       }
+    }
+    // Keyboard placement has no natural-letter cursor to pin a spelling
+    // override to (moveCursorPitch walks raw semitones) — fall back to the
+    // key/pc-based tie-break, still honoring the armed accidental where the
+    // pitch class is genuinely ambiguous (spelling.ts's spellMidi).
+    if (!isRest && placedMidi !== null && !placedSpelling && armedAccidental) {
+      const spelled = spellMidi(placedMidi, key, armedAccidental);
+      if (spelled.accidental) placedSpelling = { letter: spelled.letter, accidental: spelled.accidental, octave: spelled.octave };
     }
     // Gap-fill placements never overlap anything (resolvePlacementBeat only
     // returns beats that fit clean), so this filter is a no-op there; on a
@@ -347,7 +386,20 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       prev.map((m, i) =>
         i === measureIndex
           ? fillGaps(
-              [...m.filter((n) => !overlaps(n)), { beat, duration: dur, rest: isRest, midi: isRest ? null : placedMidi }],
+              [
+                ...m.filter((n) => !overlaps(n)),
+                {
+                  beat,
+                  duration: dur,
+                  rest: isRest,
+                  midi: isRest ? null : placedMidi,
+                  spelling: isRest ? undefined : placedSpelling,
+                  // Tie armed: this new note itself is the tied one — its
+                  // curve leads forward to whatever gets placed next (a
+                  // pending partial tie until then; lib/notation/ties.ts).
+                  tied: !isRest && isTieActive ? true : undefined,
+                },
+              ],
               cap,
               pulse,
               melodyRestAdapter,
@@ -485,10 +537,25 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     );
     if (!note || note.midi === null) return;
     const newMidi = note.midi + delta;
+    // A tie connects forward, so it's whatever *precedes* this note that may
+    // carry the tied flag pointing at it — that tie no longer matches once
+    // this note's pitch changes, so clear it too (alongside this note's own
+    // tied flag, in case it itself ties forward to something further on).
+    const preceding = findPrecedingNote(userMeasures, last.measureIndex, last.beat);
     setUserMeasures((prev) =>
       prev.map((m, i) => {
-        if (i !== last.measureIndex) return m;
-        return m.map((n) => (durationClose(n.beat, last.beat) && !n.rest && n.midi !== null ? { ...n, midi: newMidi } : n));
+        let updated = m;
+        if (i === last.measureIndex) {
+          updated = updated.map((n) =>
+            durationClose(n.beat, last.beat) && !n.rest && n.midi !== null
+              ? { ...n, midi: newMidi, spelling: undefined, tied: undefined }
+              : n,
+          );
+        }
+        if (preceding?.note.tied && i === preceding.measureIndex) {
+          updated = updated.map((n) => (n === preceding.note ? { ...n, tied: undefined } : n));
+        }
+        return updated;
       }),
     );
     previewPitch(newMidi);
@@ -519,6 +586,9 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   }
   function toggleDot() {
     setIsDotActive((p) => !p);
+  }
+  function toggleTie() {
+    setIsTieActive((p) => !p);
   }
   function toggleSharp() {
     setArmedAccidental((p) => (p === '#' ? '' : '#'));
@@ -573,6 +643,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     armedDuration,
     armedIsRest,
     isDotActive,
+    isTieActive,
     armedAccidental,
     activeDurations,
     gridStepVal,
@@ -596,6 +667,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     armDuration,
     toggleRest,
     toggleDot,
+    toggleTie,
     toggleSharp,
     toggleFlat,
     init,

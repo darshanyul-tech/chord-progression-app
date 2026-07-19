@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import '../../styles/topics/melodic-dictation.css';
+import type { NoteSpelling } from '../../lib/melody/theory';
 import { durationClose, durationFitsBar } from '../../lib/rhythm/time';
 import { useIsActiveTopic } from '../../hooks/useIsActiveTopic';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
@@ -58,6 +59,10 @@ export function MelodicDictationTopic() {
         case 'D':
           practice.toggleDot();
           break;
+        case 't':
+        case 'T':
+          practice.toggleTie();
+          break;
         case 's':
         case 'S':
           practice.toggleSharp();
@@ -97,10 +102,17 @@ export function MelodicDictationTopic() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive, practice.submitEnabled]);
 
-  function handlePlace(measureIndex: number, beat: number, midi: number) {
+  function handlePlace(measureIndex: number, beat: number, midi: number, spelling?: NoteSpelling) {
     practice.setActiveMeasureIndex(measureIndex);
     if (practice.hasSubmitted) return;
-    practice.placeNoteAt(measureIndex, beat, practice.armedDuration, practice.armedIsRest, practice.armedIsRest ? null : midi);
+    practice.placeNoteAt(
+      measureIndex,
+      beat,
+      practice.armedDuration,
+      practice.armedIsRest,
+      practice.armedIsRest ? null : midi,
+      practice.armedIsRest ? undefined : spelling,
+    );
   }
 
   const ready = practice.audioStatus === 'ready';
@@ -165,6 +177,7 @@ export function MelodicDictationTopic() {
               armedDuration={practice.effectiveDuration(practice.armedDuration)}
               armedIsRest={practice.armedIsRest}
               armedAccidental={practice.armedAccidental}
+              isTieActive={practice.isTieActive}
               onPlace={handlePlace}
               onCursorMoveBeat={practice.moveCursorBeat}
               onCursorMovePitch={practice.moveCursorPitch}
@@ -240,6 +253,15 @@ export function MelodicDictationTopic() {
                 onClick={practice.toggleDot}
               >
                 &#183;
+              </button>
+              <button
+                type="button"
+                className={`md-mod-btn md-mod-btn-lg${practice.isTieActive ? ' md-mod-active' : ''}`}
+                title="Tie (T)"
+                aria-pressed={practice.isTieActive}
+                onClick={practice.toggleTie}
+              >
+                &#8995;
               </button>
               <button
                 type="button"

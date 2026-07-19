@@ -1,6 +1,7 @@
 import { Barline, Dot, Renderer, Stave, StaveNote } from 'vexflow';
 import type { MeasureGeometry } from '../notation/geometry';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
+import { drawTies } from '../notation/ties';
 import type { Measure, RhythmNote } from '../rhythm/time';
 import { vexDurationFor } from './vexDuration';
 
@@ -20,6 +21,8 @@ export interface RhythmHoverPreview {
   beat: number;
   duration: number;
   isRest: boolean;
+  /** Tie armed — the ghost itself previews as a tied note, its curve leading right to the next note (or a pending partial tie). */
+  tied?: boolean;
 }
 
 export interface RhythmStaffModel {
@@ -101,14 +104,36 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
   const staveWidth = (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) / numMeasures;
   const staves: Stave[] = [];
   const geometry: MeasureGeometry[] = [];
+  // Merged across every measure's own drawMeasureVoice call so ties (which
+  // can span a barline into the next measure) can look up either side's
+  // built StaveNote after the whole staff is drawn — see drawTies below.
+  const noteToStave = new Map<RhythmNote, StaveNote>();
+  // Captured when the hover ghost is built below, so the tie-preview pass
+  // after the loop can look it up in noteToStave by reference.
+  let hoverNoteRef: RhythmNote | null = null;
 
   for (let mi = 0; mi < numMeasures; mi++) {
     const x = MARGIN_LEFT + mi * staveWidth;
-    // Full 5-line stave (was numLines: 1) — a single-line stave gives
-    // VexFlow's barlines zero height to span, so measure boundaries were
-    // invisible; five lines matches Melodic Dictation's look and makes the
-    // begin/end barlines real.
+    // Keep the real 5-line geometry (barline height, getYForLine(0)/(4) used
+    // below for the cursor/playback markers, the b/4 notehead position every
+    // rhythm note sits on) but only draw the single line that notehead
+    // actually sits on — a true rhythmic/percussion staff look, unlike
+    // Melodic Dictation's full 5-line pitch staff. A genuine numLines: 1
+    // stave gives VexFlow's barlines zero height to span (measure boundaries
+    // would be invisible) and shifts the line-index geometry other code here
+    // relies on, so line visibility is toggled per-line instead of shrinking
+    // the line count itself. Stave's own constructor always overwrites a
+    // `lineConfig` passed to it (resetLines() forces every line visible right
+    // after assigning options), so this has to be set via setConfigForLines
+    // afterward instead of in the constructor options.
     const stave = new Stave(x, STAVE_Y, staveWidth);
+    stave.setConfigForLines([
+      { visible: false },
+      { visible: false },
+      { visible: true },
+      { visible: false },
+      { visible: false },
+    ]);
     if (mi === 0) {
       stave.addClef('percussion');
       stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
@@ -143,11 +168,14 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     if (hasSubmitted && !ok) {
       // Reveal: user's (wrong) answer greyed out + correct pattern in red on
       // top, both on the same stave — greying the user voice keeps it from
-      // reading as a second competing answer at the same y (Part B4).
-      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+      // reading as a second competing answer at the same y (Part B4). Only
+      // the user's own voice can carry ties (the generator never produces
+      // any), so only its map feeds drawTies below.
+      const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         style: { fillStyle: MUTED_COLOR, strokeStyle: MUTED_COLOR },
         hoverColor: HOVER_COLOR,
       });
+      userMap.forEach((v, k) => noteToStave.set(k, v));
       drawMeasureVoice(context, stave, correctPattern[mi] ?? [], measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         style: { fillStyle: WRONG_COLOR, strokeStyle: WRONG_COLOR },
         hoverColor: HOVER_COLOR,
@@ -155,12 +183,14 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     } else {
       const hoverNote: RhythmNote | null =
         !hasSubmitted && hover && hover.measureIndex === mi
-          ? { beat: hover.beat, duration: hover.duration, isRest: hover.isRest }
+          ? { beat: hover.beat, duration: hover.duration, isRest: hover.isRest, tied: hover.tied && !hover.isRest ? true : undefined }
           : null;
-      drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+      if (hoverNote) hoverNoteRef = hoverNote;
+      const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         hoverNote,
         hoverColor: HOVER_COLOR,
       });
+      userMap.forEach((v, k) => noteToStave.set(k, v));
     }
 
     if (hasSubmitted) {
@@ -177,6 +207,27 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       context.restore();
     }
   }
+
+  // Ties are drawn over the measures *with the hover ghost folded in* (the
+  // same replaces-what-it-overlaps substitution drawMeasureVoice applies) so
+  // the ghost participates in ties exactly like the committed placement
+  // would: a tied ghost previews its own curve leading right (full to the
+  // next note, or a pending partial tie), and a committed tied note previews
+  // its curve completing into the ghost that follows it.
+  const tieMeasures = hoverNoteRef
+    ? measures.map((m, mi) => {
+        if (mi !== hover!.measureIndex) return m;
+        const hb = hover!.beat;
+        const he = hb + hover!.duration;
+        return [...m.filter((n) => !(hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001)), hoverNoteRef!];
+      })
+    : measures;
+  drawTies(context, tieMeasures, noteToStave, {
+    beat: (n) => n.beat,
+    duration: (n) => n.duration,
+    isRest: (n) => n.isRest,
+    isTied: (n) => !!n.tied,
+  });
 
   if (cursorBeat !== null && staves[cursorMeasureIndex]) {
     const stave = staves[cursorMeasureIndex]!;

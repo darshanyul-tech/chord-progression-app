@@ -11,6 +11,7 @@ export interface VexDuration {
 
 export function vexDurationFor(d: number): VexDuration {
   if (durationClose(d, 4)) return { duration: 'w', dots: 0 };
+  if (durationClose(d, 6)) return { duration: 'w', dots: 1 };
   if (durationClose(d, 2)) return { duration: 'h', dots: 0 };
   if (durationClose(d, 3)) return { duration: 'h', dots: 1 };
   if (durationClose(d, 1)) return { duration: 'q', dots: 0 };
@@ -18,6 +19,7 @@ export function vexDurationFor(d: number): VexDuration {
   if (durationClose(d, 0.5)) return { duration: '8', dots: 0 };
   if (durationClose(d, 0.75)) return { duration: '8', dots: 1 };
   if (durationClose(d, 0.25)) return { duration: '16', dots: 0 };
+  if (durationClose(d, 0.375)) return { duration: '16', dots: 1 };
   if (durationClose(d, 0.333)) return { duration: '8', dots: 0 }; // triplet eighth
   if (durationClose(d, 0.667)) return { duration: 'q', dots: 0 }; // triplet quarter
   return { duration: 'q', dots: 0 };

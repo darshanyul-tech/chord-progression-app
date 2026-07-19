@@ -92,6 +92,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
   const [armedDuration, setArmedDuration] = useState(1);
   const [armedIsRest, setArmedIsRest] = useState(false);
   const [isDotActive, setIsDotActive] = useState(false);
+  const [isTieActive, setIsTieActive] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasListened, setHasListened] = useState(false);
   const [playbackFraction, setPlaybackFraction] = useState<number | null>(null);
@@ -320,7 +321,18 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     setUserMeasures((prev) =>
       prev.map((m, i) =>
         i === measureIndex
-          ? fillGaps([...m.filter((n) => !overlaps(n)), { duration: dur, isRest: !!isRest, beat }], cap, pulse, rhythmRestAdapter)
+          ? fillGaps(
+              [
+                ...m.filter((n) => !overlaps(n)),
+                // Tie armed: this new note itself is the tied one — its
+                // curve leads forward to whatever gets placed next (a
+                // pending partial tie until then; lib/notation/ties.ts).
+                { duration: dur, isRest: !!isRest, beat, tied: !isRest && isTieActive ? true : undefined },
+              ],
+              cap,
+              pulse,
+              rhythmRestAdapter,
+            )
           : m,
       ),
     );
@@ -388,7 +400,9 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
           const idx = m.findIndex((n) => durationClose(n.beat, last.beat));
           if (idx < 0) return m;
           // Refill the vacated span with default rests instead of leaving a
-          // gap — a bar never has unaccounted-for space, undo included.
+          // gap — a bar never has unaccounted-for space, undo included. A
+          // preceding tied note keeps its tie (it renders as a pending
+          // partial curve again, exactly as before its follower was placed).
           return fillGaps(
             m.filter((_, i2) => i2 !== idx),
             timeSig.measureBeats,
@@ -448,6 +462,10 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     setIsDotActive((prev) => !prev);
   }
 
+  function toggleTie() {
+    setIsTieActive((prev) => !prev);
+  }
+
   function previewPattern() {
     stopPlayback();
     const sig = settings.signatures[0] ?? '4/4';
@@ -505,6 +523,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     armedDuration,
     armedIsRest,
     isDotActive,
+    isTieActive,
     activeDurations,
     gridStepVal,
     capacityHint,
@@ -525,6 +544,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     armDuration,
     toggleRest,
     toggleDot,
+    toggleTie,
     previewPattern,
     resetScore: () => resetScoreInStore(TOPIC_ID),
   };

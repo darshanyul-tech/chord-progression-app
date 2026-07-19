@@ -1,4 +1,4 @@
-import { NATURAL_LETTERS, NATURAL_PC, type KeyDef } from './theory';
+import { NATURAL_LETTERS, NATURAL_PC, diatonicPcs, type KeyDef } from './theory';
 
 // Pitch spelling rule (docs/04-notation-engine.md §B3): a per-key pc→spelling
 // lookup table, generated once and unit-tested — never ad-hoc logic at call
@@ -86,9 +86,37 @@ export function spellingTableFor(key: KeyDef): KeySpellingTable {
   return table;
 }
 
-export function spellMidi(midi: number, key: KeyDef): SpelledPitch {
+/**
+ * True only for the 5 pcs with no natural-letter spelling of their own
+ * (C#/Db, D#/Eb, F#/Gb, G#/Ab, A#/Bb) — the only pcs where a sharp vs. flat
+ * spelling is genuinely a choice rather than dictated by octave/letter
+ * mechanics. Every other pc either is a natural letter's own pc (spelled
+ * plain, e.g. "courtesy natural") or must respell as an adjacent letter
+ * across the B/C or E/F seam, which would silently shift the octave digit —
+ * never something a user's placement choice should trigger.
+ */
+function isAmbiguousChromaticPc(pc: number): boolean {
+  return !NATURAL_LETTERS.some((l) => NATURAL_PC[l] === pc);
+}
+
+/**
+ * `preferAccidental` lets a specific placed note override the key's default
+ * sharp/flat tie-break (B3) with the user's own choice — but only for a
+ * pitch class that's genuinely chromatic to the key (not one of its 7
+ * diatonic degrees, which must keep the key-signature spelling regardless of
+ * how the note was entered) and genuinely ambiguous (see
+ * isAmbiguousChromaticPc). Without a hint, or outside those two conditions,
+ * this is identical to the old unconditional table lookup.
+ */
+export function spellMidi(midi: number, key: KeyDef, preferAccidental?: '#' | 'b'): SpelledPitch {
   const pc = mod12(midi);
   const octave = Math.floor(midi / 12) - 1;
+  if (preferAccidental && isAmbiguousChromaticPc(pc) && !diatonicPcs(key).includes(pc)) {
+    const letter = NATURAL_LETTERS.find(
+      (l) => mod12(NATURAL_PC[l]! + (preferAccidental === '#' ? 1 : -1)) === pc,
+    )!;
+    return { letter, accidental: preferAccidental, octave };
+  }
   const { letter, accidental } = spellingTableFor(key)[pc]!;
   return { letter, accidental, octave };
 }
@@ -98,6 +126,6 @@ export function spelledToVexKey(spelled: SpelledPitch): string {
   return `${spelled.letter.toLowerCase()}${spelled.accidental}/${spelled.octave}`;
 }
 
-export function midiToVexKey(midi: number, key: KeyDef): string {
-  return spelledToVexKey(spellMidi(midi, key));
+export function midiToVexKey(midi: number, key: KeyDef, preferAccidental?: '#' | 'b'): string {
+  return spelledToVexKey(spellMidi(midi, key, preferAccidental));
 }

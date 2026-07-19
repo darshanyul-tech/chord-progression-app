@@ -1,10 +1,11 @@
 import { Accidental, Dot, Renderer, Stave, StaveNote, type Voice } from 'vexflow';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
+import { drawTies } from '../notation/ties';
 import type { MeasureGeometry } from '../notation/geometry';
 import { vexDurationFor } from '../rhythm-staff/vexDuration';
 import type { TimeSigInfo } from '../rhythm/time';
-import { midiToVexKey, spellMidi } from './spelling';
-import { NATURAL_LETTERS, staffLineFor, type Clef, type KeyDef, type PitchedMeasure, type PitchedNote } from './theory';
+import { midiToVexKey, spellMidi, spelledToVexKey } from './spelling';
+import { NATURAL_LETTERS, staffLineFor, type Clef, type KeyDef, type NoteSpelling, type PitchedMeasure, type PitchedNote } from './theory';
 
 // Pure builder (docs/04-notation-engine.md §B4) — VexFlow is display-only;
 // grading/storage/playback never read these objects. Renders a fresh scene
@@ -46,6 +47,10 @@ export interface HoverPreview {
   duration: number;
   midi: number | null;
   isRest: boolean;
+  /** Mirrors the armed accidental so the ghost previews the same spelling the click would actually commit. */
+  spelling?: NoteSpelling;
+  /** Tie armed — the ghost itself previews as a tied note, its curve leading right to the next note (or a pending partial tie). */
+  tied?: boolean;
 }
 
 const CANVAS_WIDTH = 1000;
@@ -72,7 +77,13 @@ function melodyAdapter(key: KeyDef, clef: Clef): MeasureVoiceAdapter<PitchedNote
       const { duration, dots } = vexDurationFor(n.duration);
       const staveNote = n.rest
         ? new StaveNote({ keys: [REST_KEY], duration: `${duration}r`, dots, clef })
-        : new StaveNote({ keys: [midiToVexKey(n.midi!, key)], duration, dots, clef, autoStem: true });
+        : new StaveNote({
+            keys: [n.spelling ? spelledToVexKey(n.spelling) : midiToVexKey(n.midi!, key)],
+            duration,
+            dots,
+            clef,
+            autoStem: true,
+          });
       if (dots > 0) Dot.buildAndAttach([staveNote], { all: true });
       return staveNote;
     },
@@ -107,6 +118,13 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
   const context = renderer.getContext();
 
   const geometry: MeasureGeometry[] = [];
+  // Merged across every measure's own drawMeasureVoice call so ties (which
+  // can span a barline into the next measure) can look up either side's
+  // built StaveNote after the whole staff is drawn — see drawTies below.
+  const noteToStave = new Map<PitchedNote, StaveNote>();
+  // Captured when the hover ghost is built below, so the tie-preview pass
+  // after the loop can look it up in noteToStave by reference.
+  let hoverNoteRef: PitchedNote | null = null;
   for (let row = 0; row < numRows; row++) {
     const measuresInRow = Math.min(MAX_MEASURES_PER_ROW, numMeasures - row * MAX_MEASURES_PER_ROW);
     if (measuresInRow <= 0) continue;
@@ -138,10 +156,13 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       const userNotes = measures[mi] ?? [];
       const beforeFormat = (voice: Voice) => Accidental.applyAccidentals([voice], key.vexKeySpec);
       if (hasSubmitted && !isCorrect && revealMeasures) {
-        drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+        // Only the user's own voice can carry ties (the generator never
+        // produces any), so only its map feeds drawTies below.
+        const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
           hoverColor: HOVER_COLOR,
           beforeFormat,
         });
+        userMap.forEach((v, k) => noteToStave.set(k, v));
         drawMeasureVoice(
           context,
           stave,
@@ -159,13 +180,22 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       } else {
         const hoverNote: PitchedNote | null =
           !hasSubmitted && hover && hover.measureIndex === mi
-            ? { beat: hover.beat, duration: hover.duration, rest: hover.isRest, midi: hover.midi }
+            ? {
+                beat: hover.beat,
+                duration: hover.duration,
+                rest: hover.isRest,
+                midi: hover.midi,
+                spelling: hover.spelling,
+                tied: hover.tied && !hover.isRest ? true : undefined,
+              }
             : null;
-        drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+        if (hoverNote) hoverNoteRef = hoverNote;
+        const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
           hoverNote,
           hoverColor: HOVER_COLOR,
           beforeFormat,
         });
+        userMap.forEach((v, k) => noteToStave.set(k, v));
       }
 
       geometry.push({
@@ -177,6 +207,27 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       });
     }
   }
+
+  // Ties are drawn over the measures *with the hover ghost folded in* (the
+  // same replaces-what-it-overlaps substitution drawMeasureVoice applies) so
+  // the ghost participates in ties exactly like the committed placement
+  // would: a tied ghost previews its own curve leading right (full to the
+  // next note, or a pending partial tie), and a committed tied note previews
+  // its curve completing into the ghost that follows it.
+  const tieMeasures = hoverNoteRef
+    ? measures.map((m, mi) => {
+        if (mi !== hover!.measureIndex) return m;
+        const hb = hover!.beat;
+        const he = hb + hover!.duration;
+        return [...m.filter((n) => !(hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001)), hoverNoteRef!];
+      })
+    : measures;
+  drawTies(context, tieMeasures, noteToStave, {
+    beat: (n) => n.beat,
+    duration: (n) => n.duration,
+    isRest: (n) => n.rest,
+    isTied: (n) => !!n.tied,
+  });
 
   if (cursorBeat !== null) {
     const geo = geometry.find((g) => g.index === cursorMeasureIndex);

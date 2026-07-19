@@ -17,6 +17,13 @@
  *    has unaccounted-for space — `fillGaps` / `defaultRestMeasure` in
  *    gaps.ts.
  *  - Measure geometry for hit-testing — `MeasureGeometry` in geometry.ts.
+ *  - Ties (always connect forward, to "the note in front"): arming Tie tags
+ *    the newly placed note itself as tied; `drawTies` (ties.ts, called once
+ *    per staff after every measure is drawn) draws each tied note's curve to
+ *    its follower (`findFollowingNote`, placement.ts) or a pending partial
+ *    curve when nothing valid follows yet. Melodic dictation forces the note
+ *    placed after a tied note to inherit its pitch (`findPrecedingNote` via
+ *    lib/melody/theory.ts's tiePreview, shared by commit and hover ghost).
  *
  * A topic plugs in by implementing small adapter interfaces over its own
  * note shape (e.g. RhythmNote's `isRest` vs melodic's PitchedNote's `rest`+
@@ -31,5 +38,14 @@ export { fillGaps, defaultRestMeasure, decomposeGap, pulseRestSpans, type RestAd
 export { beamableRuns, generateBeamedRuns } from './beaming';
 export { buildGapPaddedTickables, buildGhostNote, type TickableAdapter, type GapPaddedTickables } from './tickables';
 export { drawMeasureVoice, type MeasureVoiceAdapter, type DrawMeasureVoiceOptions } from './measureVoice';
-export { resolvePlacementBeat, findMeasureAt, type PlacedNote, type ResolvedPlacement } from './placement';
+export {
+  resolvePlacementBeat,
+  findMeasureAt,
+  findPrecedingNote,
+  findFollowingNote,
+  type PlacedNote,
+  type ResolvedPlacement,
+  type LocatedNote,
+} from './placement';
+export { drawTies, type TieAdapter } from './ties';
 export { vexDurationFor, type VexDuration } from '../rhythm-staff/vexDuration';

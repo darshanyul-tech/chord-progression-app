@@ -159,6 +159,27 @@ describe('useRhythmPractice — undo/clear', () => {
   });
 });
 
+describe('useRhythmPractice — ties', () => {
+  it('placing a note with Tie armed marks that note itself tied (its curve leads forward to whatever comes next)', () => {
+    const { result } = renderPractice();
+    act(() => result.current.placeNoteAt(0, 0, 1, false));
+    expect(byBeat(result.current.userMeasures[0])[0]!.tied).toBeUndefined();
+
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 1, 1, false));
+    const placed = byBeat(result.current.userMeasures[0]);
+    expect(placed[1]!.tied).toBe(true); // the newly placed note carries the tie
+    expect(placed[0]!.tied).toBeUndefined(); // its predecessor is untouched
+  });
+
+  it('Tie never applies when placing a rest', () => {
+    const { result } = renderPractice();
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 0, 1, true));
+    expect(byBeat(result.current.userMeasures[0])[0]!.tied).toBeUndefined();
+  });
+});
+
 describe('useRhythmPractice — grading', () => {
   it('checkAnswer grades correct when every placement matches the generated pattern exactly', () => {
     setRng(() => 0.3); // deterministic generateQuestion() output for this test

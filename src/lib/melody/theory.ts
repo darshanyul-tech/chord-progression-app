@@ -1,16 +1,69 @@
 // New topic (docs/05-topics/07-melodic-dictation.md, docs/04-notation-engine.md
 // Part B2/B5). Framework-free note model + key/clef/staff-geometry theory.
 
+import { findPrecedingNote } from '../notation/placement';
+
 export type Clef = 'treble' | 'bass';
 export type KeyMode = 'major' | 'minor';
+
+/**
+ * A fully-pinned display spelling — letter, accidental, and the letter's own
+ * octave (not necessarily the octave `Math.floor(midi/12)-1` would give: e.g.
+ * B# sounds like the C above it, but still displays in B's octave). Storing
+ * the letter (not just the accidental) is what stops e.g. a Sharp placed on
+ * an E cursor line from silently collapsing into a plain "F" — the two are
+ * the same pitch class, but only one is what the user actually asked for.
+ */
+export interface NoteSpelling {
+  letter: string;
+  accidental: '#' | 'b';
+  octave: number;
+}
 
 export interface PitchedNote {
   beat: number;
   duration: number;
   rest: boolean;
   midi: number | null;
+  /** User's explicit spelling choice at placement (Sharp/Flat armed) — see spelling.ts's spelledToVexKey. Display only; never affects grading (MIDI-only). */
+  spelling?: NoteSpelling;
+  /** Tied to the immediately preceding note (same measure, or the previous measure's last note) — display only, never graded. */
+  tied?: boolean;
 }
 export type PitchedMeasure = PitchedNote[];
+
+export interface TiePreview {
+  midi: number;
+  spelling?: NoteSpelling;
+  /** True when the note immediately preceding this position is tied forward into it — the pitch above is that note's, not the clicked one. */
+  fromTiedPredecessor: boolean;
+}
+
+/**
+ * What placing (or hovering) a note at `beat` would actually sound: a tied
+ * note connects forward into the note in front of it, so if the note
+ * immediately *preceding* this position (lib/notation/placement.ts's
+ * findPrecedingNote — same measure, or the previous measure's last note for
+ * a tie across the barline) carries `tied: true`, the note being placed here
+ * is that tie's other end and must sound the same pitch — its pitch (and
+ * spelling) get forced to the predecessor's, regardless of which line was
+ * clicked. An untied/absent/rest predecessor just reports the clicked pitch
+ * back unchanged. Shared by the actual commit (usePractice.ts's placeNoteAt)
+ * and the hover ghost (VexStaffHost.tsx) so the preview can never show a
+ * pitch the click wouldn't actually commit to.
+ */
+export function tiePreview(
+  measures: readonly PitchedMeasure[],
+  measureIndex: number,
+  beat: number,
+  clickedMidi: number,
+): TiePreview {
+  const preceding = findPrecedingNote(measures, measureIndex, beat);
+  if (preceding && !preceding.note.rest && preceding.note.tied && preceding.note.midi !== null) {
+    return { midi: preceding.note.midi, spelling: preceding.note.spelling, fromTiedPredecessor: true };
+  }
+  return { midi: clickedMidi, fromTiedPredecessor: false };
+}
 
 export interface KeyDef {
   id: string;

@@ -73,6 +73,133 @@ describe('renderStaff reveal styling', () => {
   });
 });
 
+// A rhythmic staff shows one line (the b/4 notehead position notes actually
+// sit on), not Melodic Dictation's full 5-line pitch staff — but keeps the
+// same 5-line internal geometry (barline height, getYForLine(0)/(4)) so only
+// the line-visibility toggles, not the line count itself.
+describe('renderStaff single-line stave', () => {
+  it('draws exactly one horizontal stave line, not five', () => {
+    const container = document.createElement('div');
+    renderStaff(container, baseModel({}));
+    const svg = container.querySelector('svg')!;
+    const staveLines = svg.querySelectorAll('.vf-stave path');
+    expect(staveLines.length).toBe(1);
+  });
+});
+
+// Ties (docs feature request): a tied note draws a curve to the note in
+// front of it — lib/notation/ties.ts, shared with Melodic Dictation.
+describe('renderStaff ties', () => {
+  it('draws a tie curve between a tied note and the one in front of it', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [
+          [
+            { beat: 0, duration: 1, isRest: false, tied: true },
+            { beat: 1, duration: 1, isRest: false },
+            { beat: 2, duration: 2, isRest: true },
+          ],
+        ],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('draws no tie curve when nothing is tied', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [
+          [
+            { beat: 0, duration: 1, isRest: false },
+            { beat: 1, duration: 1, isRest: false },
+            { beat: 2, duration: 2, isRest: true },
+          ],
+        ],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+  });
+
+  it('draws a pending partial tie when only rests follow the tied note', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [
+          [
+            { beat: 0, duration: 1, isRest: false, tied: true },
+            { beat: 1, duration: 3, isRest: true },
+          ],
+        ],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('draws a tie across the barline into the next measure', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        numMeasures: 2,
+        measures: [
+          [{ beat: 0, duration: 4, isRest: false, tied: true }],
+          [{ beat: 0, duration: 4, isRest: false }],
+        ],
+        correctPattern: [correctMeasure, correctMeasure],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews the tie on the hover ghost itself when Tie is armed (curve leading right)', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [[{ beat: 0, duration: 1, isRest: false }, { beat: 1, duration: 3, isRest: true }]],
+        hover: { measureIndex: 0, beat: 1, duration: 1, isRest: false, tied: true },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews a committed tied note\'s curve completing into the hover ghost that follows it', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [[{ beat: 0, duration: 1, isRest: false, tied: true }, { beat: 1, duration: 3, isRest: true }]],
+        hover: { measureIndex: 0, beat: 1, duration: 1, isRest: false },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews no tie when Tie is not armed and nothing committed is tied', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [[{ beat: 0, duration: 1, isRest: false }, { beat: 1, duration: 3, isRest: true }]],
+        hover: { measureIndex: 0, beat: 1, duration: 1, isRest: false, tied: false },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+  });
+});
+
 // Playback cursor (04-notation-engine.md, teal) vs. keyboard insertion cursor
 // (09-improvement-plan.md §14.1, purple) — distinct markers, drawn only when
 // their respective model field is non-null.

@@ -9,6 +9,7 @@ interface RhythmStaffHostProps {
   gridStepVal: number;
   armedDuration: number;
   armedIsRest: boolean;
+  isTieActive: boolean;
   /** rawBeat is a proportional, unsnapped beat estimate within the measure — the caller resolves it to a real slot. */
   onClick(measureIndex: number, rawBeat: number): void;
   onCursorMove?(delta: number): void;
@@ -22,6 +23,8 @@ interface HoverState {
   beat: number;
   duration: number;
   isRest: boolean;
+  /** Tie armed — the ghost previews as a tied note, its curve leading right. */
+  tied: boolean;
 }
 
 // Imperative island (04-notation-engine.md Part A): owns the container div;
@@ -50,6 +53,7 @@ export function RhythmStaffHost({
   gridStepVal,
   armedDuration,
   armedIsRest,
+  isTieActive,
   onClick,
   onCursorMove,
   onPlaceAtCursor,
@@ -60,6 +64,11 @@ export function RhythmStaffHost({
   const geometryRef = useRef<MeasureGeometry[]>([]);
   const [hover, setHover] = useState<HoverState | null>(null);
   const hoverRafRef = useRef<number | null>(null);
+  // The most recent real mouse position, so arming Tie (or changing the
+  // armed duration/rest) can recompute the ghost immediately even when the
+  // mouse hasn't moved since — otherwise it kept showing the stale
+  // pre-toggle preview (e.g. no tie curve) until the next mousemove.
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const measureTotalBeats = model.beatsPerBar * (4 / model.beatValue);
 
   useEffect(() => {
@@ -75,6 +84,11 @@ export function RhythmStaffHost({
     },
     [],
   );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (lastPointRef.current) updateHover(lastPointRef.current.x, lastPointRef.current.y);
+  }, [armedDuration, armedIsRest, isTieActive, model.measures, model.hasSubmitted]);
 
   function pointFromEvent(evt: { clientX: number; clientY: number }): { x: number; y: number } | null {
     const svg = containerRef.current?.querySelector('svg');
@@ -104,6 +118,7 @@ export function RhythmStaffHost({
   }
 
   function updateHover(x: number, y: number) {
+    lastPointRef.current = { x, y };
     if (model.hasSubmitted) {
       setHover(null);
       return;
@@ -119,7 +134,15 @@ export function RhythmStaffHost({
       setHover(null);
       return;
     }
-    setHover({ measureIndex: resolved.geo.index, beat: placed.beat, duration: armedDuration, isRest: armedIsRest });
+    // Mirrors placeNoteAt: with Tie armed, the note being placed is itself
+    // the tied one — the ghost previews its own forward curve.
+    setHover({
+      measureIndex: resolved.geo.index,
+      beat: placed.beat,
+      duration: armedDuration,
+      isRest: armedIsRest,
+      tied: !armedIsRest && isTieActive,
+    });
   }
 
   function handleMouseMove(evt: React.MouseEvent<HTMLDivElement>) {
@@ -137,6 +160,7 @@ export function RhythmStaffHost({
       cancelAnimationFrame(hoverRafRef.current);
       hoverRafRef.current = null;
     }
+    lastPointRef.current = null;
     setHover(null);
   }
 

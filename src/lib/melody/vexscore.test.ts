@@ -3,7 +3,7 @@ import { generateMelody } from './generator';
 import { defaultMelodicDictationSettings } from './settings';
 import type { MelodicDictationSettings } from './settings';
 import { pitchedMeasuresEqual } from './grading';
-import type { PitchedNote } from './theory';
+import { keyById, type PitchedNote } from './theory';
 import { beamableRuns } from '../notation/beaming';
 import { decomposeGap } from '../notation/gaps';
 import { buildVexScore, CURSOR_COLOR, HOVER_COLOR, WRONG_COLOR } from './vexscore';
@@ -439,6 +439,160 @@ describe('buildVexScore smoke test', () => {
     });
     const svg = container.querySelector('svg')!;
     expect(svg.querySelectorAll('.vf-stavenote').length).toBe(1);
+  });
+
+  // Regression test for the melodic-dictation Sharp bug: two chromatic notes
+  // placed with Sharp armed, on different staff lines that happen to land on
+  // the same pitch class (E cursor -> pc 5, same as F's own pc). Without a
+  // pinned spelling (letter+octave, not just accidental), the E-line note
+  // silently re-derived as plain "F" from its pc alone, colliding with the
+  // F#'s already-sharped line and forcing VexFlow to draw a stray natural
+  // sign instead of the second sharp the user actually asked for.
+  it('spells two different-letter Sharp placements independently, even when they share a pitch class', () => {
+    const container = document.createElement('div');
+    const notes: PitchedNote[] = [
+      // F#4 (midi 66) — first note on the F line, explicit sharp.
+      { beat: 0, duration: 1, rest: false, midi: 66, spelling: { letter: 'F', accidental: '#', octave: 4 } },
+      // "E#4" (midi 65, same pc as plain F4) — placed by arming Sharp on the
+      // E cursor line. Must render as E#, not collapse into F (which would
+      // collide with the F# above and draw a natural instead).
+      { beat: 1, duration: 1, rest: false, midi: 65, spelling: { letter: 'E', accidental: '#', octave: 4 } },
+    ];
+    buildVexScore(container, {
+      key: keyById('C'),
+      clef: 'treble',
+      timeSig: { beatsPerBar: 2, beatValue: 4, measureBeats: 2 },
+      numMeasures: 1,
+      measures: [notes],
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      hover: null,
+    });
+    const svg = container.querySelector('svg')!;
+    const glyphCodes = [...svg.querySelectorAll('text')]
+      .flatMap((t) => [...(t.textContent ?? '')])
+      .map((c) => c.codePointAt(0)!.toString(16));
+    const SHARP = 'e262';
+    const NATURAL = 'e261';
+    expect(glyphCodes.filter((c) => c === SHARP)).toHaveLength(2);
+    expect(glyphCodes.filter((c) => c === NATURAL)).toHaveLength(0);
+  });
+});
+
+// Ties (docs feature request): a tied note draws a curve to the note in
+// front of it — lib/notation/ties.ts, shared with Rhythm Dictation.
+describe('buildVexScore ties', () => {
+  function baseModel(measures: PitchedNote[][], numMeasures = measures.length) {
+    return {
+      key: keyById('C'),
+      clef: 'treble' as const,
+      timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+      numMeasures,
+      measures,
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      hover: null,
+    };
+  }
+
+  it('draws a tie curve between a tied note and the (same-pitch) note in front of it', () => {
+    const container = document.createElement('div');
+    buildVexScore(
+      container,
+      baseModel([
+        [
+          { beat: 0, duration: 1, rest: false, midi: 60, tied: true },
+          { beat: 1, duration: 3, rest: false, midi: 60 },
+        ],
+      ]),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('draws no tie curve when nothing is tied', () => {
+    const container = document.createElement('div');
+    buildVexScore(
+      container,
+      baseModel([
+        [
+          { beat: 0, duration: 1, rest: false, midi: 60 },
+          { beat: 1, duration: 3, rest: false, midi: 60 },
+        ],
+      ]),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+  });
+
+  it('draws a pending partial tie when only rests follow the tied note', () => {
+    const container = document.createElement('div');
+    buildVexScore(
+      container,
+      baseModel([
+        [
+          { beat: 0, duration: 1, rest: false, midi: 60, tied: true },
+          { beat: 1, duration: 3, rest: true, midi: null },
+        ],
+      ]),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('draws a tie across the barline into the next measure', () => {
+    const container = document.createElement('div');
+    buildVexScore(
+      container,
+      baseModel([
+        [{ beat: 0, duration: 4, rest: false, midi: 60, tied: true }],
+        [{ beat: 0, duration: 4, rest: false, midi: 60 }],
+      ]),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews the tie on the hover ghost itself when Tie is armed (curve leading right)', () => {
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      ...baseModel([[{ beat: 0, duration: 1, rest: false, midi: 60 }]]),
+      hover: { measureIndex: 0, beat: 1, duration: 3, midi: 60, isRest: false, tied: true },
+    });
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews a committed tied note\'s curve completing into the hover ghost that follows it', () => {
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      ...baseModel([[{ beat: 0, duration: 1, rest: false, midi: 60, tied: true }]]),
+      hover: { measureIndex: 0, beat: 1, duration: 3, midi: 60, isRest: false },
+    });
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+  });
+
+  it('previews no tie when Tie is not armed and nothing committed is tied', () => {
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      ...baseModel([[{ beat: 0, duration: 1, rest: false, midi: 60 }]]),
+      hover: { measureIndex: 0, beat: 1, duration: 3, midi: 60, isRest: false, tied: false },
+    });
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
   });
 });
 

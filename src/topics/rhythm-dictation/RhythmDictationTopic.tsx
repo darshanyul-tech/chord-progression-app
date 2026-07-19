@@ -67,6 +67,7 @@ export function RhythmDictationTopic() {
       switch (e.key) {
         case 'r': case 'R': practice.toggleRest(); break;
         case 'd': case 'D': practice.toggleDot(); break;
+        case 't': case 'T': practice.toggleTie(); break;
         case 'Backspace': e.preventDefault(); practice.removeLastNote(); break;
         case 'Delete': practice.clearActiveMeasure(); break;
         case ' ': e.preventDefault(); practice.startPlayback(); break;
@@ -152,6 +153,7 @@ export function RhythmDictationTopic() {
               gridStepVal={practice.gridStepVal}
               armedDuration={practice.effectiveDuration(practice.armedDuration)}
               armedIsRest={practice.armedIsRest}
+              isTieActive={practice.isTieActive}
               onClick={handleStaffClick}
               onCursorMove={practice.moveCursor}
               onPlaceAtCursor={practice.placeAtCursor}
@@ -227,6 +229,15 @@ export function RhythmDictationTopic() {
                 onClick={practice.toggleDot}
               >
                 &#183;
+              </button>
+              <button
+                type="button"
+                className={`rd-mod-btn rd-mod-btn-lg${practice.isTieActive ? ' rd-mod-active' : ''}`}
+                title="Tie (T)"
+                aria-pressed={practice.isTieActive}
+                onClick={practice.toggleTie}
+              >
+                &#8995;
               </button>
               <button type="button" className="rd-mod-btn" title="Backspace" onClick={practice.removeLastNote}>
                 &#9003;

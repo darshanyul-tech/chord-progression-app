@@ -285,3 +285,46 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     expect(result.current.userMeasures[0]?.map((n) => n.beat).sort((a, b) => a - b)).toEqual([0, 1, 2]);
   });
 });
+
+describe('useMelodicPractice — ties', () => {
+  it('placing with Tie armed marks the new note itself tied; the next placed note inherits its pitch', () => {
+    const { result } = renderPractice();
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 0, 1, false, 64)); // E4, tied forward
+    act(() => result.current.toggleTie()); // tie off again
+    act(() => result.current.placeNoteAt(0, 1, 1, false, 71)); // clicked B4, but the tied E4 sounds into it
+    const placed = byBeat(result.current.userMeasures[0]);
+    expect(placed[0]).toMatchObject({ beat: 0, midi: 64, tied: true });
+    expect(placed[1]).toMatchObject({ beat: 1, midi: 64 });
+    expect(placed[1]!.tied).toBeUndefined();
+  });
+
+  it('does not inherit pitch from an untied predecessor', () => {
+    const { result } = renderPractice();
+    act(() => result.current.placeNoteAt(0, 0, 1, false, 64));
+    act(() => result.current.placeNoteAt(0, 1, 1, false, 71));
+    expect(byBeat(result.current.userMeasures[0])[1]).toMatchObject({ midi: 71 });
+  });
+
+  it('a tie across the barline: the tied last note of a measure forces the next measure\'s first note to its pitch', () => {
+    const { result } = renderPractice({ measures: 2 });
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 0, 4, false, 67)); // whole note, G4, tied forward
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(1, 0, 4, false, 72)); // clicked C5, but must inherit G4 across the barline
+    expect(result.current.userMeasures[0]?.[0]).toMatchObject({ midi: 67, tied: true });
+    expect(result.current.userMeasures[1]?.[0]).toMatchObject({ beat: 0, midi: 67 });
+    expect(result.current.userMeasures[1]?.[0]?.tied).toBeUndefined();
+  });
+
+  it('nudging the note a tie sounds into clears the tie on the note in front of it (pitches no longer match)', () => {
+    const { result } = renderPractice();
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 0, 1, false, 64)); // tied forward
+    act(() => result.current.toggleTie());
+    act(() => result.current.placeNoteAt(0, 1, 1, false, 64)); // inherits E4, completing the tie
+    expect(byBeat(result.current.userMeasures[0])[0]).toMatchObject({ tied: true });
+    act(() => result.current.nudgeLastNote(1)); // nudges the beat-1 note away from beat 0's pitch
+    expect(byBeat(result.current.userMeasures[0])[0]?.tied).toBeUndefined();
+  });
+});

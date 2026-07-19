@@ -127,6 +127,68 @@ export function resolvePlacementBeat(
   return null;
 }
 
+/** A note plus which measure it lives in — findPrecedingNote/findFollowingNote's result, since the caller often needs to mutate that specific measure (e.g. retroactively tagging a tie). */
+export interface LocatedNote<T> {
+  note: T;
+  measureIndex: number;
+}
+
+/**
+ * The note immediately before `beat` in `measures[measureIndex]` — the same
+ * measure's own last note ending at or before it, falling back to the
+ * previous measure's last note when nothing in this measure precedes it (a
+ * tie across the barline). Ties always connect forward (see
+ * findFollowingNote) — this is used only at *placement* time, to find which
+ * already-placed note a new tied note should retroactively be marked as
+ * tying into (usePractice.ts in both topics), and to force a new tied
+ * melodic note's pitch to match it.
+ */
+export function findPrecedingNote<T extends { beat: number; duration: number }>(
+  measures: readonly (readonly T[])[],
+  measureIndex: number,
+  beat: number,
+): LocatedNote<T> | null {
+  const sameMeasure = (measures[measureIndex] ?? [])
+    .filter((n) => n.beat + n.duration <= beat + 0.001)
+    .sort((a, b) => b.beat - a.beat)[0];
+  if (sameMeasure) return { note: sameMeasure, measureIndex };
+  if (measureIndex > 0) {
+    const prevMeasure = measures[measureIndex - 1] ?? [];
+    const last = [...prevMeasure].sort((a, b) => b.beat - a.beat)[0];
+    if (last) return { note: last, measureIndex: measureIndex - 1 };
+  }
+  return null;
+}
+
+/**
+ * The note immediately after `beat + duration` in `measures[measureIndex]` —
+ * the same measure's own next note, falling back to the next measure's first
+ * note (a tie across the barline). A tied note (`tied: true`) always
+ * connects to *this* note — see lib/notation/ties.ts's `drawTies`, which
+ * calls this to find the curve's other end, and the hover-preview code in
+ * both VexStaffHost/RhythmStaffHost, which calls findPrecedingNote instead
+ * (from the hover's own position) to preview a tie into an already-placed
+ * later note.
+ */
+export function findFollowingNote<T extends { beat: number; duration: number }>(
+  measures: readonly (readonly T[])[],
+  measureIndex: number,
+  beat: number,
+  duration: number,
+): LocatedNote<T> | null {
+  const end = beat + duration;
+  const sameMeasure = (measures[measureIndex] ?? [])
+    .filter((n) => n.beat >= end - 0.001)
+    .sort((a, b) => a.beat - b.beat)[0];
+  if (sameMeasure) return { note: sameMeasure, measureIndex };
+  if (measureIndex < measures.length - 1) {
+    const nextMeasure = measures[measureIndex + 1] ?? [];
+    const first = [...nextMeasure].sort((a, b) => a.beat - b.beat)[0];
+    if (first) return { note: first, measureIndex: measureIndex + 1 };
+  }
+  return null;
+}
+
 /**
  * Picks which measure a click landed in, given every measure's geometry.
  * Two measures on the same row share a ±`tolerance` band around their

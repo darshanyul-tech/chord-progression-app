@@ -1,4 +1,4 @@
-import { Formatter, Voice, type Renderer, type Stave } from 'vexflow';
+import { Formatter, Voice, type Renderer, type Stave, type StaveNote } from 'vexflow';
 import { generateBeamedRuns } from './beaming';
 import { buildGapPaddedTickables, type TickableAdapter } from './tickables';
 
@@ -27,6 +27,10 @@ export interface DrawMeasureVoiceOptions<T> {
  * topic only needs to supply a `MeasureVoiceAdapter` for its own note shape
  * (how to build a StaveNote from it) and doesn't need to re-derive any of
  * gap-padding, hover-ghost substitution, or beat-boundary-aware beaming.
+ * Returns the built note→StaveNote mapping (real notes plus the hover ghost,
+ * if any) so a caller can draw ties across this call's own measure boundary
+ * afterward (lib/notation/ties.ts) — this function only draws one measure at
+ * a time and has no notion of "the previous measure's note" itself.
  */
 export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   context: ReturnType<Renderer['getContext']>,
@@ -37,7 +41,7 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   beatValue: number,
   adapter: MeasureVoiceAdapter<T>,
   options: DrawMeasureVoiceOptions<T>,
-): void {
+): Map<T, StaveNote> {
   const { style, hoverNote = null, hoverColor, beforeFormat } = options;
 
   // A hover ghost is rendered as a real tickable in this same voice, not a
@@ -57,7 +61,7 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
     effectiveNotes = [...notes.filter((n) => !overlaps(n)), hoverNote];
     ghostRef = hoverNote;
   }
-  if (!effectiveNotes.length) return;
+  if (!effectiveNotes.length) return new Map();
   const sorted = [...effectiveNotes].sort((a, b) => adapter.beat(a) - adapter.beat(b));
 
   const { tickables, noteToStave } = buildGapPaddedTickables(sorted, measureTotalBeats, adapter, ghostRef, style, hoverColor);
@@ -75,4 +79,5 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
 
   voice.draw(context, stave);
   beams.forEach((b) => b.setContext(context).draw());
+  return noteToStave;
 }

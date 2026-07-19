@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildVexScore, type MelodyStaffModel } from '../../lib/melody/vexscore';
-import { lineToLetterOctave, naturalMidiFor } from '../../lib/melody/theory';
+import { NATURAL_LETTERS, lineToLetterOctave, naturalMidiFor, tiePreview, type NoteSpelling } from '../../lib/melody/theory';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
 import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
 
@@ -11,7 +11,8 @@ interface VexStaffHostProps {
   armedDuration: number;
   armedIsRest: boolean;
   armedAccidental: '' | '#' | 'b';
-  onPlace(measureIndex: number, beat: number, midi: number): void;
+  isTieActive: boolean;
+  onPlace(measureIndex: number, beat: number, midi: number, spelling?: NoteSpelling): void;
   onCursorMoveBeat?(delta: number): void;
   onCursorMovePitch?(delta: number): void;
   onPlaceAtCursor?(): void;
@@ -24,12 +25,17 @@ interface HoverState {
   beat: number;
   duration: number;
   midi: number | null;
+  spelling?: NoteSpelling;
+  /** Tie armed — the ghost previews as a tied note, its curve leading right. */
+  tied: boolean;
 }
 
 interface ResolvedPoint {
   geo: MeasureGeometry;
   rawBeat: number;
   midi: number;
+  /** Set only when an accidental is armed — the cursor's own natural letter/octave plus that accidental, so e.g. Sharp on the E line always spells as E#, never silently as F (docs bug: sharp-after-sharp showing a stray natural). */
+  spelling?: NoteSpelling;
 }
 
 // Imperative island (docs/04-notation-engine.md Part B4/B5): owns the
@@ -56,6 +62,7 @@ export function VexStaffHost({
   armedDuration,
   armedIsRest,
   armedAccidental,
+  isTieActive,
   onPlace,
   onCursorMoveBeat,
   onCursorMovePitch,
@@ -67,6 +74,12 @@ export function VexStaffHost({
   const geometryRef = useRef<MeasureGeometry[]>([]);
   const [hover, setHover] = useState<HoverState | null>(null);
   const hoverRafRef = useRef<number | null>(null);
+  // The most recent real mouse position, so arming Tie/Sharp/Flat (or
+  // changing the armed duration/rest) can recompute the ghost immediately
+  // even when the mouse hasn't moved since — otherwise it kept showing the
+  // stale pre-toggle preview (e.g. no tie curve, wrong accidental) until the
+  // next mousemove.
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     if (containerRef.current) {
@@ -80,6 +93,8 @@ export function VexStaffHost({
               duration: activeHover.duration,
               midi: activeHover.midi,
               isRest: armedIsRest,
+              spelling: armedIsRest ? undefined : activeHover.spelling,
+              tied: !armedIsRest && activeHover.tied,
             }
           : null,
       });
@@ -92,6 +107,11 @@ export function VexStaffHost({
     },
     [],
   );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (lastPointRef.current) updateHover(lastPointRef.current.x, lastPointRef.current.y);
+  }, [armedDuration, armedIsRest, armedAccidental, isTieActive, model.measures, model.hasSubmitted]);
 
   function pointFromEvent(evt: { clientX: number; clientY: number }): { x: number; y: number } | null {
     const svg = containerRef.current?.querySelector('svg');
@@ -109,12 +129,23 @@ export function VexStaffHost({
   // (getYForNote(kpLine) === getYForLine(5 - kpLine), verified against
   // vexflow/src/stave.ts) using only the topLineY/spacing this render
   // already captured — no VexFlow instance needed at click time.
-  function midiFromY(y: number, geo: MeasureGeometry): number {
+  function midiFromY(y: number, geo: MeasureGeometry): { midi: number; spelling?: NoteSpelling } {
     const topConventionLine = (y - geo.topLineY) / geo.spacing;
     const kpLine = Math.round((5 - topConventionLine) * 2) / 2;
     const { letterIndex, octave } = lineToLetterOctave(kpLine, model.clef);
     const naturalMidi = naturalMidiFor(letterIndex, octave);
-    return naturalMidi + (armedAccidental === '#' ? 1 : armedAccidental === 'b' ? -1 : 0);
+    const midi = naturalMidi + (armedAccidental === '#' ? 1 : armedAccidental === 'b' ? -1 : 0);
+    // Pin the *cursor's* natural letter/octave, not one re-derived from the
+    // resulting pc — that's what stops a Sharp on the E line (naturalMidi+1
+    // lands on F's own pc) from silently respelling as a plain F instead of
+    // E#, and in turn stops that stray natural from later colliding with a
+    // genuine F# earlier in the same measure (VexFlow's Accidental.
+    // applyAccidentals tracks state per letter+octave, so two different
+    // letters landing on the same pc must never be conflated into one).
+    const spelling: NoteSpelling | undefined = armedAccidental
+      ? { letter: NATURAL_LETTERS[letterIndex]!, accidental: armedAccidental, octave }
+      : undefined;
+    return { midi, spelling };
   }
 
   function resolveAt(x: number, y: number): ResolvedPoint | null {
@@ -123,7 +154,8 @@ export function VexStaffHost({
     const measureTotalBeats = model.timeSig.measureBeats;
     const rel = (x - geo.noteStartX) / Math.max(1, geo.noteEndX - geo.noteStartX);
     const rawBeat = rel * measureTotalBeats;
-    return { geo, rawBeat, midi: midiFromY(y, geo) };
+    const { midi, spelling } = midiFromY(y, geo);
+    return { geo, rawBeat, midi, spelling };
   }
 
   function handleClick(evt: React.MouseEvent<HTMLDivElement>) {
@@ -131,10 +163,11 @@ export function VexStaffHost({
     if (!pt) return;
     const resolved = resolveAt(pt.x, pt.y);
     if (!resolved) return;
-    onPlace(resolved.geo.index, resolved.rawBeat, resolved.midi);
+    onPlace(resolved.geo.index, resolved.rawBeat, resolved.midi, resolved.spelling);
   }
 
   function updateHover(x: number, y: number) {
+    lastPointRef.current = { x, y };
     if (model.hasSubmitted) {
       setHover(null);
       return;
@@ -150,11 +183,28 @@ export function VexStaffHost({
       setHover(null);
       return;
     }
+    // Mirror placeNoteAt's own tie handling exactly, so the ghost never
+    // shows a pitch/tie state the click wouldn't actually commit to: if the
+    // note immediately preceding this position is tied (it sounds into this
+    // spot), the ghost's pitch is forced to match it — regardless of whether
+    // Tie is currently armed. Tie armed additionally marks the ghost itself
+    // as tied, previewing its own forward curve.
+    let midi = armedIsRest ? null : resolved.midi;
+    let spelling = armedIsRest ? undefined : resolved.spelling;
+    if (!armedIsRest && midi !== null) {
+      const preview = tiePreview(model.measures, resolved.geo.index, placed.beat, midi);
+      if (preview.fromTiedPredecessor) {
+        midi = preview.midi;
+        spelling = preview.spelling;
+      }
+    }
     setHover({
       measureIndex: resolved.geo.index,
       beat: placed.beat,
       duration: armedDuration,
-      midi: armedIsRest ? null : resolved.midi,
+      midi,
+      spelling,
+      tied: !armedIsRest && isTieActive,
     });
   }
 
@@ -173,6 +223,7 @@ export function VexStaffHost({
       cancelAnimationFrame(hoverRafRef.current);
       hoverRafRef.current = null;
     }
+    lastPointRef.current = null;
     setHover(null);
   }
 
