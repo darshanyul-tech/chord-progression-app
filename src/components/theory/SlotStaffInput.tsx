@@ -3,6 +3,7 @@ import { Accidental, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflo
 import { NATURAL_LETTERS, resolveStaffPosition, type Clef, type NoteSpelling } from '../../lib/melody/theory';
 import { signatureAccidentalForLetter, type TheoryKey } from '../../lib/written-theory/keys';
 import type { SpelledPitch } from '../../lib/written-theory/spelledPitch';
+import { vexDurationFor } from '../../lib/rhythm-staff/vexDuration';
 
 export interface SlotStaffInputProps {
   clef: Clef;
@@ -12,6 +13,14 @@ export interface SlotStaffInputProps {
   signatureKey?: TheoryKey;
   /** Fixed length = number of slots; null = empty. */
   slots: (SpelledPitch | null)[];
+  /**
+   * Per-slot duration in beat units (4 = whole note) — omit for the default
+   * "every slot is a whole note" shape Interval/Scale Writing use.
+   * Transposition passes the source melody's own rhythm here so its answer
+   * bars align with the source bars above them (docs/15-theory-topics/08 §4)
+   * rather than every slot being evenly spaced.
+   */
+  durations?: number[];
   /** Slots the user cannot edit (e.g. the given tonic). */
   lockedIndices?: number[];
   /** Post-grading recolor, index-aligned — undefined leaves a slot at its default color. */
@@ -66,6 +75,7 @@ export function SlotStaffInput({
   vexKeySpec,
   signatureKey,
   slots,
+  durations,
   lockedIndices = [],
   slotColors = [],
   armedAccidental,
@@ -101,24 +111,27 @@ export function SlotStaffInput({
     const midLine = resolveStaffPosition(stave.getYForLine(MIDDLE_LINE_VEX_INDEX), topLineY, spacing, clef);
 
     const staveNotes: StaveNote[] = slots.map((slot, i) => {
+      const beats = durations?.[i] ?? 4;
+      const { duration, dots } = vexDurationFor(beats);
       const isHoverTarget = hover?.index === i;
       const effective: SpelledPitch | null = isHoverTarget
         ? { letter: hover!.letter, acc: hover!.acc, octave: hover!.octave }
         : slot;
       if (!effective) {
         const key = toVexKey(NATURAL_LETTERS[midLine.letterIndex]!, '', midLine.octave);
-        const note = new StaveNote({ keys: [key], duration: 'w', clef });
+        const note = new StaveNote({ keys: [key], duration, dots, clef });
         note.setStyle({ fillStyle: MUTED_COLOR, strokeStyle: MUTED_COLOR });
         return note;
       }
       const key = toVexKey(effective.letter, singleAccidental(effective.acc), effective.octave);
-      const note = new StaveNote({ keys: [key], duration: 'w', clef });
+      const note = new StaveNote({ keys: [key], duration, dots, clef });
       const color = isHoverTarget ? HOVER_COLOR : slotColors[i];
       if (color) note.setStyle({ fillStyle: color, strokeStyle: color });
       return note;
     });
 
-    const voice = new Voice({ numBeats: Math.max(1, slots.length) * 4, beatValue: 4 });
+    const totalBeats = durations ? durations.reduce((s, b) => s + b, 0) : Math.max(1, slots.length) * 4;
+    const voice = new Voice({ numBeats: totalBeats, beatValue: 4 });
     voice.setMode(Voice.Mode.SOFT);
     voice.addTickables(staveNotes);
     Accidental.applyAccidentals([voice], vexKeySpec ?? 'C');

@@ -56,9 +56,9 @@ describe('App shell', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
-    // Transposition remains a placeholder through Phase 31 (flips in Phase 32).
-    fireEvent.click(screen.getByRole('button', { name: /^Transposition/ }));
-    expect(screen.getByRole('heading', { name: 'Transposition' })).toBeInTheDocument();
+    // Meter Transposition remains a placeholder through Phase 32 (flips in Phase 33).
+    fireEvent.click(screen.getByRole('button', { name: /Meter Transposition/ }));
+    expect(screen.getByRole('heading', { name: 'Meter Transposition' })).toBeInTheDocument();
     expect(screen.getByText("This topic is part of the syllabus but isn't built yet.")).toBeInTheDocument();
   });
 

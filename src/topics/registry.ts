@@ -48,6 +48,9 @@ const ScaleWritingTopic = lazy(() =>
 const ChordWritingTopic = lazy(() =>
   import('./chord-writing/ChordWritingTopic').then((m) => ({ default: m.ChordWritingTopic })),
 );
+const TranspositionTopic = lazy(() =>
+  import('./transposition/TranspositionTopic').then((m) => ({ default: m.TranspositionTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -417,9 +420,11 @@ export const TOPICS: TopicDefinition[] = [
     id: 'transposition',
     title: 'Transposition',
     category: 'theory-transposition',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: TranspositionTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'meter-transposition',
