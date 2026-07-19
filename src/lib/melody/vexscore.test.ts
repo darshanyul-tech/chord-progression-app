@@ -653,3 +653,31 @@ describe('beamableRuns', () => {
     expect(beamableRuns(notes, isRest)).toEqual([]);
   });
 });
+
+// docs/14-theory-engine.md §6 — alto/tenor pass through to VexFlow unchanged;
+// one render test per new clef confirms VexFlow itself accepts them.
+describe('buildVexScore — alto/tenor clefs (docs/14 §6)', () => {
+  it.each(['alto', 'tenor'] as const)('renders a %s-clef staff without throwing', (clef) => {
+    const container = document.createElement('div');
+    const note: PitchedNote = { beat: 0, duration: 1, rest: false, midi: 60 };
+    expect(() =>
+      buildVexScore(container, {
+        key: keyById('C'),
+        clef,
+        timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+        numMeasures: 1,
+        measures: [[note]],
+        hasSubmitted: false,
+        isCorrect: false,
+        revealMeasures: null,
+        flashMeasure: null,
+        playbackFraction: null,
+        cursorMeasureIndex: 0,
+        cursorBeat: null,
+        cursorMidi: null,
+        hover: null,
+      }),
+    ).not.toThrow();
+    expect(container.querySelector('svg')).not.toBeNull();
+  });
+});

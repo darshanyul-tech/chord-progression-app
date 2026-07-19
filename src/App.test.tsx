@@ -33,12 +33,25 @@ describe('App shell', () => {
     expect(activeButtons[0]).toHaveTextContent('Chord Progressions');
   });
 
-  it('navigating into the Theory section shows its own syllabus with a placeholder topic', () => {
+  it('navigating into the Theory section shows its own syllabus, landing on the active default topic', async () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Note Reading' })).toBeInTheDocument();
+    // Theory's default topic (note-reading) is active as of Phase 28 — it's
+    // lazy-loaded (registry.ts), so its content appears after Suspense
+    // resolves, hence findByRole rather than a synchronous getByRole.
+    // Generous timeout — under full-suite parallel load the dynamic import
+    // behind Suspense can take longer than the 1000ms default.
+    expect(await screen.findByRole('heading', { name: 'Name the note' }, { timeout: 5000 })).toBeInTheDocument();
+  });
+
+  it('a not-yet-built theory topic still shows the shared placeholder view', () => {
+    const { container } = render(<App />);
+    const homeGrid = within(container.querySelector('.home-section-grid')!);
+    fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Scale Degrees/ }));
+    expect(screen.getByRole('heading', { name: 'Scale Degrees' })).toBeInTheDocument();
     expect(screen.getByText("This topic is part of the syllabus but isn't built yet.")).toBeInTheDocument();
   });
 

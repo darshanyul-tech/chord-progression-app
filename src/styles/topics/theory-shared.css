@@ -1,0 +1,38 @@
+/* Shared across the theory section's choice topics (Note Reading, Key
+   Signatures, Scale Degrees, Scale Home Keys) — settings checkbox groups and
+   the question-display card. Mirrors rhythm-dictation.css's .rd-check-grid
+   styling so multi-select clef/key/mode settings look consistent with the
+   rest of the app. */
+.theory-check-grid label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.2rem 0.65rem 0.2rem 0;
+  font-size: 0.86rem;
+  font-weight: 500;
+}
+
+.theory-question-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin: 0.5rem 0 1rem;
+  background: var(--panel-2);
+}
+
+.theory-prompt {
+  margin: 0 0 0.6rem;
+  font-size: 1.02rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.theory-staff-frame {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+.theory-staff-frame svg {
+  max-width: 100%;
+  height: auto;
+}

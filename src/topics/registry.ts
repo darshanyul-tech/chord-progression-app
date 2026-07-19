@@ -27,6 +27,12 @@ const ChordSingingTopic = lazy(() =>
 const SightSingingTopic = lazy(() =>
   import('./sight-singing/SightSingingTopic').then((m) => ({ default: m.SightSingingTopic })),
 );
+const NoteReadingTopic = lazy(() =>
+  import('./note-reading/NoteReadingTopic').then((m) => ({ default: m.NoteReadingTopic })),
+);
+const KeySignaturesTopic = lazy(() =>
+  import('./key-signatures/KeySignaturesTopic').then((m) => ({ default: m.KeySignaturesTopic })),
+);
 
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
@@ -326,17 +332,21 @@ export const TOPICS: TopicDefinition[] = [
     id: 'note-reading',
     title: 'Note Reading',
     category: 'theory-reading',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: NoteReadingTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'key-signatures',
     title: 'Key Signatures',
     category: 'theory-reading',
-    status: 'placeholder',
+    status: 'active',
     section: 'theory',
     theme: 'light',
+    Component: KeySignaturesTopic,
+    // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
     id: 'scale-degrees',

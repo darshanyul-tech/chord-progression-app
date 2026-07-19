@@ -3,7 +3,10 @@
 
 import { findPrecedingNote } from '../notation/placement';
 
-export type Clef = 'treble' | 'bass';
+// 'alto'/'tenor' added for theory reading (docs/14-theory-engine.md §6) — only
+// consumed where a theory topic explicitly asks for a C clef; every existing
+// aural-section settings UI continues to offer treble/bass only.
+export type Clef = 'treble' | 'bass' | 'alto' | 'tenor';
 export type KeyMode = 'major' | 'minor';
 
 /**
@@ -16,7 +19,18 @@ export type KeyMode = 'major' | 'minor';
  */
 export interface NoteSpelling {
   letter: string;
-  accidental: '#' | 'b';
+  /**
+   * '#'/'b' for an accidental; '' for an *explicit* natural (only theory's
+   * read-only display ever constructs this — docs/14-theory-engine.md §8a's
+   * every-note-carries-an-explicit-spelling rule). Melodic dictation's own
+   * click-to-place flow never needs '' — an unarmed placement simply omits
+   * `spelling` entirely and lets spellMidi's per-key table resolve the
+   * natural, which is correct there because it's always one of the 14
+   * MELODY_KEYS. Theory topics can't rely on that fallback (their key
+   * signatures aren't in that table), so they spell every note themselves,
+   * naturals included.
+   */
+  accidental: '' | '#' | 'b';
   octave: number;
 }
 
@@ -129,7 +143,7 @@ export interface RangeWindow {
 
 export type MelodyRange = 'narrow' | 'medium' | 'wide';
 
-const CLEF_REFERENCE_LOW: Record<Clef, number> = { treble: 60, bass: 48 }; // C4 / C3
+const CLEF_REFERENCE_LOW: Record<Clef, number> = { treble: 60, bass: 48, alto: 53, tenor: 48 }; // C4 / C3 / F3 / C3
 
 /** Anchors the tonic to the clef's reference octave band, then extends the range per §2. */
 export function resolveRangeWindow(key: KeyDef, clef: Clef, range: MelodyRange): RangeWindow {
@@ -146,7 +160,9 @@ export function resolveRangeWindow(key: KeyDef, clef: Clef, range: MelodyRange):
 // stave.getYForNote(line) can be used directly for both directions.
 export const NATURAL_LETTERS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
 export const NATURAL_PC: Record<string, number> = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
-const CLEF_LINE_SHIFT: Record<Clef, number> = { treble: 0, bass: 6 };
+// Matches VexFlow 5's own clefs table lineShift values exactly (verified in
+// vexscore.test.ts) — alto/tenor added for theory reading (docs/14 §6).
+const CLEF_LINE_SHIFT: Record<Clef, number> = { treble: 0, bass: 6, alto: 3, tenor: 4 };
 
 export function staffLineFor(letterIndex: number, octave: number, clef: Clef): number {
   const baseIndex = (octave - 4) * 7;

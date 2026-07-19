@@ -71,4 +71,23 @@ describe('staffLineFor / lineToLetterOctave round-trip (B7)', () => {
     expect(naturalMidiFor(0, 4)).toBe(60);
     expect(naturalMidiFor(6, 3)).toBe(59); // B3
   });
+
+  it('alto/tenor C clefs (docs/14-theory-engine.md §6): middle C sits on the middle line / 4th line', () => {
+    // VexFlow's own line convention: 3 = middle line, 4 = 4th line from the
+    // bottom (matches Tables.clefs alto/tenor lineShift, cross-checked in
+    // vexscore.test.ts's render smoke test).
+    expect(staffLineFor(0, 4, 'alto')).toBe(3);
+    expect(staffLineFor(0, 4, 'tenor')).toBe(4);
+  });
+
+  it('alto/tenor round-trip through lineToLetterOctave too', () => {
+    (['alto', 'tenor'] as const).forEach((clef) => {
+      for (let octave = 2; octave <= 6; octave++) {
+        for (let letterIndex = 0; letterIndex < 7; letterIndex++) {
+          const line = staffLineFor(letterIndex, octave, clef);
+          expect(lineToLetterOctave(line, clef)).toEqual({ letterIndex, octave });
+        }
+      }
+    });
+  });
 });

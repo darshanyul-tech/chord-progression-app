@@ -30,6 +30,8 @@ export interface MelodyStaffModel {
   flashMeasure: number | null;
   /** 0..1 playback cursor position across the whole melody, or null when not playing. */
   playbackFraction: number | null;
+  /** Suppresses the time signature glyph — defaults to true (existing behavior) when absent. Used by theory's read-only staves, which never show a metre (docs/14-theory-engine.md §7). */
+  showTimeSignature?: boolean;
   /** Measure the keyboard insertion cursor is in (usually the active measure). */
   cursorMeasureIndex: number;
   /** Beat position of the keyboard insertion cursor within cursorMeasureIndex, or null when the staff doesn't have keyboard focus (04-accessibility §14.1). */
@@ -107,6 +109,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
     cursorBeat,
     cursorMidi,
     hover,
+    showTimeSignature = true,
   } = model;
   const measureTotalBeats = timeSig.measureBeats;
   const adapter = melodyAdapter(key, clef);
@@ -138,7 +141,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
       if (col === 0) {
         stave.addClef(clef);
         stave.addKeySignature(key.vexKeySpec);
-        if (mi === 0) stave.addTimeSignature(`${timeSig.beatsPerBar}/${timeSig.beatValue}`);
+        if (mi === 0 && showTimeSignature) stave.addTimeSignature(`${timeSig.beatsPerBar}/${timeSig.beatValue}`);
       }
       // Stave.draw() never applies setStyle() to its own line-drawing (only
       // drawWithStyle()'s Element.applyStyle wrapper does, which Stave.draw
