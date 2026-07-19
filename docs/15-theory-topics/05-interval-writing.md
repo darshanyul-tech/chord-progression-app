@@ -51,8 +51,9 @@ in the red correction voice (engine §9b) and the question locks until Next.
 
 - Interval math spot grid: M6 above C4 = A4; m3 below C4 = A3; A4 above F4 = B4; d5
   above B3 = F4; M7 below E♭5 = F♭4 (single accidental — stays in the pool).
-- Pool-filter exclusion case: a given note of B♯ with m2 above would require C𝄪, so B♯
-  never appears as a given note for that interval.
+- Pool-filter exclusion case: a given note of C♯ with A4 (augmented 4th) above would
+  require F𝄪 (C♯4 → target MIDI 67, spelled on the 4th letter F, which is 2 semitones
+  above F-natural), so C♯ never appears as a given note for that interval.
 - Pool sweep: 500 questions per direction — no expected note with a double accidental,
   all notes within the window, every enabled interval appears.
 - Grading: correct spelling passes; enharmonic equivalent (same MIDI, different letter)
