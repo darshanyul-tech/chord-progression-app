@@ -29,7 +29,7 @@ export function NoteReadingSettings() {
     <section className="card">
       <h2>Note reading settings</h2>
       <p className="sub" style={{ marginBottom: '0.85rem' }}>
-        A note is shown on the staff — name it.
+        A note is shown on the stave — name it.
       </p>
       <div className="grid">
         <div className="field">
@@ -51,9 +51,9 @@ export function NoteReadingSettings() {
             value={settings.range}
             onChange={(e) => setState({ range: e.target.value as NoteReadingRange })}
           >
-            <option value="staffOnly">Staff only</option>
-            <option value="ledger2">Staff + 2 ledger lines (each side)</option>
-            <option value="ledger4">Staff + 4 ledger lines (each side)</option>
+            <option value="staffOnly">Stave only</option>
+            <option value="ledger2">Stave + 2 ledger lines (each side)</option>
+            <option value="ledger4">Stave + 4 ledger lines (each side)</option>
           </select>
         </div>
 

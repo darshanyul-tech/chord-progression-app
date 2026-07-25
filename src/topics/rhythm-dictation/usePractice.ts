@@ -21,8 +21,10 @@ import {
   metricPulseBeats,
   metricPulseCount,
   parseTimeSig,
+  tieSplitMeasure,
   type Measure,
   type RhythmNote,
+  type TieSplitAdapter,
   type TimeSigInfo,
 } from '../../lib/rhythm/time';
 import type { RhythmDictationSettings } from '../../lib/rhythm/settings';
@@ -68,6 +70,20 @@ const rhythmRestAdapter: RestAdapter<RhythmNote> = {
   duration: (n) => n.duration,
   isRest: (n) => n.isRest,
   makeRest: (beat, duration) => ({ beat, duration, isRest: true }),
+};
+
+// Proper rhythmic notation never lets a note straddle the exact centre of
+// the bar unsplit — e.g. a crotchet starting on the "and" of beat 2 must be
+// written as a quaver tied to a quaver either side of the centre, not one
+// note obscuring where the bar's middle falls. fillMeasure itself has no
+// beat-boundary awareness (it only weighs syncopated placement
+// *probability* toward downbeats — lib/rhythm/generator.ts), so every
+// generated pattern is run through this afterward.
+const rhythmTieSplitAdapter: TieSplitAdapter<RhythmNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.isRest,
+  withSpan: (n, beat, duration, tied) => ({ ...n, beat, duration, tied: tied ? true : undefined }),
 };
 
 export function useRhythmPractice(settings: RhythmDictationSettings) {
@@ -243,14 +259,18 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     const pattern: Measure[] = [];
     for (let i = 0; i < nMeasures; i++) {
       pattern.push(
-        fillMeasure({
-          measureTotalBeats: ts.measureBeats,
-          activeDurations: durs,
-          restFrequency: settings.restFrequency,
-          syncopation: settings.syncopation,
-          gridStepVal: step,
-          pulseBeats: pulse,
-        }),
+        tieSplitMeasure(
+          fillMeasure({
+            measureTotalBeats: ts.measureBeats,
+            activeDurations: durs,
+            restFrequency: settings.restFrequency,
+            syncopation: settings.syncopation,
+            gridStepVal: step,
+            pulseBeats: pulse,
+          }),
+          ts.measureBeats / 2,
+          rhythmTieSplitAdapter,
+        ),
       );
     }
 
@@ -441,7 +461,7 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
       setFeedbackMsg('Correct! +1');
     } else {
       setFeedbackKind('bad');
-      setFeedbackMsg('Incorrect — see staff for corrections.');
+      setFeedbackMsg('Incorrect — see stave for corrections.');
     }
     setQuestionScoreText(`${correctMeasures} / ${numMeasures} measures correct`);
   }
@@ -474,14 +494,18 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     const step = gridStep(durs);
     const pulse = metricPulseBeats(ts.beatValue, ts.beatsPerBar);
     const testPattern = [
-      fillMeasure({
-        measureTotalBeats: ts.measureBeats,
-        activeDurations: durs,
-        restFrequency: settings.restFrequency,
-        syncopation: settings.syncopation,
-        gridStepVal: step,
-        pulseBeats: pulse,
-      }),
+      tieSplitMeasure(
+        fillMeasure({
+          measureTotalBeats: ts.measureBeats,
+          activeDurations: durs,
+          restFrequency: settings.restFrequency,
+          syncopation: settings.syncopation,
+          gridStepVal: step,
+          pulseBeats: pulse,
+        }),
+        ts.measureBeats / 2,
+        rhythmTieSplitAdapter,
+      ),
     ];
     // Preview plays a throwaway one-measure pattern without disturbing the
     // current question's displayed staff (docs/05-topics/05 §4).

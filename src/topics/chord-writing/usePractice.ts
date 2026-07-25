@@ -110,7 +110,7 @@ export function useChordWritingPractice(settings: ChordWritingSettings) {
       setFeedbackMsg(
         result.closedPositionRequired
           ? `Incorrect — right notes, but closed position is required. ${result.correctToneCount} of ${result.total} correctly placed.`
-          : `Incorrect — ${result.correctToneCount} of ${result.total} tones correct. See the correction on the staff.`,
+          : `Incorrect — ${result.correctToneCount} of ${result.total} tones correct. See the correction on the stave.`,
       );
     }
     if (settings.hearIt) playHearIt();

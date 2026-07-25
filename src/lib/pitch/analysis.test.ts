@@ -119,6 +119,78 @@ describe('advanceTracker — octave jump', () => {
   });
 });
 
+describe('advanceTracker — target-range hold (adjustable tolerance)', () => {
+  // Target A4 (440Hz = MIDI 69), ±50 cents accepted. The whole point: a singer
+  // may wander anywhere inside the band and still complete the hold, instead of
+  // having to freeze on one exact pitch.
+  const targetOpts = {
+    ...DEFAULT_TRACKER_OPTIONS,
+    requiredHoldSec: 0.2,
+    target: { midi: 69, toleranceCents: 50, octaveEquivalence: false },
+  };
+
+  it('captures a pitch that wobbles across the whole band but never leaves it', () => {
+    // Frames swing between ~-45 and ~+45 cents of the target — far more than the
+    // 30-cent self-stability gate would ever have tolerated, yet all in range.
+    const swings = [-45, +45, -40, +40, -45, +45].map((cents) => 440 * Math.pow(2, cents / 1200));
+    let state = initialTrackerState();
+    swings.forEach((f) => {
+      state = advanceTracker(state, frame(f), 0.05, targetOpts);
+      expect(state.phase).not.toBe('idle'); // hold is never broken while in range
+    });
+    expect(state.phase).toBe('captured');
+  });
+
+  it('survives brief detection dropouts mid-hold (the vibrato/wavering case) without losing progress', () => {
+    // Sing in-zone, drop out for one low-clarity frame (as a wavering voice's
+    // amplitude dip does), then keep singing in-zone. The hold must persist and
+    // still complete — accrued time is preserved across the short gap.
+    let state = initialTrackerState();
+    for (let i = 0; i < 3; i++) state = advanceTracker(state, frame(440), 0.05, targetOpts);
+    expect(state.heldSec).toBeGreaterThan(0);
+    const heldBefore = state.heldSec;
+    state = advanceTracker(state, frame(430, 0.4, 0.05), 0.05, targetOpts); // low-clarity dropout
+    expect(state.phase).not.toBe('idle');
+    expect(state.heldSec).toBe(heldBefore); // paused, not wiped
+    for (let i = 0; i < 3; i++) state = advanceTracker(state, frame(440), 0.05, targetOpts);
+    expect(state.phase).toBe('captured');
+  });
+
+  it('resets only once the singer stays outside the band past the grace window', () => {
+    let state = advanceTracker(initialTrackerState(), frame(440), 0.05, targetOpts);
+    expect(state.phase).toBe('voicing');
+    // A single frame ~90 cents sharp is tolerated (within grace)...
+    const sharp = frame(440 * Math.pow(2, 90 / 1200));
+    state = advanceTracker(state, sharp, 0.05, targetOpts);
+    expect(state.phase).not.toBe('idle');
+    // ...but sustaining it well past maxGapSec (0.3s) resets the hold.
+    for (let i = 0; i < 8; i++) state = advanceTracker(state, sharp, 0.05, targetOpts);
+    expect(state.phase).toBe('idle');
+  });
+
+  it('a tighter tolerance treats a wobble as out-of-zone that a looser one would accept', () => {
+    const tight = { ...targetOpts, target: { midi: 69, toleranceCents: 20, octaveEquivalence: false } };
+    let state = advanceTracker(initialTrackerState(), frame(440), 0.05, tight);
+    // ~35 cents flat: inside ±50 but outside ±20. Held past the grace window it
+    // must reset, where the looser ±50 band would have kept accruing.
+    const flat = frame(440 * Math.pow(2, -35 / 1200));
+    for (let i = 0; i < 9; i++) state = advanceTracker(state, flat, 0.05, tight);
+    expect(state.phase).toBe('idle');
+  });
+
+  it('folds octaves when the target allows it, so an octave-displaced but in-range hold still captures', () => {
+    const octaveOpts = { ...targetOpts, target: { midi: 69, toleranceCents: 50, octaveEquivalence: true } };
+    // Sing A3 (220Hz) — an octave below A4 — steadily. With octave-equivalence
+    // it is 0 cents from the folded target and should capture.
+    const frames = Array.from({ length: 6 }, () => frame(220));
+    let state = initialTrackerState();
+    frames.forEach((f) => {
+      state = advanceTracker(state, f, 0.05, octaveOpts);
+    });
+    expect(state.phase).toBe('captured');
+  });
+});
+
 describe('calibrateRmsThreshold', () => {
   it('returns the floor for an empty sample set', () => {
     expect(calibrateRmsThreshold([])).toBe(DEFAULT_TRACKER_OPTIONS.rmsThreshold);

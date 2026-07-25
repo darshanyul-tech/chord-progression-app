@@ -75,8 +75,15 @@ export function TheoryStaffView({ clef, vexKeySpec, notes }: TheoryStaffViewProp
       cursorMidi: null,
       hover: null,
       showTimeSignature: false,
+      // A handful of notes needs nowhere near the 1000-unit canvas a full
+      // melody does — narrower here means CSS's width:100% scaling renders
+      // it effectively bigger (docs on MelodyStaffModel.canvasWidth).
+      canvasWidth: 220 + notes.length * 120,
+      // ...and crop the tall reserved ledger band down to just the staff +
+      // this note, so the frame around it isn't mostly empty gray.
+      fitContentVertical: true,
     });
   });
 
-  return <div ref={containerRef} role="img" aria-label="Music notation staff (read-only)" />;
+  return <div ref={containerRef} role="img" aria-label="Music notation stave (read-only)" />;
 }

@@ -55,7 +55,7 @@ export function ChordWritingSettings() {
     <section className="card">
       <h2>Chord writing settings</h2>
       <p className="sub" style={{ marginBottom: '0.85rem' }}>
-        A chord is named — build it on an open staff, closed position.
+        A chord is named — build it on an open stave, closed position.
       </p>
       <div className="grid">
         <div className="field">

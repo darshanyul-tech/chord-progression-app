@@ -54,6 +54,7 @@ export function TranspositionTopic() {
                   signatureKey={practice.targetKey ?? undefined}
                   slots={practice.slots}
                   durations={practice.durations}
+                  tiedIndices={practice.question.tied}
                   slotColors={practice.slotColors}
                   armedAccidental={practice.armedAccidental}
                   disabled={practice.hasSubmitted}

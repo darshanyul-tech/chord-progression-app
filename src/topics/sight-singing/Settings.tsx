@@ -13,7 +13,7 @@ export function SightSingingSettings() {
     <section className="card">
       <h2>Sight singing settings</h2>
       <p className="sub" style={{ marginBottom: '0.85rem' }}>
-        A short melody is notated on the staff; the tonic chord plays for orientation, then the starting note — sing
+        A short melody is notated on the stave; the tonic chord plays for orientation, then the starting note — sing
         the melody back one note at a time, at your own pace. Audio never leaves your device — no recording, no
         upload.
       </p>

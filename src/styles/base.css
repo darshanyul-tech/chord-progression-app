@@ -22,6 +22,19 @@ body.theme-dark {
   background: #000000;
 }
 
+/* Every <svg> in this app is VexFlow-rendered staff notation (no hand-authored
+   SVG anywhere) — a click/drag on a note used to trigger the browser's normal
+   text-selection highlight over the whole notehead/stem column, since VexFlow
+   draws noteheads/glyphs as SVG <text> elements. Staves are click-to-place
+   inputs, not selectable text, in every topic that renders one. */
+svg {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -webkit-touch-callout: none;
+}
+
 .container {
   max-width: 1200px;
   margin: 0 auto;

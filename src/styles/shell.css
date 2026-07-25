@@ -6,20 +6,24 @@
   position: relative;
   z-index: 20;
 }
-/* Bar height is the logo's own full height plus a small fixed black margin
+/* Bar height is the logo's own rendered height plus a small fixed black margin
    above and below it (no more, no less — the black background covers that
    margin itself, so there's no gap of page background showing through). */
 .shell-header-inner {
-  /* Single source of truth for the logo's rendered width, so the bar's
-     height (below) can never drift out of sync with the logo's actual
-     size — .shell-logo's width just references this same variable. */
+  /* Single source of truth for the wide with-text logo's rendered width. The
+     emblem's rendered height derives from it (--emblem-h below), and the
+     compact icon is sized to that same --emblem-h — so the emblem is the exact
+     same size on both sides of the narrow breakpoint, where the only change is
+     the "Trytone" text alongside it disappearing. */
   --logo-w: min(clamp(220px, 22vw, 460px), 70vw, calc(100vw - 120px));
+  /* 0.3604 is the logo PNG's height/width aspect ratio — update if the asset
+     is ever regenerated with different proportions. The emblem fills the full
+     height of that PNG, so this is also the emblem's rendered height. */
+  --emblem-h: calc(var(--logo-w) * 0.3604);
   width: 100%;
   margin: 0;
   padding: 0.5rem 1.25rem;
-  /* 0.3604 is the logo PNG's height/width aspect ratio — update if the
-     asset is ever regenerated with different proportions. */
-  min-height: calc(var(--logo-w) * 0.3604 + 10px);
+  min-height: calc(var(--emblem-h) + 10px);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -53,31 +57,83 @@
   transform: translateY(-50%);
   pointer-events: none;
 }
+/* Compact icon-only logo — hidden until the narrow breakpoint swaps it in.
+   Sized to --emblem-h and anchored at the same left edge, so it lands exactly
+   where the wide logo's emblem was, at the same size — dropping only the text. */
+.shell-logo-icon {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: var(--emblem-h);
+  width: auto;
+  pointer-events: none;
+  /* The emblem is a square crop with dark corners; a small radius keeps
+     those corners from reading as a faint box on the black header. */
+  border-radius: 8px;
+}
 
 .shell-section-nav {
   display: flex;
   align-items: center;
-  gap: 1.1rem;
+  gap: 0.75rem;
   flex-shrink: 0;
 }
+/* Glowing cyan pill buttons that echo the logo's neon-metal wordmark on the
+   black header band, sized up toward the "Trytone" text height. --glow is the
+   bright aqua pulled from the emblem/wordmark. */
 .shell-section-link {
-  color: var(--ecu-white);
-  font-size: 0.9rem;
+  --glow: 127, 224, 239;
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+  font-size: clamp(1.05rem, 2vw, 1.9rem);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgb(var(--glow));
   text-decoration: none;
-  padding-bottom: 3px;
-  border-bottom: 2px solid transparent;
+  padding: 0.4em 0.85em;
+  border: 2px solid rgba(var(--glow), 0.35);
+  border-radius: 999px;
+  background: rgba(var(--glow), 0.06);
+  text-shadow: 0 0 8px rgba(var(--glow), 0.45);
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, text-shadow 0.15s ease;
 }
 .shell-section-link:hover {
   text-decoration: none;
-  opacity: 0.85;
+  color: #eafcff;
+  border-color: rgba(var(--glow), 0.9);
+  background: rgba(var(--glow), 0.15);
+  box-shadow: 0 0 14px rgba(var(--glow), 0.45);
+  text-shadow: 0 0 12px rgba(var(--glow), 0.85);
 }
 .shell-section-link.active {
-  font-weight: 700;
-  border-bottom-color: var(--ecu-white);
+  color: #04191d;
+  font-weight: 800;
+  background: linear-gradient(180deg, #9af0ff, #46c4d6);
+  border-color: #b7f6ff;
+  box-shadow: 0 0 18px rgba(var(--glow), 0.55);
+  text-shadow: none;
+}
+.shell-section-link.active:hover {
+  color: #04191d;
+  background: linear-gradient(180deg, #b0f5ff, #57d0e2);
 }
 .shell-section-link.disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
+  text-shadow: none;
+}
+.shell-section-link.disabled:hover {
+  color: rgb(var(--glow));
+  background: rgba(var(--glow), 0.06);
+  border-color: rgba(var(--glow), 0.35);
+  box-shadow: none;
+  text-shadow: 0 0 8px rgba(var(--glow), 0.45);
 }
 
 .sr-only {
@@ -151,6 +207,13 @@
   background: var(--accent);
   color: var(--ecu-white);
   font-weight: 700;
+}
+/* :hover:not(:disabled) above is three selectors (class + 2 pseudo-classes)
+   vs. .active's two classes — without this, hovering the active/selected
+   item let the plain hover rule's pale background win over .active's teal
+   one while its white text stayed, making the label unreadable. */
+.syllabus-topic.active:hover:not(:disabled) {
+  background: var(--accent);
 }
 .syllabus-topic:disabled {
   opacity: 0.5;
@@ -248,10 +311,11 @@
     justify-content: center;
   }
   .shell-section-link {
-    font-size: 0.8rem;
+    font-size: 1rem;
+    padding: 0.35em 0.7em;
   }
   .shell-section-nav {
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
   .syllabus-sidebar {
     position: fixed;
@@ -273,6 +337,26 @@
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 150;
+  }
+}
+
+/* Too narrow for the wide with-text logo — drop the "Trytone" text by swapping
+   in the emblem-only crop. It keeps the same --emblem-h and left anchor, so the
+   emblem doesn't move or resize: the text is simply gone. */
+@media (max-width: 640px) {
+  .shell-logo {
+    display: none;
+  }
+  .shell-logo-icon {
+    display: block;
+  }
+  .shell-section-nav {
+    gap: 0.4rem;
+  }
+  .shell-section-link {
+    font-size: 0.82rem;
+    padding: 0.32em 0.6em;
+    letter-spacing: 0.03em;
   }
 }
 

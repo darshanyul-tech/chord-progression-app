@@ -106,7 +106,7 @@ export function useIntervalWritingPractice(settings: IntervalWritingSettings) {
       setFeedbackMsg('Correct! +1');
     } else {
       setFeedbackKind('bad');
-      setFeedbackMsg('Incorrect — see the correction on the staff.');
+      setFeedbackMsg('Incorrect — see the correction on the stave.');
     }
     if (settings.hearIt) playHearIt();
     if (correct && settings.autoAdvance) {

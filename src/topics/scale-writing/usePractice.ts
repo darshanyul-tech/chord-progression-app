@@ -119,7 +119,7 @@ export function useScaleWritingPractice(settings: ScaleWritingSettings) {
       );
     } else {
       setFeedbackKind('bad');
-      setFeedbackMsg(`Incorrect — ${correctCount} of ${SLOT_COUNT} notes correct. See the correction on the staff.`);
+      setFeedbackMsg(`Incorrect — ${correctCount} of ${SLOT_COUNT} notes correct. See the correction on the stave.`);
     }
     if (settings.hearIt) playHearIt();
     if (correct && settings.autoAdvance) {

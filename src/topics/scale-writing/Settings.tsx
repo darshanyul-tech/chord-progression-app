@@ -40,7 +40,7 @@ export function ScaleWritingSettings() {
     <section className="card">
       <h2>Scale writing settings</h2>
       <p className="sub" style={{ marginBottom: '0.85rem' }}>
-        The tonic is given — write the rest of the requested scale on an open staff.
+        The tonic is given — write the rest of the requested scale on an open stave.
       </p>
       <div className="grid">
         <div className="field">

@@ -50,6 +50,15 @@ function spellMelody(measures: PitchedMeasure[], key: TheoryKey): (SpelledPitch 
   return measures.flatMap((bar) => bar.map((n) => (n.rest || n.midi === null ? null : spellNoteInKey(n.midi, key))));
 }
 
+// Rests never occur in Transposition's source (buildGeneratorSettings hard-
+// codes rests: 'none'), so this filtered, rest-exclusive indexing lines up
+// with sourceSpelled/expected's own effective indexing (spellMelody's null-
+// for-rest entries never actually occur) and with usePractice.ts's own
+// `durations` derivation, which uses the same filter.
+function extractTied(measures: PitchedMeasure[]): boolean[] {
+  return measures.flatMap((bar) => bar.filter((n) => !n.rest).map((n) => !!n.tied));
+}
+
 function letterAccEqual(a: SpelledPitch, b: { letter: string; acc: string }): boolean {
   return a.letter === b.letter && a.acc === b.acc;
 }
@@ -100,6 +109,8 @@ export interface TranspositionQuestion {
   sourceKeyId: string;
   sourceMelody: GeneratedMelody;
   sourceSpelled: (SpelledPitch | null)[];
+  /** Index-aligned with sourceSpelled/expected — see SlotStaffInput's tiedIndices prop doc comment for the exact contract. */
+  tied: boolean[];
   targetKeyId: string;
   targetVexKeySpec: string;
   mode: 'toKey' | 'byInterval';
@@ -135,6 +146,7 @@ export function buildTranspositionQuestion(settings: TranspositionSettings): Tra
     const sourceTheoryKey = theoryKeyById(sourceKey.id);
     const sourceMelody = generateMelody(buildGeneratorSettings(settings, sourceKey.id));
     const sourceSpelled = spellMelody(sourceMelody.measures, sourceTheoryKey);
+    const tied = extractTied(sourceMelody.measures);
 
     const mode: 'toKey' | 'byInterval' = settings.mode === 'both' ? pick(['toKey', 'byInterval']) : settings.mode;
 
@@ -162,6 +174,7 @@ export function buildTranspositionQuestion(settings: TranspositionSettings): Tra
         sourceKeyId: sourceKey.id,
         sourceMelody,
         sourceSpelled,
+        tied,
         targetKeyId: targetKey.id,
         targetVexKeySpec: targetKey.vexKeySpec,
         mode,
@@ -197,6 +210,7 @@ export function buildTranspositionQuestion(settings: TranspositionSettings): Tra
       sourceKeyId: sourceKey.id,
       sourceMelody,
       sourceSpelled,
+      tied,
       targetKeyId: targetKey.id,
       targetVexKeySpec: targetKey.vexKeySpec,
       mode,

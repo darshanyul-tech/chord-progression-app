@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { durationFitsBar } from '../rhythm/time';
+import { durationClose, durationFitsBar } from '../rhythm/time';
 import { setRng } from '../theory';
 import {
   BASIC_CELL_IDS,
@@ -151,5 +151,46 @@ describe('buildMeterTranspositionQuestion', () => {
     const b = buildMeterTranspositionQuestion(defaultMeterTranspositionSettings());
     expect(a).toEqual(b);
     setRng();
+  });
+});
+
+// Rhythmic-notation convention (shared across melodic/rhythm dictation and
+// transposition via lib/rhythm/time.ts's tieSplitMeasure): a note that
+// starts off the meter's main pulse must never cross into the next pulse
+// unsplit. Meter Transposition builds every bar from METER_CELLS, whose
+// cells are always cell/pulse-aligned by construction (docs/15-theory-
+// topics/09 §3) — this is a regression guard proving that holds, not a
+// fix (no tieSplitMeasure call is needed here).
+describe('generated notes never cross a pulse boundary off-pulse (no tie-split needed here)', () => {
+  function assertNoUnsplitCrossing(measure: { beat: number; duration: number; isRest: boolean }[], pulseBeats: number) {
+    measure.forEach((n) => {
+      if (n.isRest) return;
+      const intoPulse = n.beat % pulseBeats;
+      const startsOnPulse = durationClose(intoPulse, 0) || durationClose(intoPulse, pulseBeats);
+      if (startsOnPulse) return;
+      const nextBoundary = Math.ceil((n.beat - 0.001) / pulseBeats) * pulseBeats;
+      expect(n.beat + n.duration).toBeLessThanOrEqual(nextBoundary + 0.001);
+    });
+  }
+
+  it('holds for every enabled pair, both directions, both difficulties, over many draws', () => {
+    const pulseByPair: Record<string, { compound: number; simple: number }> = {
+      '6/8': { compound: 1.5, simple: 1 },
+      '9/8': { compound: 1.5, simple: 1 },
+      '12/8': { compound: 1.5, simple: 1 },
+    };
+    (['compoundToSimple', 'simpleToCompound'] as const).forEach((direction) => {
+      (['basic', 'full'] as const).forEach((difficulty) => {
+        for (let i = 0; i < 100; i++) {
+          const settings: MeterTranspositionSettings = { ...defaultMeterTranspositionSettings(), direction, difficulty, bars: 2 };
+          const q = buildMeterTranspositionQuestion(settings)!;
+          const pulses = pulseByPair[q.pairId]!;
+          const sourcePulse = direction === 'compoundToSimple' ? pulses.compound : pulses.simple;
+          const targetPulse = direction === 'compoundToSimple' ? pulses.simple : pulses.compound;
+          q.sourceMeasures.forEach((m) => assertNoUnsplitCrossing(m, sourcePulse));
+          q.expectedMeasures.forEach((m) => assertNoUnsplitCrossing(m, targetPulse));
+        }
+      });
+    });
   });
 });

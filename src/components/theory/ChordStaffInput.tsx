@@ -143,7 +143,7 @@ export function ChordStaffInput({
     <div
       ref={containerRef}
       role="application"
-      aria-label="Chord staff input. Click a staff position to add a tone, or click an existing tone to remove it."
+      aria-label="Chord stave input. Click a stave position to add a tone, or click an existing tone to remove it."
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

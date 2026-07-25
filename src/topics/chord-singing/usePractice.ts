@@ -340,14 +340,20 @@ export function useChordSingingPractice(settings: ChordSingingSettings) {
     return mic.onFrame((frame) => {
       if (!armedRef.current) return;
       const q = questionRef.current;
-      if (q && frame.frequency !== null) {
-        const targetMidi = q.rootMidi + q.toneOffsets[toneIndexRef.current]!;
+      if (!q) return;
+      const targetMidi = q.rootMidi + q.toneOffsets[toneIndexRef.current]!;
+      if (frame.frequency !== null) {
         setLiveCentsOffset(centsBetween(frame.frequency, f0FromMidi(targetMidi)));
       }
       trackerRef.current = advanceTracker(trackerRef.current, frame, frameSec(), {
         ...DEFAULT_TRACKER_OPTIONS,
         requiredHoldSec: settings.holdTimeSec,
         rmsThreshold: rmsThresholdRef.current,
+        target: {
+          midi: targetMidi,
+          toleranceCents: TOLERANCE_CENTS[settings.tolerance],
+          octaveEquivalence: settings.octaveEquivalence,
+        },
       });
       if (trackerRef.current.phase === 'captured' && trackerRef.current.capturedMidi !== null) {
         const captured = trackerRef.current.capturedMidi;

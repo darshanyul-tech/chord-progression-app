@@ -41,5 +41,5 @@ export function KeySignatureView({ clef, vexKeySpec }: KeySignatureViewProps) {
     }
   }, [clef, vexKeySpec]);
 
-  return <div ref={containerRef} role="img" aria-label={`Key signature staff, ${clef} clef`} />;
+  return <div ref={containerRef} role="img" aria-label={`Key signature stave, ${clef} clef`} />;
 }

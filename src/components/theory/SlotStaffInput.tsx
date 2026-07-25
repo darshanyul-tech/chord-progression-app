@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Accidental, Formatter, Renderer, Stave, StaveNote, Voice } from 'vexflow';
+import { Accidental, Formatter, Renderer, Stave, StaveNote, StaveTie, Voice } from 'vexflow';
 import { NATURAL_LETTERS, resolveStaffPosition, type Clef, type NoteSpelling } from '../../lib/melody/theory';
 import { signatureAccidentalForLetter, type TheoryKey } from '../../lib/written-theory/keys';
 import type { SpelledPitch } from '../../lib/written-theory/spelledPitch';
@@ -21,6 +21,17 @@ export interface SlotStaffInputProps {
    * rather than every slot being evenly spaced.
    */
   durations?: number[];
+  /**
+   * Index-aligned with `slots`/`durations` — `true` at index i means slot i
+   * is tied forward into slot i+1 (proper rhythmic notation: an off-pulse
+   * onset that crosses a beat must be split into tied pieces rather than
+   * written as one note obscuring the beat — lib/rhythm/time.ts's
+   * tieSplitMeasure). A tie only actually draws once both slots hold the
+   * same pitch (a tie curve between two different pitches wouldn't mean
+   * anything), so this is safe to pass even while a slot is still empty or
+   * holds a wrong guess.
+   */
+  tiedIndices?: boolean[];
   /** Slots the user cannot edit (e.g. the given tonic). */
   lockedIndices?: number[];
   /** Post-grading recolor, index-aligned — undefined leaves a slot at its default color. */
@@ -76,6 +87,7 @@ export function SlotStaffInput({
   signatureKey,
   slots,
   durations,
+  tiedIndices,
   lockedIndices = [],
   slotColors = [],
   armedAccidental,
@@ -137,6 +149,21 @@ export function SlotStaffInput({
     Accidental.applyAccidentals([voice], vexKeySpec ?? 'C');
     new Formatter().joinVoices([voice]).format([voice], Math.max(20, stave.getNoteEndX() - stave.getNoteStartX() - 20));
     voice.draw(context, stave);
+
+    // Ties draw after the voice (StaveTie reads note x-positions, which only
+    // exist once formatting/drawing above has placed them) — only between
+    // slots that actually hold the same pitch, since a tie curve between two
+    // different pitches wouldn't mean anything (see prop doc comment).
+    tiedIndices?.forEach((isTied, i) => {
+      if (!isTied) return;
+      const firstNote = staveNotes[i];
+      const lastNote = staveNotes[i + 1];
+      const a = slots[i];
+      const b = slots[i + 1];
+      if (!firstNote || !lastNote || !a || !b) return;
+      if (a.letter !== b.letter || a.acc !== b.acc || a.octave !== b.octave) return;
+      new StaveTie({ firstNote, lastNote }).setContext(context).draw();
+    });
 
     slotXRef.current = staveNotes.map((n) => n.getAbsoluteX());
     geoRef.current = { topLineY, spacing };
@@ -236,7 +263,7 @@ export function SlotStaffInput({
     <div
       ref={containerRef}
       role="application"
-      aria-label="Staff answer input. Click a staff position to place a note in the nearest empty slot."
+      aria-label="Stave answer input. Click a stave position to place a note in the nearest empty slot."
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}

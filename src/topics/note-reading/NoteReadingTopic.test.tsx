@@ -51,9 +51,9 @@ describe('NoteReadingTopic — first-guess scoring (docs/15-theory-topics/01 §6
     expect(screen.getByText('Session: 1 / 1 (first-guess correct)')).toBeInTheDocument();
   });
 
-  it('renders a staff and exactly one Naturals group of 7 buttons in naturals-only mode', () => {
+  it('renders a stave and exactly one Naturals group of 7 buttons in naturals-only mode', () => {
     renderTopic();
-    expect(screen.getByRole('img', { name: /Music notation staff/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Music notation stave/ })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Note reading answers' })).toBeInTheDocument();
     expect(screen.getAllByRole('button').filter((b) => b.className.includes('chord-choice'))).toHaveLength(7);
   });

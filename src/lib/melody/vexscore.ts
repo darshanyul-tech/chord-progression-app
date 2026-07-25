@@ -32,6 +32,31 @@ export interface MelodyStaffModel {
   playbackFraction: number | null;
   /** Suppresses the time signature glyph — defaults to true (existing behavior) when absent. Used by theory's read-only staves, which never show a metre (docs/14-theory-engine.md §7). */
   showTimeSignature?: boolean;
+  /**
+   * Overrides the internal drawing canvas's width in VexFlow units — defaults
+   * to CANVAS_WIDTH (1000) when absent. CSS scales the rendered SVG to fill
+   * whatever width its container actually has (width:100%; height:auto), so
+   * a *narrower* canvasWidth for the same content makes the rendered result
+   * effectively *bigger* (its aspect ratio gets taller relative to a fixed
+   * container width) — used by TheoryStaffView's one-or-two-note read-only
+   * views, which don't need anywhere near 1000 units of stave for their
+   * content and looked tiny/mostly-empty at the full width every other
+   * consumer (multi-measure melodies) actually needs.
+   */
+  canvasWidth?: number;
+  /**
+   * Crops the SVG viewBox tightly around the actually-drawn staff + notes
+   * instead of the full fixed-height canvas — defaults to false (the full
+   * canvas every interactive/multi-measure consumer needs). The canvas
+   * reserves a generous vertical band for melodic dictation's whole pitch
+   * range (STAVE_Y_TOP plus room for many ledger lines either side); a
+   * theory read-only single-note view uses only a sliver of that, so the
+   * rest renders as empty space padding out the frame. When true, the
+   * viewBox is fit to the union of the stave's own lines and each drawn
+   * note's post-layout bounding box (plus a small margin for ledger lines),
+   * so the rendered SVG — and the frame around it — hugs the notation.
+   */
+  fitContentVertical?: boolean;
   /** Measure the keyboard insertion cursor is in (usually the active measure). */
   cursorMeasureIndex: number;
   /** Beat position of the keyboard insertion cursor within cursorMeasureIndex, or null when the staff doesn't have keyboard focus (04-accessibility §14.1). */
@@ -110,6 +135,8 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
     cursorMidi,
     hover,
     showTimeSignature = true,
+    canvasWidth = CANVAS_WIDTH,
+    fitContentVertical = false,
   } = model;
   const measureTotalBeats = timeSig.measureBeats;
   const adapter = melodyAdapter(key, clef);
@@ -117,7 +144,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
   const canvasHeight = numRows * ROW_HEIGHT + 20;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
-  renderer.resize(CANVAS_WIDTH, canvasHeight);
+  renderer.resize(canvasWidth, canvasHeight);
   const context = renderer.getContext();
 
   const geometry: MeasureGeometry[] = [];
@@ -131,7 +158,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
   for (let row = 0; row < numRows; row++) {
     const measuresInRow = Math.min(MAX_MEASURES_PER_ROW, numMeasures - row * MAX_MEASURES_PER_ROW);
     if (measuresInRow <= 0) continue;
-    const staveWidth = (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) / measuresInRow;
+    const staveWidth = (canvasWidth - MARGIN_LEFT - MARGIN_RIGHT) / measuresInRow;
     const rowY = STAVE_Y_TOP + row * ROW_HEIGHT;
 
     for (let col = 0; col < measuresInRow; col++) {
@@ -278,9 +305,60 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
     }
   }
 
+  // Default to the full canvas; a theory read-only view crops the viewBox to
+  // the union of the stave lines and each drawn note's own staff-line
+  // position, so the frame hugs the notation instead of the melodic-
+  // dictation-sized reserved ledger band (see fitContentVertical doc). The
+  // note's y is derived from staffLineFor — the same deterministic geometry
+  // the keyboard cursor and hit-testing use (cy = topLineY + (5 - kpLine) *
+  // spacing) — rather than a post-layout getBoundingBox(), which returns
+  // nothing usable in the jsdom/happy-dom test environment and so couldn't
+  // be relied on to keep a high/low ledger note inside the crop.
+  let viewBoxY = 0;
+  let viewBoxHeight = canvasHeight;
+  if (fitContentVertical && geometry.length) {
+    // Stave-line extent first — its midpoint is the crop's fixed centre, so
+    // the stave stays put and the box only grows symmetrically for a high or
+    // low ledger note (rather than the stave visibly shifting position as
+    // successive questions land above or below it).
+    let staveTop = Infinity;
+    let staveBottom = -Infinity;
+    for (const g of geometry) {
+      staveTop = Math.min(staveTop, g.topLineY);
+      staveBottom = Math.max(staveBottom, g.topLineY + g.spacing * 4);
+    }
+    let contentTop = staveTop;
+    let contentBottom = staveBottom;
+    const includeNote = (n: PitchedNote, g: MeasureGeometry) => {
+      if (n.rest) return;
+      const spelled = n.spelling ?? spellMidi(n.midi!, key);
+      const kpLine = staffLineFor(NATURAL_LETTERS.indexOf(spelled.letter), spelled.octave, clef);
+      const y = g.topLineY + (5 - kpLine) * g.spacing;
+      contentTop = Math.min(contentTop, y);
+      contentBottom = Math.max(contentBottom, y);
+    };
+    measures.forEach((bar, mi) => {
+      const g = geometry[mi];
+      if (g) bar.forEach((n) => includeNote(n, g));
+    });
+    if (revealMeasures) {
+      revealMeasures.forEach((bar, mi) => {
+        const g = geometry[mi];
+        if (g && bar) bar.forEach((n) => includeNote(n, g));
+      });
+    }
+    if (Number.isFinite(contentTop) && Number.isFinite(contentBottom) && contentBottom > contentTop) {
+      const pad = 16; // notehead radius + its own ledger line just past the centre
+      const centre = (staveTop + staveBottom) / 2;
+      const halfHeight = Math.max(centre - contentTop, contentBottom - centre) + pad;
+      viewBoxY = Math.max(0, centre - halfHeight);
+      viewBoxHeight = Math.min(canvasHeight - viewBoxY, centre + halfHeight - viewBoxY);
+    }
+  }
+
   const svg = container.querySelector('svg');
   if (svg) {
-    svg.setAttribute('viewBox', `0 0 ${CANVAS_WIDTH} ${canvasHeight}`);
+    svg.setAttribute('viewBox', `0 ${viewBoxY} ${canvasWidth} ${viewBoxHeight}`);
     svg.removeAttribute('width');
     svg.removeAttribute('height');
     // Same VexFlow inline-style gotcha as the rhythm staff (Phase 4) — clear

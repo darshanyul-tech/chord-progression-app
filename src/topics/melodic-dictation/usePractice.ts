@@ -176,16 +176,38 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     const rhythmStartMs = 50 + TRIAD_DUR_MS + countInDurMs;
     let measureStartMs = rhythmStartMs;
     model.measures.forEach((bar) => {
-      bar.forEach((n) => {
-        if (!n.rest && n.midi !== null) {
-          const noteName = midiToNoteName(n.midi);
-          const whenMs = measureStartMs + n.beat * spb * 1000;
-          const durSec = n.duration * spb * 0.9;
-          schedule(whenMs, () => {
-            audio.sampler!.triggerAttackRelease(noteName, durSec, audio.now(), 0.85);
-          });
+      const sorted = [...bar].sort((a, b) => a.beat - b.beat);
+      // A tied note (lib/rhythm/time.ts's tieSplitMeasure, used so a written
+      // note never crosses the bar's centre unsplit) is a notation split, not
+      // a separate attack — merge each tied run into one triggerAttackRelease
+      // call with the combined duration, so what's heard exactly matches the
+      // pre-split melody regardless of how it's written on the staff.
+      let i = 0;
+      while (i < sorted.length) {
+        const first = sorted[i]!;
+        if (first.rest || first.midi === null) {
+          i++;
+          continue;
         }
-      });
+        let duration = first.duration;
+        let j = i;
+        while (
+          sorted[j]!.tied &&
+          j + 1 < sorted.length &&
+          !sorted[j + 1]!.rest &&
+          durationClose(sorted[j + 1]!.beat, sorted[j]!.beat + sorted[j]!.duration)
+        ) {
+          j++;
+          duration += sorted[j]!.duration;
+        }
+        const noteName = midiToNoteName(first.midi);
+        const whenMs = measureStartMs + first.beat * spb * 1000;
+        const durSec = duration * spb * 0.9;
+        schedule(whenMs, () => {
+          audio.sampler!.triggerAttackRelease(noteName, durSec, audio.now(), 0.85);
+        });
+        i = j + 1;
+      }
       measureStartMs += model.timeSig.measureBeats * spb * 1000;
     });
 
@@ -573,7 +595,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       const diffIdx = firstDifferingMeasure(userMeasures, correctMeasures);
       setFeedbackKind('bad');
       setFeedbackMsg(
-        diffIdx !== null ? `Incorrect — Measure ${diffIdx + 1} differs. See staff for corrections.` : 'Incorrect.',
+        diffIdx !== null ? `Incorrect — Measure ${diffIdx + 1} differs. See stave for corrections.` : 'Incorrect.',
       );
     }
   }

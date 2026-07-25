@@ -22,8 +22,8 @@
 
 .theory-prompt {
   margin: 0 0 0.6rem;
-  font-size: 1.02rem;
-  font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 600;
   color: var(--text);
 }
 
@@ -32,7 +32,17 @@
   justify-content: center;
   margin: 0.5rem 0;
 }
+/* TheoryStaffView/KeySignatureView's own wrapper div carries no class and no
+   width — as an unstretched flex item it shrink-wraps to its content's
+   intrinsic size, which for an <svg> with no width/height attribute (every
+   renderer strips them) falls back to the UA default of 300px. That starves
+   the svg rule below: width:100% of an undefined-width parent still resolves
+   to that same 300px, no matter how wide .theory-staff-frame itself is. This
+   gives the wrapper a real width to inherit from first. */
+.theory-staff-frame > div {
+  width: 100%;
+}
 .theory-staff-frame svg {
-  max-width: 100%;
+  width: 100%;
   height: auto;
 }

@@ -1,6 +1,6 @@
 import { pick, random, shuffle } from '../theory';
 import { fillMeasure, getActiveDurations } from '../rhythm/generator';
-import { gridStep, metricPulseBeats, parseTimeSig, sortNotes, type TimeSigInfo } from '../rhythm/time';
+import { gridStep, metricPulseBeats, parseTimeSig, sortNotes, tieSplitMeasure, type TieSplitAdapter, type TimeSigInfo } from '../rhythm/time';
 import type { ChromaticSetting, MelodicDictationSettings, MelodicMotion } from './settings';
 import {
   MELODY_KEYS,
@@ -167,6 +167,22 @@ function allPitchesInRange(measures: PitchedMeasure[], window: RangeWindow): boo
   );
 }
 
+// Proper rhythmic notation never lets a note straddle the exact centre of
+// the bar unsplit (a crotchet on the "and" of beat 2 in 4/4 must be a
+// quaver tied to a quaver either side of the centre, not one note obscuring
+// where the bar's middle falls) — fillMeasure/buildRhythmSkeleton have no
+// beat-boundary awareness. Splitting happens here, *after* pitches are
+// assigned (not on the raw rhythm skeleton before walkPitches runs) —
+// splitting first would make the contour walk see a spurious extra "note"
+// at the split point; the split piece must instead inherit the *same* midi
+// as its parent, which this adapter does by copying `n` through unchanged.
+const pitchedTieSplitAdapter: TieSplitAdapter<PitchedNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.rest,
+  withSpan: (n, beat, duration, tied) => ({ ...n, beat, duration, tied: tied ? true : undefined }),
+};
+
 function attemptMelody(
   settings: MelodicDictationSettings,
   timeSig: TimeSigInfo,
@@ -181,7 +197,7 @@ function attemptMelody(
     walkPitches(onsets, pool, settings.motion);
     applyChromaticPass(onsets, chromaticNoteCount(settings.chromatic, settings.measures));
   }
-  return pitched;
+  return pitched.map((bar) => tieSplitMeasure(bar, timeSig.measureBeats / 2, pitchedTieSplitAdapter));
 }
 
 export function generateMelody(settings: MelodicDictationSettings): GeneratedMelody {

@@ -185,7 +185,7 @@ export function RhythmStaffHost({
       ref={containerRef}
       id="rd-staff-svg"
       role="application"
-      aria-label="Rhythm staff. Left and right arrow keys move the insertion cursor; Enter places the armed note or rest at the cursor."
+      aria-label="Rhythm stave. Left and right arrow keys move the insertion cursor; Enter places the armed note or rest at the cursor."
       tabIndex={0}
       onClick={handleClick}
       onMouseMove={handleMouseMove}

@@ -50,10 +50,14 @@ export function ScaleDegreesSettings() {
             value={settings.display}
             onChange={(e) => setState({ display: e.target.value as ScaleDegreeDisplay })}
           >
-            <option value="staffAndText">Staff + text</option>
+            <option value="staffAndText">Stave + text</option>
+            <option value="staffOnly">Stave only</option>
             <option value="textOnly">Text only</option>
           </select>
-          <div className="help">Text-only drills pure key knowledge without the staff as a visual crutch.</div>
+          <div className="help">
+            Stave only shows the note but doesn&rsquo;t name it, so you read it off the stave. Text only drills pure key
+            knowledge without the stave as a visual crutch.
+          </div>
         </div>
 
         <div className="field">

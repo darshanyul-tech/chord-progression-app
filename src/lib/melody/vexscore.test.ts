@@ -3,7 +3,8 @@ import { generateMelody } from './generator';
 import { defaultMelodicDictationSettings } from './settings';
 import type { MelodicDictationSettings } from './settings';
 import { pitchedMeasuresEqual } from './grading';
-import { keyById, type PitchedNote } from './theory';
+import { keyById, lineToLetterOctave, NATURAL_LETTERS, staffLineFor, type Clef, type PitchedNote } from './theory';
+import { spelledToMidi } from '../written-theory/spelledPitch';
 import { beamableRuns } from '../notation/beaming';
 import { decomposeGap } from '../notation/gaps';
 import { buildVexScore, CURSOR_COLOR, HOVER_COLOR, WRONG_COLOR } from './vexscore';
@@ -80,6 +81,91 @@ describe('buildVexScore smoke test', () => {
         }),
       ).not.toThrow();
     }
+  });
+
+  // fitContentVertical (TheoryStaffView's read-only single-note views) crops
+  // the tall reserved ledger band down to just the staff + the note so the
+  // surrounding frame hugs the notation. The crop must never clip the note
+  // itself, even at the range's most extreme ledger lines, and must always
+  // keep the full 5-line stave visible.
+  describe('fitContentVertical crop', () => {
+    const clefs: Clef[] = ['treble', 'bass', 'alto', 'tenor'];
+    // windowLines convention: the staff is lines 1..5; ledger4 (the widest
+    // Note Reading range) reaches 1-4=-3 up to 5+4=9.
+    const extremeLines = [9, 8, 7, 5, 3, 1, -1, -2, -3];
+
+    clefs.forEach((clef) => {
+      extremeLines.forEach((line) => {
+        it(`keeps a note at line ${line} (${clef}) inside the cropped viewBox, whole stave still visible`, () => {
+          const { letterIndex, octave } = lineToLetterOctave(line, clef);
+          const letter = NATURAL_LETTERS[letterIndex]!;
+          const note: PitchedNote = {
+            beat: 0,
+            duration: 4,
+            rest: false,
+            midi: spelledToMidi({ letter, acc: '', octave }),
+            spelling: { letter, accidental: '', octave },
+          };
+          const container = document.createElement('div');
+          const geometry = buildVexScore(container, {
+            key: keyById('C'),
+            clef,
+            timeSig: { beatsPerBar: 4, beatValue: 4, measureBeats: 4 },
+            numMeasures: 1,
+            measures: [[note]],
+            hasSubmitted: false,
+            isCorrect: true,
+            revealMeasures: null,
+            flashMeasure: null,
+            playbackFraction: null,
+            cursorMeasureIndex: 0,
+            cursorBeat: null,
+            cursorMidi: null,
+            hover: null,
+            showTimeSignature: false,
+            canvasWidth: 340,
+            fitContentVertical: true,
+          });
+          const svg = container.querySelector('svg')!;
+          const [, vbY, , vbH] = svg.getAttribute('viewBox')!.split(' ').map(Number);
+          const g = geometry[0]!;
+          const kpLine = staffLineFor(NATURAL_LETTERS.indexOf(letter), octave, clef);
+          const noteY = g.topLineY! + (5 - kpLine) * g.spacing!;
+
+          // The note's centre is inside the crop band...
+          expect(noteY).toBeGreaterThanOrEqual(vbY! - 0.01);
+          expect(noteY).toBeLessThanOrEqual(vbY! + vbH! + 0.01);
+          // ...the whole 5-line stave stays visible...
+          expect(g.topLineY!).toBeGreaterThanOrEqual(vbY! - 0.01);
+          expect(g.topLineY! + g.spacing! * 4).toBeLessThanOrEqual(vbY! + vbH! + 0.01);
+          // ...and the crop is materially shorter than the full 170-unit canvas.
+          expect(vbH!).toBeLessThan(170);
+        });
+      });
+    });
+
+    it('leaves the viewBox at the full canvas height when fitContentVertical is not set', () => {
+      const generated = generateMelody({ ...defaultMelodicDictationSettings(), measures: 1 });
+      const container = document.createElement('div');
+      buildVexScore(container, {
+        key: generated.key,
+        clef: generated.clef,
+        timeSig: generated.timeSig,
+        numMeasures: 1,
+        measures: generated.measures,
+        hasSubmitted: false,
+        isCorrect: false,
+        revealMeasures: null,
+        flashMeasure: null,
+        playbackFraction: null,
+        cursorMeasureIndex: 0,
+        cursorBeat: null,
+        cursorMidi: null,
+        hover: null,
+      });
+      const svg = container.querySelector('svg')!;
+      expect(svg.getAttribute('viewBox')).toBe('0 0 1000 170');
+    });
   });
 
   it('returns one geometry entry per measure', () => {

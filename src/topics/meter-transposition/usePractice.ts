@@ -155,7 +155,7 @@ export function useMeterTranspositionPractice(settings: MeterTranspositionSettin
       setFeedbackMsg('Correct! +1');
     } else {
       setFeedbackKind('bad');
-      setFeedbackMsg('Incorrect — see staff for corrections.');
+      setFeedbackMsg('Incorrect — see stave for corrections.');
     }
     setQuestionScoreText(`${correctBars} of ${question.bars} bar${question.bars === 1 ? '' : 's'} correct`);
   }

@@ -111,7 +111,7 @@ export function useTranspositionPractice(settings: TranspositionSettings) {
       setFeedbackMsg('Correct! +1');
     } else {
       setFeedbackKind('bad');
-      setFeedbackMsg(`Incorrect — ${correctCount} of ${question.expected.length} notes correct. See the correction on the staff.`);
+      setFeedbackMsg(`Incorrect — ${correctCount} of ${question.expected.length} notes correct. See the correction on the stave.`);
     }
     if (correct && settings.autoAdvance) {
       advanceTimerRef.current = window.setTimeout(() => {

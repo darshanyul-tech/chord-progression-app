@@ -39,5 +39,5 @@ export function SightSingingStaffHost({ melody, activeFraction }: SightSingingSt
     buildVexScore(containerRef.current, model);
   });
 
-  return <div ref={containerRef} role="img" aria-label="Sight singing melody staff (read-only)" />;
+  return <div ref={containerRef} role="img" aria-label="Sight singing melody stave (read-only)" />;
 }

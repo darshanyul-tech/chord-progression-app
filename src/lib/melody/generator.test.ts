@@ -7,8 +7,21 @@ function mod12(n: number): number {
   return ((n % 12) + 12) % 12;
 }
 
+// A tied note (lib/rhythm/time.ts's tieSplitMeasure — a note whose onset
+// falls off the beat is now split into tied pieces so it never crosses a
+// beat boundary unsplit) is one conceptual melodic step written as two or
+// more physical notes, not a second onset — the walk/chromatic invariants
+// below are about real attacks, so a tied continuation piece is filtered
+// out here rather than counted as its own step.
 function flattenOnsets(measures: PitchedMeasure[]): PitchedNote[] {
-  return measures.flatMap((bar) => bar.filter((n) => !n.rest));
+  return measures.flatMap((bar) => {
+    const sorted = bar.filter((n) => !n.rest).sort((a, b) => a.beat - b.beat);
+    return sorted.filter((n, i) => {
+      if (i === 0) return true;
+      const prev = sorted[i - 1]!;
+      return !(prev.tied && Math.abs(prev.beat + prev.duration - n.beat) < 0.001);
+    });
+  });
 }
 
 describe('generateMelody walk invariants (topic doc 07 §8, 1000 melodies per motion)', () => {

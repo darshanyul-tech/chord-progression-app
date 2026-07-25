@@ -171,3 +171,61 @@ export function pulseRestSpans(startBeat: number, spanBeats: number, pulseBeats:
   }
   return out;
 }
+
+export interface TieSplitAdapter<T> {
+  beat(n: T): number;
+  duration(n: T): number;
+  isRest(n: T): boolean;
+  /** Builds a copy of `n` at a different beat/duration with `tied` set explicitly — used to break `n` into consecutive tied pieces. */
+  withSpan(n: T, beat: number, duration: number, tied: boolean): T;
+}
+
+/**
+ * Splits any real (non-rest) note that straddles the exact centre of the
+ * bar into two tied pieces either side of it — e.g. a crotchet starting on
+ * the "and" of beat 2 in 4/4 (centre = beat 2) becomes a quaver tied to a
+ * quaver either side of beat 3, instead of a single note obscuring where the
+ * bar's middle falls (standard rhythmic-notation convention). Only the
+ * bar's own centre is protected — a note is free to start or run anywhere
+ * else, including across other beat boundaries (a half note on beat 1
+ * spanning into beat 2 is ordinary notation, not a violation); this is
+ * deliberately narrower than "every beat must be respected" so a short
+ * phrase doesn't end up tied at every eighth-note boundary.
+ *
+ * `centreBeat` is the bar's own `measureTotalBeats / 2` — callers pass that,
+ * not the meter's pulse length (for 4/4 and 6/8 they coincide, but for a
+ * 3/4 or 12/8 bar the true centre isn't a pulse multiple).
+ *
+ * Rests are left alone entirely — silence doesn't need a tie to stay
+ * legible, and splitting rests (a separate, real convention) is out of
+ * scope here; `pulseRestSpans` above already handles rest decomposition
+ * wherever it's actually used (fresh/cleared bars).
+ *
+ * Callers apply this *after* any per-note metadata (pitch, spelling) is
+ * already final — splitting the raw beat/duration skeleton before pitch
+ * assignment would make a melody generator's contour walk see spurious
+ * extra "notes" at the split point; the split piece must instead carry the
+ * *same* pitch as its parent, which `adapter.withSpan` is responsible for by
+ * copying `n`'s other fields through unchanged.
+ */
+export function tieSplitMeasure<T>(measure: readonly T[], centreBeat: number, adapter: TieSplitAdapter<T>): T[] {
+  if (centreBeat <= 0) return measure.slice();
+  const out: T[] = [];
+  measure.forEach((n) => {
+    if (adapter.isRest(n)) {
+      out.push(n);
+      return;
+    }
+    const beat = adapter.beat(n);
+    const duration = adapter.duration(n);
+    const end = beat + duration;
+    const crossesCentre = beat < centreBeat - 0.001 && end > centreBeat + 0.001;
+    if (!crossesCentre) {
+      out.push(n);
+      return;
+    }
+    out.push(adapter.withSpan(n, beat, centreBeat - beat, true));
+    out.push(adapter.withSpan(n, centreBeat, end - centreBeat, false));
+  });
+  return out;
+}

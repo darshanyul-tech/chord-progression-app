@@ -14,7 +14,17 @@ import {
   parseTimeSig,
   snapBeat,
   sortNotes,
+  tieSplitMeasure,
+  type RhythmNote,
+  type TieSplitAdapter,
 } from './time';
+
+const rhythmTieAdapter: TieSplitAdapter<RhythmNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.isRest,
+  withSpan: (n, beat, duration, tied) => ({ ...n, beat, duration, tied: tied ? true : undefined }),
+};
 
 describe('parseTimeSig', () => {
   it('parses simple meters', () => {
@@ -190,5 +200,99 @@ describe('decomposeGap', () => {
   it('sums exactly for a triplet-grid gap', () => {
     const chunks = decomposeGap(0.667);
     expect(chunks.reduce((s, d) => s + d, 0)).toBeCloseTo(0.667, 3);
+  });
+});
+
+// Rhythmic-notation convention: a note that straddles the exact centre of
+// the bar must never cross it unsplit — e.g. a crotchet starting on the
+// "and" of beat 2 in 4/4 (centre = beat 2, i.e. where beat 3 begins)
+// obscures the bar's middle, and must instead be written as tied pieces
+// either side of it. Only the bar's own centre is protected, not every
+// beat — a note is free to cross any *other* boundary unsplit.
+describe('tieSplitMeasure', () => {
+  it('leaves a note alone when it starts on the centre, even though it then crosses other beats', () => {
+    const measure: RhythmNote[] = [{ beat: 2, duration: 2, isRest: false }]; // half note starting exactly on the 4/4 centre
+    expect(tieSplitMeasure(measure, 2, rhythmTieAdapter)).toEqual(measure);
+  });
+
+  it('leaves a note alone when it stays entirely before the centre', () => {
+    const measure: RhythmNote[] = [{ beat: 0.5, duration: 1, isRest: false }]; // crotchet on the "and" of beat 1, ends at 1.5 — never reaches the centre (2)
+    expect(tieSplitMeasure(measure, 2, rhythmTieAdapter)).toEqual(measure);
+  });
+
+  it('leaves a note alone when it crosses a non-centre beat boundary (only the centre is protected)', () => {
+    const measure: RhythmNote[] = [{ beat: 0.5, duration: 1, isRest: false }]; // crosses beat 1 (0.5→1.5), not the centre at 2
+    expect(tieSplitMeasure(measure, 2, rhythmTieAdapter)).toEqual(measure);
+  });
+
+  it('splits a crotchet starting on the "and" of beat 2 into two tied quavers either side of the centre', () => {
+    const measure: RhythmNote[] = [{ beat: 1.5, duration: 1, isRest: false }];
+    const out = tieSplitMeasure(measure, 2, rhythmTieAdapter);
+    expect(out).toEqual([
+      { beat: 1.5, duration: 0.5, isRest: false, tied: true },
+      { beat: 2, duration: 0.5, isRest: false, tied: undefined },
+    ]);
+  });
+
+  it('splits a dotted-crotchet straddling the centre into a tied quaver + crotchet', () => {
+    const measure: RhythmNote[] = [{ beat: 1.5, duration: 1.5, isRest: false }]; // spans 1.5→3, crossing the centre at 2
+    const out = tieSplitMeasure(measure, 2, rhythmTieAdapter);
+    expect(out).toEqual([
+      { beat: 1.5, duration: 0.5, isRest: false, tied: true },
+      { beat: 2, duration: 1, isRest: false, tied: undefined },
+    ]);
+  });
+
+  it('splits into exactly two pieces even for a note spanning several beats either side of the centre', () => {
+    const measure: RhythmNote[] = [{ beat: 0.5, duration: 3, isRest: false }]; // spans 0.5→3.5, crossing the centre at 2 once
+    const out = tieSplitMeasure(measure, 2, rhythmTieAdapter);
+    expect(out).toHaveLength(2);
+    expect(out.reduce((s, n) => s + n.duration, 0)).toBeCloseTo(3, 6);
+    expect(out[0]).toEqual({ beat: 0.5, duration: 1.5, isRest: false, tied: true });
+    expect(out[1]).toEqual({ beat: 2, duration: 1.5, isRest: false, tied: undefined });
+  });
+
+  it('never splits rests', () => {
+    const measure: RhythmNote[] = [{ beat: 1.5, duration: 1, isRest: true }];
+    expect(tieSplitMeasure(measure, 2, rhythmTieAdapter)).toEqual(measure);
+  });
+
+  it('respects a compound-meter dotted-crotchet centre (6/8, where the centre coincides with the single main pulse)', () => {
+    // A crotchet+quaver starting on the "and" of the first dotted-crotchet
+    // pulse (beat 0.5) spans [0.5, 2), crossing the bar's centre at 1.5.
+    const measure: RhythmNote[] = [{ beat: 0.5, duration: 1.5, isRest: false }];
+    const out = tieSplitMeasure(measure, 1.5, rhythmTieAdapter);
+    expect(out).toEqual([
+      { beat: 0.5, duration: 1, isRest: false, tied: true },
+      { beat: 1.5, duration: 0.5, isRest: false, tied: undefined },
+    ]);
+  });
+
+  it('is a no-op for a measure that never crosses the centre (leaves note count unchanged)', () => {
+    const measure: RhythmNote[] = [
+      { beat: 0, duration: 1, isRest: false },
+      { beat: 1, duration: 1, isRest: false },
+      { beat: 2, duration: 2, isRest: false },
+    ];
+    expect(tieSplitMeasure(measure, 2, rhythmTieAdapter)).toEqual(measure);
+  });
+
+  it('preserves other fields on split pieces (e.g. a pitch-bearing note type)', () => {
+    interface PitchedLike {
+      beat: number;
+      duration: number;
+      rest: boolean;
+      midi: number;
+    }
+    const adapter: TieSplitAdapter<PitchedLike> = {
+      beat: (n) => n.beat,
+      duration: (n) => n.duration,
+      isRest: (n) => n.rest,
+      withSpan: (n, beat, duration) => ({ ...n, beat, duration }),
+    };
+    const measure: PitchedLike[] = [{ beat: 2.5, duration: 1, rest: false, midi: 67 }]; // spans 2.5→3.5, crossing a centre at 3
+    const out = tieSplitMeasure(measure, 3, adapter);
+    expect(out).toHaveLength(2);
+    out.forEach((n) => expect(n.midi).toBe(67));
   });
 });

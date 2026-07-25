@@ -6,7 +6,11 @@ import { keysWithin, scaleSpelling, type KeyMode, type TheoryKey } from './keys'
 import { spellingLabel, type SpelledPitch } from './spelledPitch';
 
 export type ScaleDegreeKeysFilter = KeyMode | 'both';
-export type ScaleDegreeDisplay = 'staffAndText' | 'textOnly';
+// staffAndText: stave shown + note named in the prompt. staffOnly: stave
+// shown but the note is NOT named — you read it off the stave yourself.
+// textOnly: no stave, note named in the prompt. (Storage keys keep the
+// historical "staff" spelling; only the displayed labels use "stave".)
+export type ScaleDegreeDisplay = 'staffAndText' | 'staffOnly' | 'textOnly';
 export type ScaleDegreeLabels = 'numbers' | 'names';
 
 export interface ScaleDegreesSettings extends Record<string, unknown> {
@@ -65,12 +69,18 @@ export function buildScaleDegreeQuestion(settings: ScaleDegreesSettings): ScaleD
   const degreeSpelling = scaleSpelling(key)[degreeIndex]!;
   const { clef, octave } = pickClefAndOctave(degreeSpelling.letter);
   const note: SpelledPitch = { letter: degreeSpelling.letter, acc: degreeSpelling.acc, octave };
+  // Stave-only mode shows the note on the stave but doesn't name it, so the
+  // prompt asks you to read it yourself; the other modes name it outright.
+  const promptText =
+    settings.display === 'staffOnly'
+      ? `Key: ${key.label} — what degree is the note on the stave?`
+      : `Key: ${key.label} — what degree is ${spellingLabel(note)}?`;
   return {
     key,
     degree: degreeIndex + 1,
     note,
     clef,
-    promptText: `Key: ${key.label} — what degree is ${spellingLabel(note)}?`,
+    promptText,
   };
 }
 

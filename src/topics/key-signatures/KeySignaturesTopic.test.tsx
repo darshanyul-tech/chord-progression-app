@@ -52,7 +52,7 @@ describe('KeySignaturesTopic â€” first-guess scoring (docs/15-theory-topics/02 Â
   it('renders a key signature stave and all 15 keys of the asked mode', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0);
     renderTopic();
-    expect(screen.getByRole('img', { name: /Key signature staff/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Key signature stave/ })).toBeInTheDocument();
     expect(screen.getByRole('group', { name: 'Key signature answers' })).toBeInTheDocument();
     expect(screen.getAllByRole('button').filter((b) => b.className.includes('chord-choice'))).toHaveLength(15);
   });

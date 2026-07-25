@@ -49,6 +49,12 @@ export function SourceStaff({ clef, vexKeySpec, timeSig, rhythmMeasures, spelled
           rest: false,
           midi: n.midi,
           spelling: toNoteSpelling(spelled),
+          // Proper rhythmic notation: an off-pulse onset that crosses a beat
+          // must be tied (lib/rhythm/time.ts's tieSplitMeasure, applied by
+          // the melody generator sourceMelody came from) — buildVexScore
+          // already renders this correctly given the flag, it just wasn't
+          // being forwarded from the source rhythm before.
+          tied: n.tied,
         };
       }),
     );
@@ -71,5 +77,5 @@ export function SourceStaff({ clef, vexKeySpec, timeSig, rhythmMeasures, spelled
     });
   });
 
-  return <div ref={containerRef} role="img" aria-label="Source melody staff (read-only)" />;
+  return <div ref={containerRef} role="img" aria-label="Source melody stave (read-only)" />;
 }

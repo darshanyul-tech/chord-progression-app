@@ -25,7 +25,7 @@ export function ScaleDegreesTopic() {
         {practice.question ? (
           <div className="theory-question-card">
             <p className="theory-prompt">{practice.question.promptText}</p>
-            {settings.display === 'staffAndText' && (
+            {settings.display !== 'textOnly' && (
               <div className="theory-staff-frame">
                 <TheoryStaffView
                   clef={practice.question.clef}

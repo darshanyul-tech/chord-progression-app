@@ -123,16 +123,33 @@ export function generateBarCells(numSlots: number, cellIds: number[]): MeterCell
   return cells;
 }
 
-/** Realizes a bar's cell sequence as one side's notation — the cursor advances by each note's own (already meter-correct) duration, so compound and simple realizations of the same cell sequence naturally land at proportionally different beat positions without any conversion math. */
+/**
+ * Realizes a bar's cell sequence as one side's notation. Each cell starts at
+ * an exact, independently-computed `cellStart` (slots * that side's pulse
+ * length) rather than an accumulated running cursor — 0.333/0.667 (the
+ * triplet quaver/quarter durations) are float approximations of 1/3 and 2/3,
+ * so summing them (three 0.333s = 0.999, not 1.0) drifts if a cursor just
+ * keeps adding durations across cell boundaries; that drift compounded
+ * across consecutive triplet cells until it disagreed with the clean
+ * beat-grid resolvePlacementBeat/candidateBeats expect, occasionally
+ * snapping a click to the wrong side of a since-drifted onset. Anchoring
+ * every cell's start to a fresh, exact multiple of the pulse resets any
+ * drift at every cell boundary instead of letting it accumulate across the
+ * whole bar — only the (bounded, sub-tolerance) drift *within* one cell's
+ * own 1-2 additions can ever occur.
+ */
 export function cellsToMeasure(cells: readonly MeterCell[], side: 'compound' | 'simple'): Measure {
+  const pulseBeats = side === 'compound' ? 1.5 : 1;
   const notes: RhythmNote[] = [];
-  let cursor = 0;
+  let cellStart = 0;
   cells.forEach((cell) => {
     const seq = side === 'compound' ? cell.compound : cell.simple;
+    let offset = 0;
     seq.forEach((n) => {
-      notes.push({ beat: cursor, duration: n.duration, isRest: n.isRest });
-      cursor += n.duration;
+      notes.push({ beat: cellStart + offset, duration: n.duration, isRest: n.isRest });
+      offset += n.duration;
     });
+    cellStart += pulseBeats * cell.slots;
   });
   return notes;
 }

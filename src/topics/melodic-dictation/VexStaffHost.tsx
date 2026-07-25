@@ -253,7 +253,7 @@ export function VexStaffHost({
       ref={containerRef}
       id="md-staff-svg"
       role="application"
-      aria-label="Melody staff. Left and right arrow keys move the beat cursor, up and down arrow keys move the pitch cursor, and Enter places the armed note or rest at the cursor."
+      aria-label="Melody stave. Left and right arrow keys move the beat cursor, up and down arrow keys move the pitch cursor, and Enter places the armed note or rest at the cursor."
       tabIndex={0}
       onClick={handleClick}
       onMouseMove={handleMouseMove}

@@ -118,4 +118,51 @@ describe('buildPlaybackEvents', () => {
     expect(events[0]!.isBeat1).toBe(true);
     expect(events[1]!.isBeat1).toBe(true); // beat 1 is also a pulse boundary at pulseBeats=1
   });
+
+  // A tied note is a notation split (lib/rhythm/time.ts's tieSplitMeasure),
+  // not a separate attack — playback must sound identical to the pre-split
+  // rhythm: one onset, held for the combined duration.
+  it('merges a tied run into one playback event with the combined duration', () => {
+    const pattern: Measure[] = [
+      [
+        { beat: 2.5, duration: 0.5, isRest: false, tied: true },
+        { beat: 3, duration: 0.5, isRest: false },
+      ],
+    ];
+    const { events } = buildPlaybackEvents(pattern, 60, 4, 1, 1);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.time).toBeCloseTo(2.5, 5);
+    expect(events[0]!.duration).toBeCloseTo(1, 5);
+  });
+
+  it('merges a three-piece tied run into one event', () => {
+    const pattern: Measure[] = [
+      [
+        { beat: 0.5, duration: 0.5, isRest: false, tied: true },
+        { beat: 1, duration: 1, isRest: false, tied: true },
+        { beat: 2, duration: 1, isRest: false },
+      ],
+    ];
+    const { events } = buildPlaybackEvents(pattern, 60, 3, 1, 1);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.duration).toBeCloseTo(2.5, 5);
+  });
+
+  it('does not merge across a gap, even if a note happens to be tied and something else intervenes', () => {
+    const pattern: Measure[] = [
+      [
+        { beat: 0, duration: 0.5, isRest: false, tied: true },
+        { beat: 1, duration: 0.5, isRest: false }, // not contiguous with the tied note above
+      ],
+    ];
+    const { events } = buildPlaybackEvents(pattern, 60, 2, 1, 1);
+    expect(events).toHaveLength(2);
+  });
+
+  it('leaves untied notes exactly as before (regression guard)', () => {
+    const pattern: Measure[] = [[{ beat: 0, duration: 1, isRest: false }, { beat: 1, duration: 1, isRest: false }]];
+    const { events } = buildPlaybackEvents(pattern, 60, 2, 1, 1);
+    expect(events).toHaveLength(2);
+    expect(events.map((e) => e.duration)).toEqual([1, 1]);
+  });
 });

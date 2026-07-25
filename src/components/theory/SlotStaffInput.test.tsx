@@ -80,4 +80,78 @@ describe('SlotStaffInput', () => {
       ),
     ).not.toThrow();
   });
+
+  // Proper rhythmic notation (lib/rhythm/time.ts's tieSplitMeasure): an
+  // off-pulse onset that crosses a beat is written as two tied same-pitch
+  // slots, and Transposition's answer/reveal needs to show that tie.
+  describe('tiedIndices', () => {
+    it('draws a tie between two adjacent slots of the same pitch when tied', () => {
+      const slots: (SpelledPitch | null)[] = [
+        { letter: 'C', acc: '', octave: 4 },
+        { letter: 'C', acc: '', octave: 4 },
+      ];
+      const { container } = render(
+        <SlotStaffInput
+          clef="treble"
+          slots={slots}
+          durations={[0.5, 0.5]}
+          tiedIndices={[true, false]}
+          armedAccidental=""
+          disabled={false}
+          onPlace={vi.fn()}
+        />,
+      );
+      const svg = container.querySelector('svg')!;
+      expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
+    });
+
+    it('draws no tie when tiedIndices is omitted (backward compatible)', () => {
+      const slots: (SpelledPitch | null)[] = [
+        { letter: 'C', acc: '', octave: 4 },
+        { letter: 'C', acc: '', octave: 4 },
+      ];
+      const { container } = render(
+        <SlotStaffInput clef="treble" slots={slots} durations={[0.5, 0.5]} armedAccidental="" disabled={false} onPlace={vi.fn()} />,
+      );
+      const svg = container.querySelector('svg')!;
+      expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+    });
+
+    it('draws no tie when the two slots hold different pitches, even if tiedIndices says tied', () => {
+      const slots: (SpelledPitch | null)[] = [
+        { letter: 'C', acc: '', octave: 4 },
+        { letter: 'D', acc: '', octave: 4 },
+      ];
+      const { container } = render(
+        <SlotStaffInput
+          clef="treble"
+          slots={slots}
+          durations={[0.5, 0.5]}
+          tiedIndices={[true, false]}
+          armedAccidental=""
+          disabled={false}
+          onPlace={vi.fn()}
+        />,
+      );
+      const svg = container.querySelector('svg')!;
+      expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+    });
+
+    it('draws no tie when one of the two slots is still empty', () => {
+      const slots: (SpelledPitch | null)[] = [{ letter: 'C', acc: '', octave: 4 }, null];
+      const { container } = render(
+        <SlotStaffInput
+          clef="treble"
+          slots={slots}
+          durations={[0.5, 0.5]}
+          tiedIndices={[true, false]}
+          armedAccidental=""
+          disabled={false}
+          onPlace={vi.fn()}
+        />,
+      );
+      const svg = container.querySelector('svg')!;
+      expect(svg.querySelectorAll('.vf-stavetie').length).toBe(0);
+    });
+  });
 });

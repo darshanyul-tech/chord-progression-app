@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useUIStore } from '../state/ui';
 import { DEFAULT_TOPIC_BY_SECTION, SECTIONS, type SectionId } from '../topics/registry';
 import trytoneLogo from '../assets/trytone-logo-with-text.png';
+import trytoneIcon from '../assets/trytone-emblem.png';
 
 // 13-home-and-sections.md §6. Home is active only on '/'; otherwise the
 // active section is read from the route — /exam carries no section prefix
@@ -34,7 +35,10 @@ export function HeaderBar() {
         <div className="shell-header-title-group">
           <div>
             <h1 className="sr-only">TryTone</h1>
+            {/* Both render; CSS swaps the wide with-text logo for the compact
+                icon at a narrow breakpoint so the section nav keeps its room. */}
             <img src={trytoneLogo} alt="TryTone" className="shell-logo" />
+            <img src={trytoneIcon} alt="" aria-hidden="true" className="shell-logo-icon" />
           </div>
         </div>
         <nav aria-label="Sections" className="shell-section-nav">

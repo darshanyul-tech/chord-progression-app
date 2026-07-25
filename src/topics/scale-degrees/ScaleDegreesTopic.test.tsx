@@ -51,9 +51,26 @@ describe('ScaleDegreesTopic — first-guess scoring (docs/15-theory-topics/03 §
     expect(screen.getByText('Session: 1 / 1 (first-guess correct)')).toBeInTheDocument();
   });
 
-  it('text-only display mode shows no staff', () => {
+  it('text-only display mode shows no stave', () => {
     useScaleDegreesSettings.setState({ display: 'textOnly' });
     renderTopic();
-    expect(screen.queryByRole('img', { name: /Music notation staff/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', { name: /Music notation stave/ })).not.toBeInTheDocument();
+  });
+
+  it('stave-only display mode shows the stave but does not name the note in the prompt', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    useScaleDegreesSettings.setState({ display: 'staffOnly' });
+    renderTopic();
+    expect(screen.getByRole('img', { name: /Music notation stave/ })).toBeInTheDocument();
+    // The prompt asks you to read the note off the stave rather than naming it.
+    expect(screen.getByText(/what degree is the note on the stave/)).toBeInTheDocument();
+  });
+
+  it('stave + text display mode shows both the stave and the named note', () => {
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+    useScaleDegreesSettings.setState({ display: 'staffAndText' });
+    renderTopic();
+    expect(screen.getByRole('img', { name: /Music notation stave/ })).toBeInTheDocument();
+    expect(screen.getByText(/what degree is [A-G]/)).toBeInTheDocument();
   });
 });

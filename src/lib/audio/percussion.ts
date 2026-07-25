@@ -1,5 +1,5 @@
 import type { Measure } from '../rhythm/time';
-import { sortNotes } from '../rhythm/time';
+import { durationClose, sortNotes } from '../rhythm/time';
 
 // Ported verbatim from legacy rhythm-dictation IIFE (percussion/metronome
 // synthesis + playback-event building, lines ~6312-6432,
@@ -147,10 +147,29 @@ export function buildPlaybackEvents(
   pattern.forEach((measure) => {
     const sorted = sortNotes(measure);
     const measureStart = t;
-    sorted.forEach((n) => {
-      const isBeat1 = Math.abs(n.beat % pulseBeats) < 0.001 || n.beat < 0.001;
-      events.push({ time: measureStart + n.beat * spb, duration: n.duration, isRest: n.isRest, isBeat1 });
-    });
+    // A tied note (lib/rhythm/time.ts's tieSplitMeasure, used so a written
+    // note never crosses the bar's centre unsplit) is a notation split, not a
+    // separate attack — merge each tied run into one playback event with
+    // the combined duration, so what's audibly heard exactly matches the
+    // pre-split rhythm regardless of how it's written on the staff.
+    let i = 0;
+    while (i < sorted.length) {
+      const first = sorted[i]!;
+      let duration = first.duration;
+      let j = i;
+      while (
+        !sorted[j]!.isRest &&
+        sorted[j]!.tied &&
+        j + 1 < sorted.length &&
+        durationClose(sorted[j + 1]!.beat, sorted[j]!.beat + sorted[j]!.duration)
+      ) {
+        j++;
+        duration += sorted[j]!.duration;
+      }
+      const isBeat1 = Math.abs(first.beat % pulseBeats) < 0.001 || first.beat < 0.001;
+      events.push({ time: measureStart + first.beat * spb, duration, isRest: first.isRest, isBeat1 });
+      i = j + 1;
+    }
     t += measureTotalBeats * spb;
   });
   events.sort((a, b) => a.time - b.time);
