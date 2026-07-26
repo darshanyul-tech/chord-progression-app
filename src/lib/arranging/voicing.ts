@@ -4,6 +4,7 @@
 
 import { chordTones, degreeOf, type ParsedChord } from './chord';
 import { interval, pitchClass, type Interval } from './pitch';
+import { UST_TABLE, ustTriadPitchClasses } from './ust';
 
 export type MechanicalVoicingType =
   | 'close'
@@ -61,7 +62,7 @@ export function basicVoicingTones(chord: ParsedChord): number[] {
 /** Highest MIDI ≤ ceil whose pitch class is pc. */
 function highestAtOrBelow(pc: number, ceil: number): number {
   const ceilPc = pitchClass(ceil);
-  let diff = (ceilPc - pc + 12) % 12; // semitones to step down from ceil to reach pc
+  const diff = (ceilPc - pc + 12) % 12; // semitones to step down from ceil to reach pc
   return ceil - diff;
 }
 
@@ -192,6 +193,54 @@ function buildSpread(leadMidi: number, tones: number[]): number[] {
   return sortDesc(result);
 }
 
+/** Hang the given pitch classes down from a top note, each highest-below-previous. */
+export function hangDown(topMidi: number, belowPcs: number[]): number[] {
+  const result = [topMidi];
+  let prev = topMidi;
+  for (const pc of belowPcs) {
+    const m = highestAtOrBelow(pc, prev - 1);
+    result.push(m);
+    prev = m;
+  }
+  return result;
+}
+
+/** Build a representative 3-note voicing of a given family (ARR-03/04). Top-down. */
+export function buildThreeNote(chord: ParsedChord, family: VoicingFamily, topMidi: number): number[] {
+  const tones = chordTones(chord);
+  const p = (deg: string) => tones[deg];
+  switch (family) {
+    case 'triad': {
+      const set = [p('1'), p('3'), p('5')].filter((x): x is number => x != null);
+      const topPc = pitchClass(topMidi);
+      const below = set.filter((pc) => pc !== topPc);
+      return hangDown(topMidi, below.length ? below : set.slice(1));
+    }
+    case 'shell': {
+      const colour = p('5') ?? p('9') ?? p('1')!;
+      const set = [p('3')!, p('7') ?? p('6')!, colour];
+      const topPc = pitchClass(topMidi);
+      const below = set.filter((pc) => pc !== topPc);
+      return hangDown(topMidi, below.slice(0, 2).concat(below.length < 2 ? set.slice(0, 2 - below.length) : []));
+    }
+    case 'quartal':
+      return [topMidi, topMidi - 5, topMidi - 10];
+    case 'quartal-dominant':
+      return [topMidi, topMidi - 5, topMidi - 11]; // P4 over a tritone
+    case 'cluster':
+      return [topMidi, topMidi - 2, topMidi - 5]; // a 2nd on top, then a m3
+    case 'upper-structure-triad': {
+      const row = UST_TABLE.find((r) => r.quality === 'major' && r.semitonesAboveRoot === 2) ?? UST_TABLE[2]!;
+      const triad = ustTriadPitchClasses(row, chord.root);
+      const topPc = pitchClass(topMidi);
+      const below = triad.filter((pc) => pc !== topPc);
+      return hangDown(topMidi, below.length === 2 ? below : triad.slice(1));
+    }
+    default:
+      return [topMidi, topMidi - 4, topMidi - 7];
+  }
+}
+
 // ---- Analysis (§2.4) ----
 
 export interface VoicingAnalysis {
@@ -256,6 +305,16 @@ function detectFamilies(voicing: Voicing): VoicingFamily[] {
     families.push('quartal-dominant');
   // Cluster: a 2nd between two adjacent voices (inverted quartals create these).
   if (hasSecond) families.push('cluster');
+  // Upper structure triad: on a dominant, a plain triad drawn from the upper
+  // structure (any inversion). Detected by matching the pitch-class set.
+  if (chord.quality === 'dominant') {
+    const pcs = new Set(desc.map((m) => pitchClass(m)));
+    const matchesUst = UST_TABLE.some((row) => {
+      const triad = new Set(ustTriadPitchClasses(row, chord.root));
+      return triad.size === pcs.size && [...triad].every((p) => pcs.has(p));
+    });
+    if (matchesUst) families.push('upper-structure-triad');
+  }
 
   return families;
 }

@@ -49,6 +49,14 @@ function buildRouter() {
         </Layout>
       ),
     },
+    {
+      path: '/arranging/topic/:id',
+      element: (
+        <Layout>
+          <TopicRoute section="arranging" />
+        </Layout>
+      ),
+    },
     { path: '/topic/:id', element: <LegacyTopicRedirect /> },
     {
       path: '/exam',

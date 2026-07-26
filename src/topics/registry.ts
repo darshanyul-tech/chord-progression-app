@@ -1,4 +1,4 @@
-import { lazy, type ComponentType } from 'react';
+import { createElement, lazy, type ComponentType } from 'react';
 import type { ExamTypeDefinition } from '../exam/types';
 import { ChordComparisonTopic } from './chord-comparison/ChordComparisonTopic';
 import { ChordTopic } from './chord/ChordTopic';
@@ -55,6 +55,17 @@ const MeterTranspositionTopic = lazy(() =>
   import('./meter-transposition/MeterTranspositionTopic').then((m) => ({ default: m.MeterTranspositionTopic })),
 );
 
+// Every Arranging exercise renders through one generic host, bound to its id.
+// A single lazy chunk carries the engine + host; each topic entry just passes
+// its exerciseId (13/16-style lazy pattern, JSX-free via createElement).
+function arrTopic(exerciseId: string): ComponentType {
+  return lazy(() =>
+    import('./arranging/ArrangingHost').then((m) => ({
+      default: () => createElement(m.ArrangingHost, { exerciseId }),
+    })),
+  );
+}
+
 // examTypes is a loader, not a static array (Phase 13 §1) — every
 // examType.ts module was previously imported eagerly here purely so
 // ExamSetup could read registry.examTypes synchronously, which pulled
@@ -89,7 +100,11 @@ export type CategoryId =
   | 'theory-reading'
   | 'theory-keys'
   | 'theory-writing'
-  | 'theory-transposition';
+  | 'theory-transposition'
+  | 'arr-voicings'
+  | 'arr-harmony'
+  | 'arr-orchestration'
+  | 'arr-melody';
 
 export const CATEGORY_TITLES: Record<CategoryId, string> = {
   'intervals-scales': 'Intervals & Scales',
@@ -104,6 +119,10 @@ export const CATEGORY_TITLES: Record<CategoryId, string> = {
   'theory-keys': 'Keys & Degrees',
   'theory-writing': 'Writing',
   'theory-transposition': 'Transposition',
+  'arr-voicings': 'Voicings',
+  'arr-harmony': 'Harmonic Materials',
+  'arr-orchestration': 'Orchestration & Instruments',
+  'arr-melody': 'Melodic Writing',
 };
 
 // Category display order (02-ui-shell-and-navigation.md §3) — aural section only.
@@ -119,7 +138,7 @@ export const CATEGORY_ORDER: CategoryId[] = [
   'custom',
 ];
 
-export type SectionId = 'aural' | 'theory';
+export type SectionId = 'aural' | 'theory' | 'arranging';
 
 export interface SectionDef {
   id: SectionId;
@@ -144,6 +163,12 @@ export const SECTIONS: SectionDef[] = [
     navLabel: 'Theory',
     blurb: 'Note reading, key signatures, scale and chord writing, transposition — written music theory.',
   },
+  {
+    id: 'arranging',
+    title: 'Arranging',
+    navLabel: 'Arranging',
+    blurb: 'Voicings, upper structures, transposition, ranges, approach notes and score order — writing for ensembles.',
+  },
 ];
 
 // 13-home-and-sections.md §3/§5 — theory's category order (its own 4 categories,
@@ -151,6 +176,7 @@ export const SECTIONS: SectionDef[] = [
 export const SECTION_CATEGORY_ORDER: Record<SectionId, CategoryId[]> = {
   aural: CATEGORY_ORDER,
   theory: ['theory-reading', 'theory-keys', 'theory-writing', 'theory-transposition'],
+  arranging: ['arr-voicings', 'arr-harmony', 'arr-orchestration', 'arr-melody'],
 };
 
 export interface TopicDefinition {
@@ -173,6 +199,38 @@ export interface TopicDefinition {
    */
   hidden?: boolean;
 }
+
+// One Arranging topic entry, wired to the generic host by exercise id.
+function arr(id: string, title: string, category: CategoryId): TopicDefinition {
+  return { id, title, category, status: 'active', section: 'arranging', theme: 'light', Component: arrTopic(id) };
+}
+
+// Built from the ARR spec's exercise table; grouped only for the syllabus menu.
+const ARRANGING_TOPICS: TopicDefinition[] = [
+  // Voicings
+  arr('arr-voicing-build', 'Build a Mechanical Voicing', 'arr-voicings'),
+  arr('arr-voicing-identify', 'Identify a Mechanical Voicing', 'arr-voicings'),
+  arr('arr-three-note-identify', 'Identify a Three-Note Voicing Type', 'arr-voicings'),
+  arr('arr-three-note-build', 'Build a Three-Note Voicing', 'arr-voicings'),
+  arr('arr-spot-error', 'Spot the Error', 'arr-voicings'),
+  arr('arr-voicing-by-ear', 'Identify a Voicing by Ear', 'arr-voicings'),
+  arr('arr-omit-skip', 'Omit & Skip Techniques', 'arr-voicings'),
+  // Harmonic materials
+  arr('arr-ust', 'Upper Structure Triads', 'arr-harmony'),
+  arr('arr-slash-poly', 'Slash Chords & Polychords', 'arr-harmony'),
+  arr('arr-chord-tones', 'Chord Tones & Tensions', 'arr-harmony'),
+  arr('arr-chord-scales', 'Chord Scales', 'arr-harmony'),
+  // Orchestration & instruments
+  arr('arr-transposition', 'Transposition', 'arr-orchestration'),
+  arr('arr-ranges', 'Instrument Ranges', 'arr-orchestration'),
+  arr('arr-lil', 'Lower Interval Limits', 'arr-orchestration'),
+  arr('arr-score-order', 'Score Order', 'arr-orchestration'),
+  // Melodic writing
+  arr('arr-approach-identify', 'Identify an Approach Note', 'arr-melody'),
+  arr('arr-approach-reharm', 'Reharmonise an Approach Note', 'arr-melody'),
+  arr('arr-melodic-motion', 'Melodic Motion', 'arr-melody'),
+  arr('arr-melodic-manipulation', 'Melodic Manipulation', 'arr-melody'),
+];
 
 // Exact inventory: 02-ui-shell-and-navigation.md §3.
 // Topics flip from "placeholder" to "active" (and gain a Component) as their
@@ -439,6 +497,11 @@ export const TOPICS: TopicDefinition[] = [
     Component: MeterTranspositionTopic,
     // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
+
+  // Arranging section — a flat bank of 19 standalone drills (ARR spec). Category
+  // headers are visual sorting aids only; nothing is gated. Every exercise renders
+  // through the generic ArrangingHost, bound to its id. No exam types (practice only).
+  ...ARRANGING_TOPICS,
 ];
 
 // Default route on first load within the aural section (matches legacy default tab, 02-ui-shell §3).
@@ -449,6 +512,7 @@ export const DEFAULT_TOPIC_ID = 'chord-progressions';
 export const DEFAULT_TOPIC_BY_SECTION: Record<SectionId, string> = {
   aural: DEFAULT_TOPIC_ID,
   theory: 'note-reading',
+  arranging: 'arr-voicing-build',
 };
 
 export function getTopic(id: string): TopicDefinition | undefined {
