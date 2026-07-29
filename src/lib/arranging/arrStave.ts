@@ -3,7 +3,7 @@
 // canvas), this supports an optional grand staff for low voicings and a tight
 // canvas sized to a single chord, and colours each notehead by identity (not by
 // post-sort index) so the hover ghost lands on the right note.
-import { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, type RenderContext } from 'vexflow';
+import { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, Voice, type RenderContext } from 'vexflow';
 import { spelledToMidi, type SpelledPitch } from '../written-theory/spelledPitch';
 
 export interface ArrStaveTone {
@@ -21,6 +21,9 @@ export interface ArrStaveResult {
   bass: ArrStaveGeom | null;
   /** y (canvas units) below which a click routes to the bass stave (grand only). */
   splitY: number | null;
+  /** Absolute x of the drawn treble / bass noteheads (for alignment tests). */
+  trebleNoteX: number | null;
+  bassNoteX: number | null;
 }
 
 const CANVAS_WIDTH = 150;
@@ -76,11 +79,25 @@ export function buildArrStave(container: HTMLDivElement, opts: { grand: boolean;
   const bassTones = opts.grand ? opts.tones.filter((t) => spelledToMidi(t.pitch) < 60) : [];
 
   const tNote = makeNote(trebleTones, 'treble');
-  if (tNote) Formatter.FormatAndDraw(ctx, treble, [tNote]);
-  if (bass) {
-    const bNote = makeNote(bassTones, 'bass');
-    if (bNote) Formatter.FormatAndDraw(ctx, bass, [bNote]);
+  const bNote = bass ? makeNote(bassTones, 'bass') : null;
+
+  if (bass && tNote && bNote) {
+    // Format both staves through ONE formatter so the noteheads share a tick
+    // position (and therefore an x) — the accidental on one chord then hangs to
+    // the left of that shared point instead of shoving its noteheads sideways.
+    const tVoice = new Voice({ numBeats: 4, beatValue: 4 }).setMode(Voice.Mode.SOFT).addTickables([tNote]);
+    const bVoice = new Voice({ numBeats: 4, beatValue: 4 }).setMode(Voice.Mode.SOFT).addTickables([bNote]);
+    new Formatter().joinVoices([tVoice]).joinVoices([bVoice]).format([tVoice, bVoice], staveWidth - 40);
+    tVoice.draw(ctx, treble);
+    bVoice.draw(ctx, bass);
+  } else if (tNote) {
+    Formatter.FormatAndDraw(ctx, treble, [tNote]);
+  } else if (bass && bNote) {
+    Formatter.FormatAndDraw(ctx, bass, [bNote]);
   }
+
+  const trebleNoteX = tNote ? tNote.getAbsoluteX() : null;
+  const bassNoteX = bNote ? bNote.getAbsoluteX() : null;
 
   const svg = container.querySelector('svg');
   if (svg) {
@@ -97,5 +114,7 @@ export function buildArrStave(container: HTMLDivElement, opts: { grand: boolean;
     treble: { topLineY: treble.getYForLine(0), spacing: treble.getSpacingBetweenLines() },
     bass: bass ? { topLineY: bass.getYForLine(0), spacing: bass.getSpacingBetweenLines() } : null,
     splitY: bass ? (treble.getYForLine(4) + bass.getYForLine(0)) / 2 : null,
+    trebleNoteX,
+    bassNoteX,
   };
 }
