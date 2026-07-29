@@ -47,6 +47,15 @@ export const ARR_01: ArrangingExercise = {
   instruction:
     'You’re given a chord symbol, a lead note, and a voicing type. Build the voicing by filling in the remaining voices, top to bottom. Voice 1 is the lead and is already filled in. Hang the chord tones down from the lead note as close as possible within an octave, then apply the drop if the question asks for one.',
   settingsSchema: [
+    {
+      kind: 'select',
+      key: 'inputMode',
+      label: 'Input mode',
+      options: [
+        { value: 'stave', label: 'Stave' },
+        { value: 'dropdowns', label: 'Stave-free mode (advised for mobile use)' },
+      ],
+    },
     { kind: 'multi', key: 'types', label: 'Voicing types', options: MECH_OPTIONS },
     { kind: 'multi', key: 'qualities', label: 'Chord qualities', options: QUALITY_OPTIONS },
     {
@@ -63,6 +72,7 @@ export const ARR_01: ArrangingExercise = {
     { kind: 'toggle', key: 'playReveal', label: 'Play voicing on reveal' },
   ],
   defaultSettings: {
+    inputMode: 'stave',
     types: ['close', 'drop-2', 'drop-3', 'drop-2+4'],
     qualities: ['maj7', 'mi7', 'dom7'],
     leadMode: 'chord',

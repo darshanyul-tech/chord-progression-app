@@ -10,6 +10,7 @@ import { useArrangingSettingsStore } from './settingsStores';
 import { ArrangingSettings } from './ArrangingSettings';
 import { VoicingStaffView } from './VoicingStaffView';
 import { StackedPitchDropdowns } from './StackedPitchDropdowns';
+import { StaveVoicingInput } from './StaveVoicingInput';
 import { useArrangingAudio } from './useArrangingAudio';
 import type { ArrQuestion, PromptSpec } from './exerciseTypes';
 
@@ -65,6 +66,12 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
   const [order, setOrder] = useState<string[]>([]);
   // stacked
   const [rows, setRows] = useState<(number | null)[]>([]);
+  const [staveMidis, setStaveMidis] = useState<number[]>([]);
+  const [staveResetKey, setStaveResetKey] = useState(0);
+
+  // Stave input is opt-in per exercise (only ARR-01 declares it); default off
+  // so every other stacked exercise keeps the dropdown entry.
+  const staveMode = question?.kind === 'stacked' && settings.inputMode === 'stave';
 
   const startRound = useCallback(() => {
     const q = exercise.generate(settings);
@@ -77,7 +84,11 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
     setGuesses(0);
     setMultiSelected([]);
     if (q?.kind === 'order') setOrder(q.items.map((i) => i.id));
-    if (q?.kind === 'stacked') setRows([...q.prefill]);
+    if (q?.kind === 'stacked') {
+      setRows([...q.prefill]);
+      setStaveMidis([]);
+      setStaveResetKey((k) => k + 1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exerciseId, settingsKey]);
 
@@ -146,15 +157,16 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
   // ---- stacked ----
   function submitStacked() {
     if (!question || question.kind !== 'stacked' || answered) return;
-    if (rows.some((r) => r == null)) return;
-    const result = question.grade(rows as number[]);
+    const midis = staveMode ? staveMidis : (rows.filter((r) => r != null) as number[]);
+    if (midis.length !== question.voiceCount) return;
+    const result = question.grade(midis);
     finalize(result.correct, true, result.message);
   }
 
-  const canSubmitStacked = useMemo(
-    () => question?.kind === 'stacked' && rows.length === question.voiceCount && rows.every((r) => r != null),
-    [question, rows],
-  );
+  const canSubmitStacked = useMemo(() => {
+    if (question?.kind !== 'stacked') return false;
+    return staveMode ? staveMidis.length === question.voiceCount : rows.length === question.voiceCount && rows.every((r) => r != null);
+  }, [question, rows, staveMode, staveMidis]);
 
   const itemLabel = (id: string) =>
     (question?.kind === 'order' ? question.items.find((i) => i.id === id)?.label : id) ?? id;
@@ -190,7 +202,7 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
                   </button>
                 )}
                 {question.kind === 'stacked' && (
-                  <button type="button" className="secondary" onClick={() => audio.play(rows.filter((r): r is number => r != null))}>
+                  <button type="button" className="secondary" onClick={() => audio.play(staveMode ? staveMidis : rows.filter((r): r is number => r != null))}>
                     Play my entry
                   </button>
                 )}
@@ -249,7 +261,18 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
           </ol>
         )}
 
-        {question?.kind === 'stacked' && (
+        {question?.kind === 'stacked' && staveMode && (
+          <StaveVoicingInput
+            voiceCount={question.voiceCount}
+            leadMidi={question.prefill[0] ?? 72}
+            spelling={question.spelling}
+            disabled={answered}
+            resetKey={staveResetKey}
+            onChange={setStaveMidis}
+          />
+        )}
+
+        {question?.kind === 'stacked' && !staveMode && (
           <StackedPitchDropdowns
             voiceCount={question.voiceCount}
             spelling={question.spelling}
