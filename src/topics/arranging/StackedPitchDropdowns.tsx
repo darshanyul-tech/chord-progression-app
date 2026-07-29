@@ -34,6 +34,38 @@ export function StackedPitchDropdowns({
     onChange(next);
   }
 
+  /** Highest MIDI ≤ ceil whose pitch class is pc. */
+  function closestAtOrBelow(pc: number, ceil: number): number {
+    const ceilPc = ((ceil % 12) + 12) % 12;
+    return ceil - ((ceilPc - pc + 12) % 12);
+  }
+
+  // Picking a note auto-places it at the closest instance BELOW the note in the
+  // nearest filled row above — voicings hang down from the lead, so this is
+  // almost always the octave the user wants (they can still override it).
+  function handlePitchChange(row: number, pcStr: string) {
+    if (pcStr === '') {
+      setRow(row, null, null);
+      return;
+    }
+    const pc = Number(pcStr);
+    let refMidi: number | null = null;
+    for (let r = row - 1; r >= 0; r--) {
+      if (value[r] != null) {
+        refMidi = value[r]!;
+        break;
+      }
+    }
+    let octave: number;
+    if (refMidi != null) {
+      const midi = closestAtOrBelow(pc, refMidi - 1);
+      octave = Math.max(octaveRange[0], Math.min(octaveRange[1], Math.floor(midi / 12) - 1));
+    } else {
+      octave = octaveRange[1];
+    }
+    setRow(row, pc, octave);
+  }
+
   return (
     <div className="arr-stack" role="group" aria-label="Voicing entry, top to bottom">
       {Array.from({ length: voiceCount }, (_, row) => {
@@ -50,7 +82,7 @@ export function StackedPitchDropdowns({
               aria-label={`Voice ${label} pitch (${nameForAria})`}
               value={pc}
               disabled={disabled || locked}
-              onChange={(e) => setRow(row, e.target.value === '' ? null : Number(e.target.value), oct === '' ? octaveRange[1] : Number(oct))}
+              onChange={(e) => handlePitchChange(row, e.target.value)}
             >
               <option value="">—</option>
               {pcLabels.map((name, i) => (
