@@ -291,6 +291,7 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
           {question?.kind === 'order' && !answered && <button type="button" onClick={submitOrder}>Submit</button>}
           {question?.kind === 'stacked' && !answered && <button type="button" disabled={!canSubmitStacked} onClick={submitStacked}>Submit</button>}
           {answered && <button type="button" onClick={startRound}>Next</button>}
+          {!answered && <button type="button" className="secondary" onClick={startRound}>New question</button>}
           <button type="button" className="ghost" onClick={() => resetScoreInStore(exerciseId)}>Reset score</button>
         </div>
       </section>
