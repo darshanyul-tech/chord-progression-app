@@ -25,9 +25,9 @@ export interface ArrStaveResult {
 
 const CANVAS_WIDTH = 150;
 const TREBLE_Y = 18;
-const BASS_Y = 132; // grand-staff gap ≈ middle-C region
+const BASS_Y = 90; // grand-staff gap ≈ middle-C region (kept tight)
 const SINGLE_HEIGHT = 150;
-const GRAND_HEIGHT = 250;
+const GRAND_HEIGHT = 190;
 
 function toKey(p: SpelledPitch): string {
   return `${p.letter.toLowerCase()}${p.acc}/${p.octave}`;
@@ -64,6 +64,11 @@ export function buildArrStave(container: HTMLDivElement, opts: { grand: boolean;
     bass.setContext(ctx).draw();
     new StaveConnector(treble, bass).setType('brace').setContext(ctx).draw();
     new StaveConnector(treble, bass).setType('singleLeft').setContext(ctx).draw();
+    // Treble and bass clefs have different widths, so force a common note-start
+    // x — otherwise a bass note wouldn't line up under the treble chord.
+    const startX = Math.max(treble.getNoteStartX(), bass.getNoteStartX());
+    treble.setNoteStartX(startX);
+    bass.setNoteStartX(startX);
   }
 
   // Split tones by register: middle C and up on treble, below on bass.
