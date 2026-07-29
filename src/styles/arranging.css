@@ -155,10 +155,13 @@
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.4rem 0.6rem;
-  overflow-x: auto;
+  padding: 0.3rem 0.4rem;
   cursor: pointer;
-  max-width: 22rem;
+  width: 240px;
+  max-width: 100%;
+}
+.arr-stave-frame.grand {
+  width: 210px;
 }
 .arr-stave-palette {
   display: inline-flex;

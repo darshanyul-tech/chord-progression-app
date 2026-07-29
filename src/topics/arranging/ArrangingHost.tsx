@@ -266,6 +266,7 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
             voiceCount={question.voiceCount}
             leadMidi={question.prefill[0] ?? 72}
             spelling={question.spelling}
+            grand={Math.min(...question.reveal) < 57}
             disabled={answered}
             resetKey={staveResetKey}
             onChange={setStaveMidis}
