@@ -3,6 +3,7 @@ import { SlotStaffInput } from '../../components/theory/SlotStaffInput';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useTranspositionSettings } from '../../state/settings/transposition';
 import { TranspositionSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { SourceStaff } from './SourceStaff';
 import { useTranspositionPractice } from './usePractice';
 
@@ -15,7 +16,9 @@ export function TranspositionTopic() {
 
   return (
     <>
-      <TranspositionSettings />
+      <SettingsDisclosure>
+        <TranspositionSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

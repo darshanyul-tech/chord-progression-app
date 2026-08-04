@@ -7,6 +7,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { NoteGlyphIcon, RestGlyphIcon } from '../rhythm-dictation/PaletteGlyph';
 import { useMelodicDictationSettings } from '../../state/settings/melodic-dictation';
 import { MelodicSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { VexStaffHost } from './VexStaffHost';
 import { useMelodicPractice } from './usePractice';
 
@@ -119,7 +120,9 @@ export function MelodicDictationTopic() {
 
   return (
     <>
-      <MelodicSettings />
+      <SettingsDisclosure>
+        <MelodicSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

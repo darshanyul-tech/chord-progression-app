@@ -5,6 +5,7 @@ import { StatusLine } from '../../components/StatusLine';
 import { TransportRow } from '../../components/TransportRow';
 import { useIntervalRecognitionSettings } from '../../state/settings/interval-recognition';
 import { IntervalSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useIntervalPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -20,7 +21,9 @@ export function IntervalTopic() {
 
   return (
     <>
-      <IntervalSettings />
+      <SettingsDisclosure>
+        <IntervalSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; identify</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>

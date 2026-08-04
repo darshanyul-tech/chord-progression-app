@@ -32,6 +32,9 @@ function renderPractice(overrides: Partial<ReturnType<typeof defaultMelodicDicta
     signatures: ['4/4'],
     measures: 1,
     durations: [1],
+    // Most mechanics tests assume a fresh, empty bar; the starting-note anchor
+    // has its own dedicated tests below.
+    showStartingNote: false,
     ...overrides,
   };
   return renderHook(() => useMelodicPractice(settings), {
@@ -326,5 +329,41 @@ describe('useMelodicPractice — ties', () => {
     expect(byBeat(result.current.userMeasures[0])[0]).toMatchObject({ tied: true });
     act(() => result.current.nudgeLastNote(1)); // nudges the beat-1 note away from beat 0's pitch
     expect(byBeat(result.current.userMeasures[0])[0]?.tied).toBeUndefined();
+  });
+});
+
+describe('useMelodicPractice — show starting note', () => {
+  afterEach(() => setRng());
+
+  it('pre-places the melody first note as an immovable anchor when enabled', () => {
+    setRng(() => 0.3);
+    const { result } = renderPractice({ showStartingNote: true, measures: 2 });
+    const firstCorrect = byBeat(result.current.correctMeasures[0])[0]!;
+    const placed = byBeat(result.current.userMeasures[0])[0]!;
+    // Beat 0 already holds the correct opening note.
+    expect(placed).toMatchObject({ beat: 0, rest: false, midi: firstCorrect.midi });
+    // ONLY the first note is placed — the rest of the bar is rests, and every
+    // later bar is entirely rests (nothing else is revealed).
+    expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(1);
+    expect(result.current.userMeasures[1].every((n) => n.rest)).toBe(true);
+
+    // Trying to overwrite it does nothing — the note stays put.
+    act(() => result.current.placeNoteAt(0, 0, 1, false, 71));
+    expect(byBeat(result.current.userMeasures[0])[0]).toMatchObject({ beat: 0, midi: firstCorrect.midi });
+  });
+
+  it('keeps the anchor when the measure is cleared', () => {
+    setRng(() => 0.3);
+    const { result } = renderPractice({ showStartingNote: true });
+    const firstMidi = byBeat(result.current.correctMeasures[0])[0]!.midi;
+    act(() => result.current.clearActiveMeasure());
+    const placed = byBeat(result.current.userMeasures[0])[0]!;
+    expect(placed).toMatchObject({ beat: 0, rest: false, midi: firstMidi });
+  });
+
+  it('leaves the first bar empty when disabled', () => {
+    setRng(() => 0.3);
+    const { result } = renderPractice({ showStartingNote: false });
+    expect(result.current.userMeasures[0].every((n) => n.rest)).toBe(true);
   });
 });

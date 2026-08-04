@@ -1,6 +1,11 @@
+import { Fragment } from 'react';
+
 export interface GroupedChoiceItem {
   id: string;
   label: string;
+  // When true, a thin full-width divider is drawn before this item, splitting
+  // its group into visual sub-sets.
+  dividerBefore?: boolean;
 }
 
 export interface GroupedChoiceGroup {
@@ -61,7 +66,7 @@ export function GroupedChoiceGrid({
               const cls = [choiceClassName, isWrong ? 'wrong' : '', isCorrectReveal ? 'correct reveal-actual' : '']
                 .filter(Boolean)
                 .join(' ');
-              return (
+              const button = (
                 <button
                   key={item.id}
                   type="button"
@@ -72,6 +77,15 @@ export function GroupedChoiceGrid({
                   {item.label}
                 </button>
               );
+              if (item.dividerBefore) {
+                return (
+                  <Fragment key={item.id}>
+                    <span className="grouped-choice-divider" aria-hidden="true" />
+                    {button}
+                  </Fragment>
+                );
+              }
+              return button;
             })}
           </div>
         </div>

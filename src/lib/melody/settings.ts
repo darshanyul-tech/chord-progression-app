@@ -21,6 +21,8 @@ export interface MelodicDictationSettings extends Record<string, unknown> {
   motion: MelodicMotion;
   /** Auditions a note's pitch on the sampler right after you place or nudge it. Practice only — exam mode never previews. */
   previewOnPlace: boolean;
+  /** Pre-places the melody's first note (locked, unmovable) as a starting anchor. Practice only. */
+  showStartingNote: boolean;
 }
 
 export function defaultMelodicDictationSettings(): MelodicDictationSettings {
@@ -38,5 +40,6 @@ export function defaultMelodicDictationSettings(): MelodicDictationSettings {
     tempo: 76,
     motion: 'steps',
     previewOnPlace: true,
+    showStartingNote: true,
   };
 }

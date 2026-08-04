@@ -92,7 +92,7 @@ export function useScalePractice(settings: ScaleRecognitionSettings) {
   function finalize(solved: boolean, firstGuessCorrect: boolean) {
     if (!question) return;
     setAnswered(true);
-    recordAttempt(TOPIC_ID, firstGuessCorrect);
+    recordAttempt(TOPIC_ID, firstGuessCorrect, { key: question.id, label: question.label });
     const answerText = `${question.rootName} ${question.label}`;
     if (solved && firstGuessCorrect) {
       setPromptText(`✓ Correct on your first guess — ${answerText}.`);

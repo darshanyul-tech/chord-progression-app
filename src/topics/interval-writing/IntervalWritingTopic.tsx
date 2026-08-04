@@ -3,6 +3,7 @@ import { SlotStaffInput } from '../../components/theory/SlotStaffInput';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useIntervalWritingSettings } from '../../state/settings/interval-writing';
 import { IntervalWritingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useIntervalWritingPractice } from './usePractice';
 
 // Page layout: docs/14-theory-engine.md §8c — melodic dictation's card
@@ -14,7 +15,9 @@ export function IntervalWritingTopic() {
 
   return (
     <>
-      <IntervalWritingSettings />
+      <SettingsDisclosure>
+        <IntervalWritingSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

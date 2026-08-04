@@ -46,6 +46,38 @@
   cursor: pointer;
 }
 
+/* Inversion-chords subsection: the chord checkboxes with a smaller row of
+   inversion tickboxes indented beneath them. */
+.inversion-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.inversion-invrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.6rem;
+  padding-left: 1.2rem;
+}
+.inversion-invrow-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.inversion-invbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+}
+
 .chord-answer-groups {
   display: grid;
   gap: 1rem;
@@ -63,6 +95,16 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+/* Full-width break inside the wrapping grid: forces the items after it onto a
+   new row and draws a thin rule separating a sub-set within one group. */
+.grouped-choice-divider {
+  flex-basis: 100%;
+  height: 0;
+  border-top: 1px solid var(--border);
+  /* Pull the rule tight against the gap so it reads as a subtle separator
+     rather than an empty row. */
+  margin: -0.05rem 0;
 }
 .chord-choice {
   flex: 1 1 118px;
@@ -89,10 +131,40 @@
   cursor: default;
   opacity: 0.88;
 }
+.chord-choice.selected {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-2);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
 .chord-choice.correct {
   border-color: var(--accent);
   background: var(--ecu-teal-light);
   color: var(--accent-2);
+}
+
+/* Two-part inversion answer: a quality row + an inversion row + a Guess button. */
+.inversion-guess {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+}
+.inversion-guess-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.5rem;
+}
+.inversion-guess-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+.inversion-guess-actions .help {
+  margin: 0;
 }
 .chord-choice.wrong {
   border-color: var(--danger);

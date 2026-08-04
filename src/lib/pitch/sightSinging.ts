@@ -67,6 +67,7 @@ function toMelodicDictationSettings(settings: SightSingingSettings): MelodicDict
     tempo: 76,
     motion: settings.motion,
     previewOnPlace: false,
+    showStartingNote: false,
   };
 }
 

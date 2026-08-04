@@ -6,6 +6,7 @@ import { audio } from '../../lib/audio/engine';
 import { midiToNoteName } from '../../lib/theory';
 import { useChordSingingSettings } from '../../state/settings/chord-singing';
 import { ChordSingingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useChordSingingPractice } from './usePractice';
 import type { SungGradeResult } from '../../lib/pitch/grading';
 
@@ -72,7 +73,9 @@ export function ChordSingingTopic() {
 
   return (
     <>
-      <ChordSingingSettings />
+      <SettingsDisclosure>
+        <ChordSingingSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Sing the chord</h2>
         <p className="sub">

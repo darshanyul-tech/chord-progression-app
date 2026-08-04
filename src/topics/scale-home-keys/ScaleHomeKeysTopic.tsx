@@ -5,6 +5,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { StatusLine } from '../../components/StatusLine';
 import { useScaleHomeKeysSettings } from '../../state/settings/scale-home-keys';
 import { ScaleHomeKeysSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useScaleHomeKeysPractice } from './usePractice';
 
 export function ScaleHomeKeysTopic() {
@@ -13,7 +14,9 @@ export function ScaleHomeKeysTopic() {
 
   return (
     <>
-      <ScaleHomeKeysSettings />
+      <SettingsDisclosure>
+        <ScaleHomeKeysSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Name the home key</h2>
 

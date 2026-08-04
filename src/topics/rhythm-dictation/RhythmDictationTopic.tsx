@@ -8,6 +8,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useRhythmDictationSettings } from '../../state/settings/rhythm-dictation';
 import { NoteGlyphIcon, RestGlyphIcon } from './PaletteGlyph';
 import { RhythmSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { RhythmStaffHost } from './RhythmStaffHost';
 import { useRhythmPractice } from './usePractice';
 
@@ -100,7 +101,9 @@ export function RhythmDictationTopic() {
 
   return (
     <>
-      <RhythmSettings />
+      <SettingsDisclosure>
+        <RhythmSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

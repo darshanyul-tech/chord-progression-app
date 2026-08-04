@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createHashRouter, Navigate, RouterProvider, useParams } from 'react-router-dom';
 import { ExamRoute } from './exam/ExamRoute';
 import { ErrorBoundary } from './shell/ErrorBoundary';
 import { HomePage } from './shell/HomePage';
 import { Layout } from './shell/Layout';
+import { StatsPage } from './shell/StatsPage';
 import { TopicHost } from './shell/TopicHost';
+import { useProfileStore } from './state/profileStore';
 import { DEFAULT_TOPIC_BY_SECTION, getTopic, topicPath, type SectionId } from './topics/registry';
 
 function TopicRoute({ section }: { section: SectionId }) {
@@ -58,6 +60,9 @@ function buildRouter() {
       ),
     },
     { path: '/topic/:id', element: <LegacyTopicRedirect /> },
+    // Progress is its own standalone page (like Home): header + footer, no
+    // syllabus sidebar — so it never reads as "inside" the Aural section.
+    { path: '/stats', element: <StatsPage /> },
     {
       path: '/exam',
       element: (
@@ -76,6 +81,10 @@ function App() {
   // mounts in tests; production only ever mounts one <App/>, so this is
   // behaviorally identical there.
   const [router] = useState(buildRouter);
+  // Restore the last-active profile and load its stats once, at startup.
+  useEffect(() => {
+    void useProfileStore.getState().init();
+  }, []);
   return (
     <ErrorBoundary label="TryTone">
       <RouterProvider router={router} />

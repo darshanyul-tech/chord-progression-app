@@ -1,3 +1,9 @@
+# cPanel backend secrets — never commit real DB credentials
+server/cpanel/config.php
+.env
+.env.*
+!.env.example
+
 # Logs
 logs
 *.log

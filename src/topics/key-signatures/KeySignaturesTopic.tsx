@@ -6,6 +6,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { StatusLine } from '../../components/StatusLine';
 import { useKeySignatureSettings } from '../../state/settings/key-signatures';
 import { KeySignatureSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useKeySignaturePractice } from './usePractice';
 
 export function KeySignaturesTopic() {
@@ -14,7 +15,9 @@ export function KeySignaturesTopic() {
 
   return (
     <>
-      <KeySignatureSettings />
+      <SettingsDisclosure>
+        <KeySignatureSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Name the key</h2>
 

@@ -6,6 +6,12 @@
 }
 
 body {
+  /* Default page scale. The user prefers the app at ~175% (what browser zoom
+     175% looks like), so bake that in as the baseline. `zoom` scales the whole
+     document — layout, text, and graphics — like browser zoom, and stacks on
+     top of any further zoom the user applies. Applied to <body>, not <html>:
+     zooming the root element collapses the viewport width to 0 in Chromium. */
+  zoom: 1.75;
   margin: 0;
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-1);

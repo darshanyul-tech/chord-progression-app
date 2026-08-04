@@ -152,6 +152,32 @@ describe('renderStaff ties', () => {
     expect(svg.querySelectorAll('.vf-stavetie').length).toBe(1);
   });
 
+  it('draws the pending tie as a short loop, not a curve stretching to the barline', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [
+          [
+            { beat: 0, duration: 1, isRest: false, tied: true },
+            { beat: 1, duration: 3, isRest: true },
+          ],
+        ],
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    const tiePath = svg.querySelector('.vf-stavetie path')!;
+    // The tie curve's x-coordinates: strip path commands, take every other
+    // number (SVG path coords are x,y pairs here). Its horizontal span is the
+    // loop length (~16px), NOT the note→barline distance the old partial tie
+    // spanned (hundreds of px on this stave).
+    const nums = (tiePath.getAttribute('d') ?? '').match(/-?\d+(\.\d+)?/g)!.map(Number);
+    const xs = nums.filter((_, i) => i % 2 === 0);
+    const span = Math.max(...xs) - Math.min(...xs);
+    expect(span).toBeGreaterThan(0);
+    expect(span).toBeLessThan(40);
+  });
+
   it('draws a tie across the barline into the next measure', () => {
     const container = document.createElement('div');
     renderStaff(

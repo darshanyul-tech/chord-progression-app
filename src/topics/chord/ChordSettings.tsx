@@ -1,6 +1,20 @@
+import { Fragment } from 'react';
 import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
-import { CHORD_RECOGNITION_GROUPS, CHORD_RECOGNITION_TYPES } from '../../lib/recognition/chords';
+import {
+  CHORD_RECOGNITION_GROUPS,
+  CHORD_RECOGNITION_TYPES,
+  INVERSION_CHORDS,
+  INVERSION_LABELS,
+  NINTH_INVERSIONS,
+  SEVENTH_INVERSIONS,
+  type InversionSubsection,
+} from '../../lib/recognition/chords';
 import { useChordRecognitionSettings } from '../../state/settings/chord-recognition';
+
+const INVERSION_FIELD: Record<InversionSubsection, 'seventhInversions' | 'ninthInversions'> = {
+  sevenths: 'seventhInversions',
+  ninths: 'ninthInversions',
+};
 
 export function ChordSettings() {
   const settings = useChordRecognitionSettings();
@@ -29,6 +43,53 @@ export function ChordSettings() {
     });
   }
 
+  function toggleInversionChord(id: string) {
+    setState((s) => {
+      const enabled = new Set(s.inversionChords);
+      if (enabled.has(id)) enabled.delete(id);
+      else enabled.add(id);
+      return { inversionChords: [...enabled] };
+    });
+  }
+
+  function toggleInversion(field: 'seventhInversions' | 'ninthInversions', n: number) {
+    setState((s) => {
+      const enabled = new Set(s[field]);
+      if (enabled.has(n)) enabled.delete(n);
+      else enabled.add(n);
+      return { [field]: [...enabled].sort((a, b) => a - b) };
+    });
+  }
+
+  function renderInversionSub(subsection: InversionSubsection, inversions: number[]) {
+    const field = INVERSION_FIELD[subsection];
+    return (
+      <div className="inversion-sub">
+        <div className="chord-type-checks">
+          {INVERSION_CHORDS.filter((c) => c.subsection === subsection).map((c) => (
+            <label key={c.id}>
+              <input
+                type="checkbox"
+                checked={settings.inversionChords.includes(c.id)}
+                onChange={() => toggleInversionChord(c.id)}
+              />
+              {c.label}
+            </label>
+          ))}
+        </div>
+        <div className="inversion-invrow">
+          <span className="inversion-invrow-label">Inversions</span>
+          {inversions.map((n) => (
+            <label key={n} className="inversion-invbox">
+              <input type="checkbox" checked={settings[field].includes(n)} onChange={() => toggleInversion(field, n)} />
+              {INVERSION_LABELS[n]}
+            </label>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="card">
       <h2>Chord types to practise</h2>
@@ -53,20 +114,44 @@ export function ChordSettings() {
                 </button>
               </div>
               <div className="chord-type-checks">
-                {types.map((def) => (
-                  <label key={def.id}>
-                    <input
-                      type="checkbox"
-                      checked={settings.enabledTypes.includes(def.id)}
-                      onChange={() => toggleType(def.id)}
-                    />
-                    {def.label}
-                  </label>
-                ))}
+                {types.map((def, i) => {
+                  const label = (
+                    <label key={def.id}>
+                      <input
+                        type="checkbox"
+                        checked={settings.enabledTypes.includes(def.id)}
+                        onChange={() => toggleType(def.id)}
+                      />
+                      {def.label}
+                    </label>
+                  );
+                  if (def.dividerBefore && i > 0) {
+                    return (
+                      <Fragment key={def.id}>
+                        <span className="grouped-choice-divider" aria-hidden="true" />
+                        {label}
+                      </Fragment>
+                    );
+                  }
+                  return label;
+                })}
               </div>
             </div>
           );
         })}
+
+        <div className="chord-type-group">
+          <div className="chord-type-group-header">
+            <h3 className="chord-type-group-title">Inversion chords</h3>
+          </div>
+          <div className="help" style={{ marginTop: '-0.1rem', marginBottom: '0.55rem' }}>
+            The chord plays in one of its ticked inversions; you name both the quality and the inversion. Tick the
+            inversions to drill for each group (7ths up to 2nd inversion, 9ths up to 3rd).
+          </div>
+          {renderInversionSub('sevenths', SEVENTH_INVERSIONS)}
+          <span className="grouped-choice-divider" aria-hidden="true" />
+          {renderInversionSub('ninths', NINTH_INVERSIONS)}
+        </div>
       </div>
 
       <div className="field" style={{ marginTop: '0.85rem' }}>

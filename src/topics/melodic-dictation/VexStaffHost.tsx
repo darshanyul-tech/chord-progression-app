@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { buildVexScore, type MelodyStaffModel } from '../../lib/melody/vexscore';
 import { NATURAL_LETTERS, resolveStaffPosition, tiePreview, type NoteSpelling } from '../../lib/melody/theory';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
@@ -80,6 +80,26 @@ export function VexStaffHost({
   // stale pre-toggle preview (e.g. no tie curve, wrong accidental) until the
   // next mousemove.
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
+  const [, forceRerender] = useReducer((n: number) => n + 1, 0);
+
+  // Re-render when the container's width changes so the melody reflows onto
+  // more or fewer stacked rows (vexscore.ts reads container.clientWidth). Only
+  // width matters — the SVG's height grows with row count, so ignoring height
+  // changes avoids a render loop.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w !== lastWidth) {
+        lastWidth = w;
+        forceRerender();
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (containerRef.current) {

@@ -5,6 +5,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { meterTranspositionPromptText } from '../../lib/written-theory/meterTransposition';
 import { useMeterTranspositionSettings } from '../../state/settings/meter-transposition';
 import { MeterTranspositionSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { SourceRhythmStaff } from './SourceRhythmStaff';
 import { useMeterTranspositionPractice } from './usePractice';
 
@@ -26,7 +27,9 @@ export function MeterTranspositionTopic() {
 
   return (
     <>
-      <MeterTranspositionSettings />
+      <SettingsDisclosure>
+        <MeterTranspositionSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

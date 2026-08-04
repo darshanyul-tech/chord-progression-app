@@ -90,6 +90,10 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   const [cursorMidi, setCursorMidi] = useState<number | null>(null);
   const [flashMeasure, setFlashMeasure] = useState<number | null>(null);
   const [placementHistory, setPlacementHistory] = useState<PlacementRecord[]>([]);
+  // The melody's first note, pre-placed and locked when "Show starting note" is
+  // on — always measure 0, beat 0. Null when the feature is off or the melody
+  // doesn't start on a note.
+  const [startNote, setStartNote] = useState<PitchedMeasure[number] | null>(null);
   const [armedDuration, setArmedDuration] = useState(1);
   const [armedIsRest, setArmedIsRest] = useState(false);
   const [isDotActive, setIsDotActive] = useState(false);
@@ -105,6 +109,11 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
 
   const activeDurations = getActiveDurations(settings.durations, false, timeSig.measureBeats); // triplets off (§3.2)
   const gridStepVal = gridStep(activeDurations);
+
+  // The pre-placed first note is immovable while the feature is on and the
+  // question is live. It occupies measure 0, beat 0 up to its own duration.
+  const startLocked = settings.showStartingNote && !hasSubmitted && startNote !== null;
+  const startLockedDur = startNote?.duration ?? 0;
 
   function clearAllTimers() {
     const ch = channelRef.current;
@@ -263,8 +272,21 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     setTimeSig(generated.timeSig);
     setNumMeasures(settings.measures);
     setCorrectMeasures(generated.measures);
+    // "Show starting note": pre-place the melody's first note (only when it
+    // truly starts on a note at beat 0) into measure 0 as a locked anchor.
+    const sorted0 = [...(generated.measures[0] ?? [])].sort((a, b) => a.beat - b.beat);
+    const first0 = sorted0[0];
+    const startingNote =
+      settings.showStartingNote && first0 && !first0.rest && first0.midi !== null && Math.abs(first0.beat) < 0.001
+        ? { ...first0, tied: undefined }
+        : null;
+    setStartNote(startingNote);
     setUserMeasures(
-      Array.from({ length: settings.measures }, () => defaultRestMeasure(generated.timeSig.measureBeats, pulse, melodyRestAdapter)),
+      Array.from({ length: settings.measures }, (_, i) =>
+        i === 0 && startingNote
+          ? fillGaps([startingNote], generated.timeSig.measureBeats, pulse, melodyRestAdapter)
+          : defaultRestMeasure(generated.timeSig.measureBeats, pulse, melodyRestAdapter),
+      ),
     );
     setHasSubmitted(false);
     setIsCorrect(false);
@@ -347,6 +369,12 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       return;
     }
     const { beat, isReplace } = resolved;
+    // The locked starting note can't be edited or overwritten — reject any
+    // placement whose span reaches into it (measure 0, [0, its duration)).
+    if (measureIndex === 0 && startLocked && beat < startLockedDur - 0.001) {
+      reject();
+      return;
+    }
     const end = beat + dur;
     // A direct hit is a deliberate "put this note here instead" — unlike a
     // gap click, it's allowed to replace whatever the new (possibly larger)
@@ -505,7 +533,8 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
 
   function focusCursor() {
     if (hasSubmitted) return;
-    setCursorBeat(0);
+    // Start past the locked note so the first Enter doesn't hit an immovable slot.
+    setCursorBeat(activeMeasureIndex === 0 && startLocked ? startLockedDur : 0);
     setCursorMidi((prev) => {
       if (prev !== null) return prev;
       return resolveRangeWindow(key, clef, settings.range).lowMidi;
@@ -546,7 +575,14 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     if (hasSubmitted) return;
     const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
     setUserMeasures((prev) =>
-      prev.map((m, i) => (i === activeMeasureIndex ? defaultRestMeasure(timeSig.measureBeats, pulse, melodyRestAdapter) : m)),
+      prev.map((m, i) => {
+        if (i !== activeMeasureIndex) return m;
+        // Clearing measure 0 keeps the locked starting note in place.
+        if (i === 0 && startLocked && startNote) {
+          return fillGaps([startNote], timeSig.measureBeats, pulse, melodyRestAdapter);
+        }
+        return defaultRestMeasure(timeSig.measureBeats, pulse, melodyRestAdapter);
+      }),
     );
     setPlacementHistory((prev) => prev.filter((p) => p.measureIndex !== activeMeasureIndex));
   }

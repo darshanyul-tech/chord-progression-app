@@ -2,6 +2,7 @@ import { Barline, Dot, Renderer, Stave, StaveNote } from 'vexflow';
 import type { MeasureGeometry } from '../notation/geometry';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
 import { drawTies } from '../notation/ties';
+import { computeSystemLayout } from '../notation/systemLayout';
 import { durationClose, type Measure, type RhythmNote } from '../rhythm/time';
 import { vexDurationFor } from './vexDuration';
 
@@ -44,11 +45,13 @@ export interface RhythmStaffModel {
   hover: RhythmHoverPreview | null;
 }
 
-const CANVAS_WIDTH = 1000;
-const CANVAS_HEIGHT = 200;
 const MARGIN_LEFT = 10;
 const MARGIN_RIGHT = 10;
 const STAVE_Y = 40;
+/** Vertical span reserved per stacked staff row (stave + stems + badges). */
+const ROW_HEIGHT = 130;
+/** Each measure keeps at least this rendered width before wrapping to a new row. */
+const MIN_MEASURE_PX = 290;
 const REST_KEY = 'b/4';
 
 export const WRONG_COLOR = '#b3261e';
@@ -148,11 +151,24 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
   } = model;
   const measureTotalBeats = beatsPerBar * (4 / beatValue);
 
+  // Wrap measures onto stacked rows so each keeps a readable width instead of
+  // shrinking to fit them all on one line (see systemLayout.ts). fallbackPerRow
+  // = numMeasures preserves the legacy single-row layout when the container
+  // width is unknown (jsdom render tests).
+  const { measuresPerRow, numRows, canvasWidth } = computeSystemLayout(numMeasures, container.clientWidth, {
+    minMeasurePx: MIN_MEASURE_PX,
+    marginLeft: MARGIN_LEFT,
+    marginRight: MARGIN_RIGHT,
+    fallbackPerRow: numMeasures,
+    fallbackCanvasWidth: 1000,
+  });
+  const canvasHeight = numRows * ROW_HEIGHT + 20;
+
   const renderer = new Renderer(container, Renderer.Backends.SVG);
-  renderer.resize(CANVAS_WIDTH, CANVAS_HEIGHT);
+  renderer.resize(canvasWidth, canvasHeight);
   const context = renderer.getContext();
 
-  const staveWidth = (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT) / numMeasures;
+  const staveWidth = (canvasWidth - MARGIN_LEFT - MARGIN_RIGHT) / measuresPerRow;
   const staves: Stave[] = [];
   const geometry: MeasureGeometry[] = [];
   // Merged across every measure's own drawMeasureVoice call so ties (which
@@ -164,7 +180,10 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
   let hoverNoteRef: RhythmNote | null = null;
 
   for (let mi = 0; mi < numMeasures; mi++) {
-    const x = MARGIN_LEFT + mi * staveWidth;
+    const row = Math.floor(mi / measuresPerRow);
+    const col = mi % measuresPerRow;
+    const x = MARGIN_LEFT + col * staveWidth;
+    const staveY = STAVE_Y + row * ROW_HEIGHT;
     // Keep the real 5-line geometry (barline height, getYForLine(0)/(4) used
     // below for the cursor/playback markers, the b/4 notehead position every
     // rhythm note sits on) but only draw the single line that notehead
@@ -177,7 +196,7 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     // `lineConfig` passed to it (resetLines() forces every line visible right
     // after assigning options), so this has to be set via setConfigForLines
     // afterward instead of in the constructor options.
-    const stave = new Stave(x, STAVE_Y, staveWidth);
+    const stave = new Stave(x, staveY, staveWidth);
     stave.setConfigForLines([
       { visible: false },
       { visible: false },
@@ -185,9 +204,11 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       { visible: false },
       { visible: false },
     ]);
-    if (mi === 0) {
+    // Clef repeats at the start of every row (system); the time signature only
+    // at the very first measure.
+    if (col === 0) {
       stave.addClef('percussion');
-      stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
+      if (mi === 0) stave.addTimeSignature(`${beatsPerBar}/${beatValue}`);
     }
     if (mi === numMeasures - 1) {
       stave.setEndBarType(Barline.type.END);
@@ -299,23 +320,33 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     context.restore();
   }
 
-  if (playbackFraction !== null && staves[0]) {
-    const topY = staves[0]!.getYForLine(0);
-    const bottomY = staves[0]!.getYForLine(4);
-    const cx = MARGIN_LEFT + playbackFraction * (CANVAS_WIDTH - MARGIN_LEFT - MARGIN_RIGHT);
-    context.save();
-    context.setStrokeStyle(CURSOR_COLOR);
-    context.setLineWidth(1.5);
-    context.beginPath();
-    context.moveTo(cx, topY - 10);
-    context.lineTo(cx, bottomY + 10);
-    context.stroke();
-    context.restore();
+  // Playback cursor: locate which measure (and therefore which row) the
+  // fraction lands in, then position within that stave — the same row-aware
+  // approach as melodic dictation, so it works across stacked rows.
+  if (playbackFraction !== null && numMeasures > 0) {
+    const globalBeat = playbackFraction * numMeasures * measureTotalBeats;
+    const mi = Math.min(numMeasures - 1, Math.floor(globalBeat / measureTotalBeats));
+    const beatInMeasure = globalBeat - mi * measureTotalBeats;
+    const stave = staves[mi];
+    if (stave) {
+      const rel = beatInMeasure / measureTotalBeats;
+      const cx = stave.getNoteStartX() + rel * (stave.getNoteEndX() - stave.getNoteStartX());
+      const topY = stave.getYForLine(0);
+      const bottomY = stave.getYForLine(4);
+      context.save();
+      context.setStrokeStyle(CURSOR_COLOR);
+      context.setLineWidth(1.5);
+      context.beginPath();
+      context.moveTo(cx, topY - 10);
+      context.lineTo(cx, bottomY + 10);
+      context.stroke();
+      context.restore();
+    }
   }
 
   const svg = container.querySelector('svg');
   if (svg) {
-    svg.setAttribute('viewBox', `0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`);
+    svg.setAttribute('viewBox', `0 0 ${canvasWidth} ${canvasHeight}`);
     svg.removeAttribute('width');
     svg.removeAttribute('height');
     // VexFlow's Renderer.resize() sets inline width/height styles, which

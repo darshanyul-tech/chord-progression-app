@@ -1,0 +1,87 @@
+/* Collapsible settings dropdown (SettingsDisclosure.tsx). The <details> element
+   itself wears the .card shell; its summary is the clickable header. */
+.settings-disclosure {
+  padding: 0;
+  overflow: hidden;
+}
+
+.settings-disclosure-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.8rem 1.2rem;
+  user-select: none;
+  border-radius: 14px;
+}
+/* Kill the default disclosure triangle (both engines). */
+.settings-disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+.settings-disclosure-summary::marker {
+  content: '';
+}
+.settings-disclosure-summary:hover {
+  background: var(--ecu-teal-light);
+}
+.settings-disclosure[open] .settings-disclosure-summary {
+  border-radius: 14px 14px 0 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-disclosure-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent);
+}
+.settings-disclosure-gear {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+.settings-disclosure-chevron {
+  /* A circular badge so the arrow reads as an obvious "open me" control, not
+     decoration. inline-flex (not the default inline) also matters because CSS
+     transforms are ignored on inline-level boxes, so the rotate would no-op. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  background: var(--ecu-teal-light);
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
+}
+.settings-disclosure-summary:hover .settings-disclosure-chevron {
+  background: var(--accent);
+  color: var(--ecu-white);
+}
+.settings-disclosure[open] .settings-disclosure-chevron {
+  transform: rotate(180deg);
+}
+
+.settings-disclosure-body {
+  padding: 1rem 1.2rem 1.15rem;
+}
+/* The wrapped settings component still renders its own .card + <h2>; the
+   disclosure already provides the card shell and header, so strip the inner
+   chrome and hide its now-redundant title. */
+.settings-disclosure-body > .card {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+.settings-disclosure-body > .card > h2 {
+  display: none;
+}

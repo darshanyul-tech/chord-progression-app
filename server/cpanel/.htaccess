@@ -1,0 +1,16 @@
+# Protect secrets and the schema from being served to browsers.
+<FilesMatch "\.(sql|md)$">
+  Require all denied
+</FilesMatch>
+<Files "config.php">
+  Require all denied
+</Files>
+<Files "config.sample.php">
+  Require all denied
+</Files>
+<Files "db.php">
+  Require all denied
+</Files>
+
+# Send PHP errors to the log, never to the response body.
+php_flag display_errors off

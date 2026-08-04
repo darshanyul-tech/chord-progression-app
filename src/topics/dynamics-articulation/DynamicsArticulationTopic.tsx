@@ -6,6 +6,7 @@ import { TransportRow } from '../../components/TransportRow';
 import { getDynamicsArticulationChoiceDefs } from '../../lib/recognition/dynamicsArticulation';
 import { useDynamicsArticulationSettings } from '../../state/settings/dynamics-articulation';
 import { DynamicsArticulationSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useDynamicsArticulationPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -22,7 +23,9 @@ export function DynamicsArticulationTopic() {
 
   return (
     <>
-      <DynamicsArticulationSettings />
+      <SettingsDisclosure>
+        <DynamicsArticulationSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; judge</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>

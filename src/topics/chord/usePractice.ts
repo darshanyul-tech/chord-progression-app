@@ -7,6 +7,7 @@ import {
   RECOGNITION_AUTO_ADVANCE_MS,
   RECOGNITION_MAX_GUESSES,
   buildChordExamChoiceGrouped,
+  chordQuestionPool,
   getChordRecognitionMidis,
   pickChordQuestion,
   type ChordQuestion,
@@ -40,6 +41,8 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   const advanceTimerRef = useRef<number | null>(null);
   const skipSettingsResetRef = useRef(true);
 
+  // The grid holds only the plain qualities; inversion answers are entered via
+  // the two-part InversionGuessPicker (quality + inversion), not per-combo chips.
   const choiceGroups = buildChordExamChoiceGrouped(settings.enabledTypes);
 
   function clearAdvanceTimer() {
@@ -56,7 +59,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
       return;
     }
     stopChannel(channelRef.current, audio.sampler);
-    const midis = getChordRecognitionMidis(q.rootMidi, q.quality);
+    const midis = getChordRecognitionMidis(q.rootMidi, q.quality, q.inversion);
     const playGen = channelRef.current.playbackGen;
     let cursor = audio.now() + 0.1;
     if (q.playback.style === 'arp') {
@@ -77,7 +80,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   }
 
   function startRound() {
-    if (!settings.enabledTypes.length) {
+    if (!chordQuestionPool(settings).length) {
       setStatusText('Enable at least one chord type.');
       setStatusKind('warn');
       return;
@@ -98,7 +101,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
   function finalize(solved: boolean, firstGuessCorrect: boolean) {
     if (!question) return;
     setAnswered(true);
-    recordAttempt(TOPIC_ID, firstGuessCorrect);
+    recordAttempt(TOPIC_ID, firstGuessCorrect, { key: question.id, label: question.label });
     const sym = `${question.rootName} ${question.label}`;
     if (solved && firstGuessCorrect) {
       setPromptText(`✓ Correct on your first guess — ${sym}.`);
@@ -173,7 +176,14 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
 
   // Changing enabled chord types clears the in-progress question (legacy
   // onChordSettingsChange) — but not on the initial mount. Playback-style /
-  // timing changes do NOT reset the question, matching legacy.
+  // timing changes do NOT reset the question, matching legacy. The key folds
+  // the plain qualities and every inversion selection into one dep.
+  const enabledKey = [
+    settings.enabledTypes.join(','),
+    settings.inversionChords.join(','),
+    settings.seventhInversions.join(','),
+    settings.ninthInversions.join(','),
+  ].join('|');
   useEffect(() => {
     if (skipSettingsResetRef.current) {
       skipSettingsResetRef.current = false;
@@ -185,8 +195,7 @@ export function useChordPractice(settings: ChordRecognitionSettings) {
     setGuessesUsed(0);
     setWrongIds([]);
     setPromptText('Settings updated. Press Play chord for a new question.');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.enabledTypes.join(',')]);
+  }, [enabledKey]);
 
   return {
     audioStatus,

@@ -1,6 +1,7 @@
 import { Accidental, Dot, Renderer, Stave, StaveNote, type Voice } from 'vexflow';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
 import { drawTies } from '../notation/ties';
+import { computeSystemLayout } from '../notation/systemLayout';
 import type { MeasureGeometry } from '../notation/geometry';
 import { vexDurationFor } from '../rhythm-staff/vexDuration';
 import type { TimeSigInfo } from '../rhythm/time';
@@ -80,12 +81,15 @@ export interface HoverPreview {
   tied?: boolean;
 }
 
-const CANVAS_WIDTH = 1000;
 const ROW_HEIGHT = 150;
 const MARGIN_LEFT = 10;
 const MARGIN_RIGHT = 10;
 const STAVE_Y_TOP = 40;
 const MAX_MEASURES_PER_ROW = 2;
+/** Each measure keeps at least this rendered width before wrapping to a new row. */
+const MIN_MEASURE_PX = 340;
+/** Readability ceiling: never pack more than this many measures on one row, even on a very wide page. */
+const MAX_PER_ROW = 4;
 const REST_KEY = 'b/4';
 
 export const WRONG_COLOR = '#b3261e';
@@ -135,12 +139,32 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
     cursorMidi,
     hover,
     showTimeSignature = true,
-    canvasWidth = CANVAS_WIDTH,
     fitContentVertical = false,
   } = model;
   const measureTotalBeats = timeSig.measureBeats;
   const adapter = melodyAdapter(key, clef);
-  const numRows = Math.max(1, Math.ceil(numMeasures / MAX_MEASURES_PER_ROW));
+
+  // The theory read-only views pass an explicit canvasWidth (a single note/
+  // chord, no wrapping) — honour it and keep the legacy fixed row count. The
+  // interactive multi-measure melody instead wraps responsively so its
+  // measures stay a readable size and stack when the page is narrow/zoomed
+  // (see systemLayout.ts). fallbackPerRow = MAX_MEASURES_PER_ROW preserves the
+  // legacy 2-per-row layout when the container width is unknown (jsdom tests).
+  const explicitCanvas = model.canvasWidth != null;
+  const { measuresPerRow, numRows, canvasWidth } = explicitCanvas
+    ? {
+        measuresPerRow: MAX_MEASURES_PER_ROW,
+        numRows: Math.max(1, Math.ceil(numMeasures / MAX_MEASURES_PER_ROW)),
+        canvasWidth: model.canvasWidth!,
+      }
+    : computeSystemLayout(numMeasures, container.clientWidth, {
+        minMeasurePx: MIN_MEASURE_PX,
+        marginLeft: MARGIN_LEFT,
+        marginRight: MARGIN_RIGHT,
+        maxPerRow: MAX_PER_ROW,
+        fallbackPerRow: MAX_MEASURES_PER_ROW,
+        fallbackCanvasWidth: 1000,
+      });
   const canvasHeight = numRows * ROW_HEIGHT + 20;
 
   const renderer = new Renderer(container, Renderer.Backends.SVG);
@@ -156,13 +180,13 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
   // after the loop can look it up in noteToStave by reference.
   let hoverNoteRef: PitchedNote | null = null;
   for (let row = 0; row < numRows; row++) {
-    const measuresInRow = Math.min(MAX_MEASURES_PER_ROW, numMeasures - row * MAX_MEASURES_PER_ROW);
+    const measuresInRow = Math.min(measuresPerRow, numMeasures - row * measuresPerRow);
     if (measuresInRow <= 0) continue;
     const staveWidth = (canvasWidth - MARGIN_LEFT - MARGIN_RIGHT) / measuresInRow;
     const rowY = STAVE_Y_TOP + row * ROW_HEIGHT;
 
     for (let col = 0; col < measuresInRow; col++) {
-      const mi = row * MAX_MEASURES_PER_ROW + col;
+      const mi = row * measuresPerRow + col;
       const x = MARGIN_LEFT + col * staveWidth;
       const stave = new Stave(x, rowY, staveWidth);
       if (col === 0) {

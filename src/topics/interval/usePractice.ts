@@ -97,10 +97,10 @@ export function useIntervalPractice(settings: IntervalRecognitionSettings) {
   function finalize(solved: boolean, firstGuessCorrect: boolean) {
     if (!question) return;
     setAnswered(true);
-    recordAttempt(TOPIC_ID, firstGuessCorrect);
-    const dirLabel = question.direction === 'asc' ? 'Ascending' : 'Descending';
     const actualType = INTERVAL_TYPES.find((t) => t.id === question.id);
     const actualLabel = actualType ? actualType.label : question.label;
+    recordAttempt(TOPIC_ID, firstGuessCorrect, { key: question.id, label: actualLabel });
+    const dirLabel = question.direction === 'asc' ? 'Ascending' : 'Descending';
     const answerText = `${dirLabel} ${actualLabel}`;
     if (solved && firstGuessCorrect) {
       setPromptText(`✓ Correct on your first guess — ${answerText}.`);

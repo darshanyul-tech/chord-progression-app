@@ -3,6 +3,7 @@ import { ChordStaffInput } from '../../components/theory/ChordStaffInput';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useChordWritingSettings } from '../../state/settings/chord-writing';
 import { ChordWritingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useChordWritingPractice } from './usePractice';
 
 // Page layout: docs/14-theory-engine.md §8c — melodic dictation's card
@@ -13,7 +14,9 @@ export function ChordWritingTopic() {
 
   return (
     <>
-      <ChordWritingSettings />
+      <SettingsDisclosure>
+        <ChordWritingSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>
