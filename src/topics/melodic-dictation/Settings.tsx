@@ -171,6 +171,16 @@ export function MelodicSettings() {
             <span className="toggle-slider" aria-hidden="true" />
           </label>
           <div className="help">Plays the note you just placed or nudged so you can hear what you wrote.</div>
+          <label className="toggle-switch" style={{ marginTop: '0.85rem' }}>
+            <span className="toggle-label">Show starting note</span>
+            <input
+              type="checkbox"
+              checked={settings.showStartingNote}
+              onChange={(e) => setState({ showStartingNote: e.target.checked })}
+            />
+            <span className="toggle-slider" aria-hidden="true" />
+          </label>
+          <div className="help">Pre-places the first note of the melody as a fixed anchor you can’t move.</div>
         </div>
       </div>
 

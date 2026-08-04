@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Footer } from './Footer';
 import { HeaderBar } from './HeaderBar';
+import { HomeProfileBox } from './HomeProfileBox';
 import { DEFAULT_TOPIC_BY_SECTION, SECTIONS, topicsForSection } from '../topics/registry';
 
 // The landing point for anyone who loads the site — no sidebar, no
@@ -16,6 +17,7 @@ export function HomePage() {
             <h2>Welcome to TryTone</h2>
             <p>Train your ear, and your theory.</p>
           </div>
+          <HomeProfileBox />
           <div className="home-section-grid">
             {SECTIONS.map((s) => {
               const activeCount = topicsForSection(s.id).filter((t) => t.status === 'active').length;

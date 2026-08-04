@@ -62,3 +62,51 @@ describe('ChordTopic — first-guess scoring (docs/05-topics/03 §6)', () => {
     expect(screen.getByText('Session: 1 / 1 (first-guess correct)')).toBeInTheDocument();
   });
 });
+
+describe('ChordTopic — two-part inversion guessing', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    useScoresStore.setState({ scores: {} });
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('scores a correct quality + inversion pick', () => {
+    // Only one pool entry → the question is always Maj7 1st inversion.
+    useChordRecognitionSettings.setState({
+      enabledTypes: [],
+      inversionChords: ['maj7'],
+      seventhInversions: [1],
+      ninthInversions: [],
+    });
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    renderTopic();
+    fireEvent.click(screen.getByRole('button', { name: 'Play chord' }));
+
+    // Both parts required before Guess is live.
+    expect(screen.getByRole('button', { name: 'Guess' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Maj7' }));
+    fireEvent.click(screen.getByRole('button', { name: '1st inv' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Guess' }));
+
+    expect(screen.getByText('Session: 1 / 1 (first-guess correct)')).toBeInTheDocument();
+  });
+
+  it('disables an inversion the picked quality cannot take (3rd inv on a 7th chord)', () => {
+    useChordRecognitionSettings.setState({
+      enabledTypes: [],
+      inversionChords: ['maj7', 'maj9'],
+      seventhInversions: [1, 2],
+      ninthInversions: [1, 2, 3],
+    });
+    vi.spyOn(Math, 'random').mockReturnValue(0);
+
+    renderTopic();
+    fireEvent.click(screen.getByRole('button', { name: 'Play chord' }));
+
+    const thirdInv = screen.getByRole('button', { name: '3rd inv' });
+    expect(thirdInv).not.toBeDisabled(); // available before a quality is chosen
+    fireEvent.click(screen.getByRole('button', { name: 'Maj7' })); // a 7th chord tops out at 2nd inv
+    expect(thirdInv).toBeDisabled();
+  });
+});

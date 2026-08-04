@@ -7,6 +7,7 @@ import { TransportRow } from '../../components/TransportRow';
 import { getChordComparisonChoiceDefs } from '../../lib/recognition/chordComparison';
 import { useChordComparisonSettings } from '../../state/settings/chord-comparison';
 import { ChordComparisonSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useChordComparisonPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -23,7 +24,9 @@ export function ChordComparisonTopic() {
 
   return (
     <>
-      <ChordComparisonSettings />
+      <SettingsDisclosure>
+        <ChordComparisonSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; compare</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>

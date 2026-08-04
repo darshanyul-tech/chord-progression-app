@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
 import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
 import { renderStaff, type RhythmStaffModel } from '../../lib/rhythm-staff/render';
@@ -71,12 +71,33 @@ export function RhythmStaffHost({
   const lastPointRef = useRef<{ x: number; y: number } | null>(null);
   const measureTotalBeats = model.beatsPerBar * (4 / model.beatValue);
 
+  const [, forceRerender] = useReducer((n: number) => n + 1, 0);
+
   useEffect(() => {
     if (containerRef.current) {
       const activeHover = model.hasSubmitted ? null : hover;
       geometryRef.current = renderStaff(containerRef.current, { ...model, hover: activeHover });
     }
   });
+
+  // Re-render when the container's width changes so the staff reflows onto more
+  // or fewer stacked rows (systemLayout.ts reads container.clientWidth). Only
+  // width matters — the SVG's own height grows with row count, so ignoring
+  // height changes here avoids a render loop.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      if (w !== lastWidth) {
+        lastWidth = w;
+        forceRerender();
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(
     () => () => {

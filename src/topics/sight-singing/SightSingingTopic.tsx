@@ -6,6 +6,7 @@ import { audio } from '../../lib/audio/engine';
 import type { SungGradeResult } from '../../lib/pitch/grading';
 import { useSightSingingSettings } from '../../state/settings/sight-singing';
 import { SightSingingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { SightSingingStaffHost } from './SightSingingStaffHost';
 import { useSightSingingPractice } from './usePractice';
 
@@ -64,7 +65,9 @@ export function SightSingingTopic() {
 
   return (
     <>
-      <SightSingingSettings />
+      <SettingsDisclosure>
+        <SightSingingSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Sight sing the melody</h2>
         <p className="sub">

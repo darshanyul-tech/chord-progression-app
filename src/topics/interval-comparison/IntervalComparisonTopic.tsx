@@ -6,6 +6,7 @@ import { TransportRow } from '../../components/TransportRow';
 import { getIntervalComparisonChoiceDefs } from '../../lib/recognition/intervalComparison';
 import { useIntervalComparisonSettings } from '../../state/settings/interval-comparison';
 import { IntervalComparisonSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useIntervalComparisonPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -22,7 +23,9 @@ export function IntervalComparisonTopic() {
 
   return (
     <>
-      <IntervalComparisonSettings />
+      <SettingsDisclosure>
+        <IntervalComparisonSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; compare</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>

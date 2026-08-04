@@ -6,6 +6,7 @@ import { TransportRow } from '../../components/TransportRow';
 import { getTuningChoiceDefs } from '../../lib/recognition/tuning';
 import { useTuningSettings } from '../../state/settings/tuning';
 import { TuningSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useTuningPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -22,7 +23,9 @@ export function TuningTopic() {
 
   return (
     <>
-      <TuningSettings />
+      <SettingsDisclosure>
+        <TuningSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; judge</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>

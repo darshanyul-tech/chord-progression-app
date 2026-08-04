@@ -13,6 +13,7 @@ import {
 import { useProgressionSettings } from '../../state/settings/chord-progressions';
 import { GuessRows } from './GuessRows';
 import { ProgressionSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useProgressionPractice } from './usePractice';
 
 function barLabelParts(ch: ProgChord, showInversion: boolean) {
@@ -64,7 +65,9 @@ export function ProgressionTopic() {
 
   return (
     <>
-      <ProgressionSettings />
+      <SettingsDisclosure>
+        <ProgressionSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <h2>Session</h2>

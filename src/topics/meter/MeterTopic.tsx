@@ -6,6 +6,7 @@ import { StatusLine } from '../../components/StatusLine';
 import { TransportRow } from '../../components/TransportRow';
 import { useMeterRecognitionSettings } from '../../state/settings/meter-recognition';
 import { MeterSettings } from './MeterSettings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useMeterPractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -27,7 +28,9 @@ export function MeterTopic() {
 
   return (
     <>
-      <MeterSettings />
+      <SettingsDisclosure>
+        <MeterSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; identify</h2>
 

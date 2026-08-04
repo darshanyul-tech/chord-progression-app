@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { SaveAsCustomTopicButton } from '../../components/SaveAsCustomTopicButton';
 import { SCALE_RECOGNITION_GROUPS, SCALE_RECOGNITION_TYPES } from '../../lib/recognition/scales';
 import { useScaleRecognitionSettings } from '../../state/settings/scales';
@@ -52,16 +53,27 @@ export function ScaleSettings() {
                 </button>
               </div>
               <div className="chord-type-checks">
-                {types.map((def) => (
-                  <label key={def.id}>
-                    <input
-                      type="checkbox"
-                      checked={settings.enabledScales.includes(def.id)}
-                      onChange={() => toggleType(def.id)}
-                    />
-                    {def.label}
-                  </label>
-                ))}
+                {types.map((def, i) => {
+                  const label = (
+                    <label key={def.id}>
+                      <input
+                        type="checkbox"
+                        checked={settings.enabledScales.includes(def.id)}
+                        onChange={() => toggleType(def.id)}
+                      />
+                      {def.label}
+                    </label>
+                  );
+                  if (def.dividerBefore && i > 0) {
+                    return (
+                      <Fragment key={def.id}>
+                        <span className="grouped-choice-divider" aria-hidden="true" />
+                        {label}
+                      </Fragment>
+                    );
+                  }
+                  return label;
+                })}
               </div>
             </div>
           );

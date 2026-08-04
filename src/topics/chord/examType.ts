@@ -22,13 +22,14 @@ function buildPaper(settings: Record<string, number>): RecognitionExamQuestion[]
 async function playOnce(question: RecognitionExamQuestion, ctx: ExamPlayContext): Promise<void> {
   const rootMidi = question.rootMidi as number;
   const quality = question.quality as string;
+  const inversion = (question.inversion as number) ?? 0;
   const playback = question.playback as {
     style: 'block' | 'arp';
     holdLen: number;
     arpNoteLen: number;
     arpGap: number;
   };
-  const midis = getChordRecognitionMidis(rootMidi, quality);
+  const midis = getChordRecognitionMidis(rootMidi, quality, inversion);
   if (playback.style === 'arp') {
     await playNoteSequence(audio.sampler, ctx.channel, audio.now(), midis, playback.arpNoteLen, playback.arpGap, ctx.aborted);
   } else {

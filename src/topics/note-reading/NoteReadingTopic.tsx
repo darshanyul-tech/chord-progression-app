@@ -6,6 +6,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { StatusLine } from '../../components/StatusLine';
 import { useNoteReadingSettings } from '../../state/settings/note-reading';
 import { NoteReadingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useNoteReadingPractice } from './usePractice';
 
 export function NoteReadingTopic() {
@@ -14,7 +15,9 @@ export function NoteReadingTopic() {
 
   return (
     <>
-      <NoteReadingSettings />
+      <SettingsDisclosure>
+        <NoteReadingSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Name the note</h2>
 

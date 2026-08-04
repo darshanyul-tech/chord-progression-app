@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   RECOGNITION_MAX_TOP_MIDI,
+  SCALE_RECOGNITION_TYPES,
+  buildScaleExamChoiceGrouped,
   buildScalePlaybackMidis,
   buildScaleQuestion,
   defaultScaleRecognitionSettings,
@@ -13,6 +15,48 @@ describe('defaultScaleRecognitionSettings', () => {
     const defaults = defaultScaleRecognitionSettings();
     expect(defaults.enabledScales.sort()).toEqual(['aeolian', 'dorian', 'ionian', 'mixolydian'].sort());
     expect(defaults.descend).toBe(false);
+  });
+});
+
+describe('scale catalogue coverage', () => {
+  // The scales the aural exercise must offer, per group.
+  const required: Record<string, string[]> = {
+    majorModes: ['Ionian (major)', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Aeolian', 'Locrian'],
+    melodicMinorModes: ['Lydian dominant', 'Locrian ♯2', 'Altered scale'],
+    minorScales: ['Harmonic minor', 'Jazz minor'],
+    fiveSixNote: ['Major pentatonic', 'Minor pentatonic', 'Blues scale', 'Whole tone'],
+    eightNote: ['Major bebop', 'Dominant bebop', 'Minor bebop', 'Jazz minor bebop', 'Dominant 8-note', 'Diminished (whole–half)'],
+  };
+
+  for (const [group, labels] of Object.entries(required)) {
+    for (const label of labels) {
+      it(`offers "${label}" in ${group}`, () => {
+        const found = SCALE_RECOGNITION_TYPES.find((t) => t.label === label);
+        expect(found, `missing scale "${label}"`).toBeTruthy();
+        expect(found?.group).toBe(group);
+      });
+    }
+  }
+
+  it('separates the two melodic-minor extras with a divider before Dorian ♭2', () => {
+    const group = SCALE_RECOGNITION_TYPES.filter((t) => t.group === 'melodicMinorModes');
+    const spec = ['lydianDominant', 'locrianSharp2', 'altered'];
+    const extras = ['dorianFlat2', 'mixolydianFlat6'];
+    // The three spec'd modes come first, then the two extras.
+    expect(group.map((t) => t.id)).toEqual([...spec, ...extras]);
+    const dorian = group.find((t) => t.id === 'dorianFlat2');
+    expect(dorian?.dividerBefore).toBe(true);
+  });
+
+  it('flags the divider in the choice grid only when preceded by an enabled item', () => {
+    const withPreceding = buildScaleExamChoiceGrouped(['lydianDominant', 'dorianFlat2']);
+    const mm1 = withPreceding.find((g) => g.title === 'Melodic minor modes')!;
+    expect(mm1.items.find((it) => it.id === 'dorianFlat2')?.dividerBefore).toBe(true);
+
+    // Divider suppressed when the extra is the first visible chip in its group.
+    const dorianFirst = buildScaleExamChoiceGrouped(['dorianFlat2', 'mixolydianFlat6']);
+    const mm2 = dorianFirst.find((g) => g.title === 'Melodic minor modes')!;
+    expect(mm2.items[0]?.dividerBefore).toBeFalsy();
   });
 });
 

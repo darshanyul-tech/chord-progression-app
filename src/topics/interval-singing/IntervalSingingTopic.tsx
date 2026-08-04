@@ -5,6 +5,7 @@ import { StatusLine } from '../../components/StatusLine';
 import { audio } from '../../lib/audio/engine';
 import { useIntervalSingingSettings } from '../../state/settings/interval-singing';
 import { SingingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useIntervalSingingPractice } from './usePractice';
 
 export function IntervalSingingTopic() {
@@ -17,7 +18,9 @@ export function IntervalSingingTopic() {
 
   return (
     <>
-      <SingingSettings />
+      <SettingsDisclosure>
+        <SingingSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Sing the interval</h2>
         <p className="sub">

@@ -3,6 +3,7 @@ import { SlotStaffInput } from '../../components/theory/SlotStaffInput';
 import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { useScaleWritingSettings } from '../../state/settings/scale-writing';
 import { ScaleWritingSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useScaleWritingPractice } from './usePractice';
 
 // Page layout: docs/14-theory-engine.md §8c — melodic dictation's card
@@ -13,7 +14,9 @@ export function ScaleWritingTopic() {
 
   return (
     <>
-      <ScaleWritingSettings />
+      <SettingsDisclosure>
+        <ScaleWritingSettings />
+      </SettingsDisclosure>
 
       <section className="card">
         <div className="buttons" style={{ marginTop: '0.1rem' }}>

@@ -9,7 +9,11 @@ import trytoneIcon from '../assets/trytone-emblem.png';
 // but is aural-only content, so it highlights Aural (docs/13 §6/§2).
 function activeSectionFor(pathname: string): SectionId | null {
   if (pathname === '/') return null;
-  return pathname.startsWith('/theory/') ? 'theory' : 'aural';
+  // Progress is a cross-section page, not part of any genre — highlight nothing.
+  if (pathname === '/stats') return null;
+  if (pathname.startsWith('/theory/')) return 'theory';
+  if (pathname.startsWith('/arranging/')) return 'arranging';
+  return 'aural';
 }
 
 export function HeaderBar() {

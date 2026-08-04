@@ -21,6 +21,9 @@ export interface ScaleTypeDef {
   label: string;
   intervals: number[];
   default: boolean;
+  // When true, a thin divider is drawn before this scale within its group,
+  // visually separating a sub-set from the ones above it.
+  dividerBefore?: boolean;
 }
 
 export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
@@ -32,17 +35,17 @@ export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
   { id: 'aeolian', group: 'majorModes', label: 'Aeolian', intervals: [0, 2, 3, 5, 7, 8, 10], default: true },
   { id: 'locrian', group: 'majorModes', label: 'Locrian', intervals: [0, 1, 3, 5, 6, 8, 10], default: false },
   {
+    id: 'lydianDominant',
+    group: 'melodicMinorModes',
+    label: 'Lydian dominant',
+    intervals: [0, 2, 4, 6, 7, 9, 10],
+    default: false,
+  },
+  {
     id: 'locrianSharp2',
     group: 'melodicMinorModes',
     label: 'Locrian ♯2',
     intervals: [0, 2, 3, 5, 6, 8, 10],
-    default: false,
-  },
-  {
-    id: 'dorianFlat2',
-    group: 'melodicMinorModes',
-    label: 'Dorian ♭2',
-    intervals: [0, 1, 3, 5, 7, 9, 10],
     default: false,
   },
   {
@@ -53,11 +56,12 @@ export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
     default: false,
   },
   {
-    id: 'lydianDominant',
+    id: 'dorianFlat2',
     group: 'melodicMinorModes',
-    label: 'Lydian dominant',
-    intervals: [0, 2, 4, 6, 7, 9, 10],
+    label: 'Dorian ♭2',
+    intervals: [0, 1, 3, 5, 7, 9, 10],
     default: false,
+    dividerBefore: true,
   },
   {
     id: 'mixolydianFlat6',
@@ -71,12 +75,27 @@ export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
   { id: 'majPent', group: 'fiveSixNote', label: 'Major pentatonic', intervals: [0, 2, 4, 7, 9], default: false },
   { id: 'minPent', group: 'fiveSixNote', label: 'Minor pentatonic', intervals: [0, 3, 5, 7, 10], default: false },
   { id: 'blues', group: 'fiveSixNote', label: 'Blues scale', intervals: [0, 3, 5, 6, 7, 10], default: false },
+  { id: 'wholeTone', group: 'fiveSixNote', label: 'Whole tone', intervals: [0, 2, 4, 6, 8, 10], default: false },
   { id: 'majBebop', group: 'eightNote', label: 'Major bebop', intervals: [0, 2, 4, 5, 7, 8, 9, 11], default: false },
   {
     id: 'domBebop',
     group: 'eightNote',
     label: 'Dominant bebop',
     intervals: [0, 2, 4, 5, 7, 9, 10, 11],
+    default: false,
+  },
+  {
+    id: 'minBebop',
+    group: 'eightNote',
+    label: 'Minor bebop',
+    intervals: [0, 2, 3, 4, 5, 7, 9, 10],
+    default: false,
+  },
+  {
+    id: 'jazzMinorBebop',
+    group: 'eightNote',
+    label: 'Jazz minor bebop',
+    intervals: [0, 2, 3, 5, 7, 8, 9, 11],
     default: false,
   },
   { id: 'dom8', group: 'eightNote', label: 'Dominant 8-note', intervals: [0, 2, 4, 5, 7, 9, 10, 11], default: false },
@@ -147,6 +166,7 @@ export interface ScaleChoiceItem {
   id: string;
   label: string;
   btnClass: string;
+  dividerBefore?: boolean;
 }
 
 export interface ScaleChoiceGroup {
@@ -161,7 +181,14 @@ export function buildScaleExamChoiceGrouped(enabledIds: string[]): ScaleChoiceGr
     if (!types.length) return;
     grouped.push({
       title: grp.title,
-      items: types.map((def) => ({ id: def.id, label: def.label, btnClass: 'chord-choice' })),
+      items: types.map((def, i) => ({
+        id: def.id,
+        label: def.label,
+        btnClass: 'chord-choice',
+        // Only carry the divider when something enabled precedes it in this
+        // group — a divider as the first visible chip would look stray.
+        dividerBefore: def.dividerBefore && i > 0,
+      })),
     });
   });
   return grouped;

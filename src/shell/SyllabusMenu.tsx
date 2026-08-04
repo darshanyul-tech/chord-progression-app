@@ -17,7 +17,9 @@ const TOPIC_ID_PATTERN = /\/topic\/([^/]+)$/;
 // §2/§7). Custom presets are aural-only in v1 (docs/13 §1 backlog), so they
 // only ever render under the aural 'custom' category.
 function sectionFromPath(pathname: string): SectionId {
-  return pathname.startsWith('/theory/') ? 'theory' : 'aural';
+  if (pathname.startsWith('/theory/')) return 'theory';
+  if (pathname.startsWith('/arranging/')) return 'arranging';
+  return 'aural';
 }
 
 export function SyllabusMenu() {

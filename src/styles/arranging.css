@@ -1,0 +1,185 @@
+/* Arranging section — reuses the shared teal/white/black tokens only. */
+
+.arr-instruction {
+  margin: 0 0 0.9rem;
+  max-width: 60ch;
+}
+
+.arr-prompt {
+  margin: 0.4rem 0 0.8rem;
+}
+
+.arr-chord-symbol {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--accent-2);
+  letter-spacing: 0.01em;
+}
+
+.arr-prompt-text {
+  margin: 0.35rem 0;
+  color: var(--text);
+}
+
+.arr-staff-frame {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  margin-top: 0.5rem;
+  overflow-x: auto;
+}
+
+/* Multiple choice */
+.arr-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+.arr-choice {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.arr-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.arr-choice.wrong {
+  border-color: var(--danger);
+  color: var(--danger);
+  opacity: 0.7;
+}
+.arr-choice.correct.reveal-actual {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+/* Multi-select submit */
+.arr-multi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0;
+}
+.arr-multi-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.arr-multi-item.correct {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+}
+
+/* Drag/reorder list */
+.arr-order {
+  list-style: none;
+  counter-reset: arr-order;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.arr-order-item {
+  counter-increment: arr-order;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+}
+.arr-order-item::before {
+  content: counter(arr-order) '.';
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.4rem;
+}
+.arr-order-item span:first-of-type {
+  flex: 1;
+}
+.arr-order-btns {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+.arr-order-btns button {
+  padding: 0.15rem 0.5rem;
+  min-width: 2rem;
+}
+
+/* Stacked pitch dropdowns */
+.arr-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.6rem 0;
+  max-width: 24rem;
+}
+.arr-stack-row {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 4rem 1.5rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+.arr-stack-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+.arr-stack-lock {
+  font-size: 0.8rem;
+}
+
+.arr-session-score {
+  margin-top: 0.6rem;
+}
+
+/* Stave voicing input (ARR-01 "Stave" mode) */
+.arr-stave-input {
+  margin: 0.6rem 0;
+}
+.arr-stave-frame {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.3rem 0.4rem;
+  cursor: pointer;
+  width: 240px;
+  max-width: 100%;
+}
+.arr-stave-frame.grand {
+  width: 210px;
+}
+.arr-stave-palette {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
+}
+.arr-mod-btn {
+  min-width: 2.4rem;
+  padding: 0.3rem 0.6rem;
+  font-size: 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+.arr-mod-btn.active {
+  border-color: var(--accent);
+  background: var(--ecu-teal-light);
+  color: var(--accent-2);
+}

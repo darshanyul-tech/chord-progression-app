@@ -131,7 +131,7 @@ export function useMeterPractice(settings: MeterRecognitionSettings) {
   function finalize(solved: boolean, firstGuessCorrect: boolean) {
     if (!question) return;
     setAnswered(true);
-    recordAttempt(TOPIC_ID, firstGuessCorrect);
+    recordAttempt(TOPIC_ID, firstGuessCorrect, { key: question.answerId, label: question.answerLabel });
     if (solved && firstGuessCorrect) {
       setPromptText(`✓ Correct on your first guess — ${question.answerLabel}.`);
       setStatusText('Correct! Point added.');

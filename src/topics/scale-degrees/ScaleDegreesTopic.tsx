@@ -6,6 +6,7 @@ import { SessionScoreLine } from '../../components/SessionScoreLine';
 import { StatusLine } from '../../components/StatusLine';
 import { useScaleDegreesSettings } from '../../state/settings/scale-degrees';
 import { ScaleDegreesSettings } from './Settings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useScaleDegreesPractice } from './usePractice';
 
 export function ScaleDegreesTopic() {
@@ -18,7 +19,9 @@ export function ScaleDegreesTopic() {
 
   return (
     <>
-      <ScaleDegreesSettings />
+      <SettingsDisclosure>
+        <ScaleDegreesSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Which degree?</h2>
 

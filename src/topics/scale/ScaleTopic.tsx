@@ -5,6 +5,7 @@ import { StatusLine } from '../../components/StatusLine';
 import { TransportRow } from '../../components/TransportRow';
 import { useScaleRecognitionSettings } from '../../state/settings/scales';
 import { ScaleSettings } from './ScaleSettings';
+import { SettingsDisclosure } from '../../components/SettingsDisclosure';
 import { useScalePractice } from './usePractice';
 
 function loadBadgeFor(status: string): string {
@@ -20,7 +21,9 @@ export function ScaleTopic() {
 
   return (
     <>
-      <ScaleSettings />
+      <SettingsDisclosure>
+        <ScaleSettings />
+      </SettingsDisclosure>
       <section className="card">
         <h2>Listen &amp; identify</h2>
         <div className="field" style={{ marginBottom: '0.75rem' }}>
