@@ -22,11 +22,11 @@ body {
 /* The 175% desktop preference above was tuned for desktop viewing and,
    on phones, eats into the already-small viewport (effective content
    width = real width / 1.75) — everything reads cramped and oversized.
-   Mobile looks right at the natural 100% the rem/px sizing was designed
-   at, so drop the bake-in below this breakpoint. */
+   Mobile looks better zoomed out further than the 100% the rem/px sizing
+   was authored at, so scale down below this breakpoint. */
 @media (max-width: 640px) {
   body {
-    zoom: 1;
+    zoom: 0.85;
   }
 }
 
@@ -461,4 +461,54 @@ body.theme-dark footer a {
   color: var(--accent-2);
   font-size: 0.82rem;
   font-weight: 600;
+}
+
+/* Answer-choice buttons (interval/chord/tuning/comparison/dynamics/exam —
+   each topic defines its own .xxx-choices/.xxx-choice pair in its own CSS
+   file, but they all share this exact flex:1 1 Npx wrap-and-grow pattern).
+   On mobile that flex-grow stretches short labels like "C" or "Tritone"
+   into wide rectangles one or two to a row. Below 640px, lay them out as a
+   fixed 3-column grid of square tiles instead. Centralized here rather
+   than repeated per topic file since the fix is identical everywhere.
+   Selectors are prefixed with `body` to outrank the topic CSS files' own
+   unconditional rules: those files are lazy-imported per-topic component,
+   so they load *after* base.css and win same-specificity ties on source
+   order alone — the extra type selector here breaks that tie without
+   resorting to !important. */
+@media (max-width: 640px) {
+  body .interval-choices,
+  body .chord-choice-grid,
+  body .chord-comparison-choices,
+  body .tuning-choices,
+  body .interval-comparison-choices,
+  body .dynamics-articulation-choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  body .interval-choice,
+  body .chord-choice,
+  body .exam-rec-choice,
+  body .chord-comparison-choice,
+  body .tuning-choice,
+  body .interval-comparison-choice,
+  body .dynamics-articulation-choice {
+    flex: none;
+    min-width: 0;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    font-size: 0.74rem;
+    line-height: 1.15;
+    text-align: center;
+  }
+  /* Forces a full-width break inside the grid, same as its flex-basis:100%
+     job in the desktop flex layout — a full-row grid item pushes whatever
+     follows onto a fresh row automatically. */
+  body .grouped-choice-divider {
+    grid-column: 1 / -1;
+  }
 }
