@@ -6,12 +6,8 @@
 }
 
 body {
-  /* Default page scale. The user prefers the app at ~175% (what browser zoom
-     175% looks like), so bake that in as the baseline. `zoom` scales the whole
-     document — layout, text, and graphics — like browser zoom, and stacks on
-     top of any further zoom the user applies. Applied to <body>, not <html>:
-     zooming the root element collapses the viewport width to 0 in Chromium. */
-  zoom: 1.75;
+  /* No page-wide zoom: renders at the natural 100% the rem/px sizing
+     throughout the app was authored at, on every viewport. */
   margin: 0;
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-1);
@@ -117,17 +113,12 @@ label {
   margin-bottom: 0.25rem;
 }
 
-.toggle-switch-compact {
+.toggle-switch.toggle-switch-compact {
+  --toggle-w: 2.1rem;
+  --toggle-h: 1.15rem;
+  --toggle-thumb: 0.85rem;
   padding: 0.3rem 0.5rem;
   font-size: 0.82rem;
-}
-.toggle-switch-compact .toggle-slider {
-  flex: 0 0 2.1rem;
-  height: 1.15rem;
-}
-.toggle-switch-compact .toggle-slider::after {
-  width: 0.85rem;
-  height: 0.85rem;
 }
 
 .inline {
@@ -186,6 +177,19 @@ input[type="checkbox"] {
 }
 
 .toggle-switch {
+  /* Track/thumb geometry lives in one place so both pieces always resize
+     together — see the mobile override below and .toggle-switch-compact.
+     The track's outline is a box-shadow, not a border: under this app's
+     baseline `body { zoom: 1.75 }` (base.css above), Chromium snaps
+     border-width to a device-pixel-rounded "used value" that comes out
+     *smaller* than the zoom factor would suggest (a 1px border reports/
+     renders as ~0.57px), while width/height/box-shadow scale with zoom
+     as expected — that mismatch is what made the track outline go hairline-
+     thin on mobile DPR screens while the solid thumb circle looked unaffected. */
+  --toggle-w: 2.5rem;
+  --toggle-h: 1.35rem;
+  --toggle-thumb: 1rem;
+  --toggle-inset: 2px;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
@@ -213,35 +217,46 @@ input[type="checkbox"] {
 }
 .toggle-slider {
   position: relative;
-  flex: 0 0 2.5rem;
-  height: 1.35rem;
+  flex: 0 0 var(--toggle-w);
+  height: var(--toggle-h);
   background: var(--ecu-white);
-  border: 1px solid var(--border);
+  box-shadow: inset 0 0 0 1px var(--border);
   border-radius: 999px;
-  transition: background 0.15s ease;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 .toggle-slider::after {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 1rem;
-  height: 1rem;
+  top: var(--toggle-inset);
+  left: var(--toggle-inset);
+  width: var(--toggle-thumb);
+  height: var(--toggle-thumb);
   background: var(--muted);
   border-radius: 50%;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .toggle-switch input:checked + .toggle-slider {
   background: var(--accent);
-  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
 }
 .toggle-switch input:checked + .toggle-slider::after {
-  transform: translateX(1.15rem);
+  transform: translateX(calc(var(--toggle-w) - var(--toggle-thumb) - 2 * var(--toggle-inset)));
   background: var(--ecu-white);
 }
 .toggle-switch input:focus-visible + .toggle-slider {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* Moderate, deliberate mobile size (not the drastic implicit shrink from
+   the border bug described above) — track and thumb move together since
+   both derive from the same custom properties. */
+@media (max-width: 640px) {
+  .toggle-switch {
+    --toggle-w: 2.3rem;
+    --toggle-h: 1.25rem;
+    --toggle-thumb: 0.95rem;
+  }
 }
 
 .field-toggle-header {
@@ -431,4 +446,54 @@ body.theme-dark footer a {
   color: var(--accent-2);
   font-size: 0.82rem;
   font-weight: 600;
+}
+
+/* Answer-choice buttons (interval/chord/tuning/comparison/dynamics/exam —
+   each topic defines its own .xxx-choices/.xxx-choice pair in its own CSS
+   file, but they all share this exact flex:1 1 Npx wrap-and-grow pattern).
+   On mobile that flex-grow stretches short labels like "C" or "Tritone"
+   into wide rectangles one or two to a row. Below 640px, lay them out as a
+   fixed 3-column grid of square tiles instead. Centralized here rather
+   than repeated per topic file since the fix is identical everywhere.
+   Selectors are prefixed with `body` to outrank the topic CSS files' own
+   unconditional rules: those files are lazy-imported per-topic component,
+   so they load *after* base.css and win same-specificity ties on source
+   order alone — the extra type selector here breaks that tie without
+   resorting to !important. */
+@media (max-width: 640px) {
+  body .interval-choices,
+  body .chord-choice-grid,
+  body .chord-comparison-choices,
+  body .tuning-choices,
+  body .interval-comparison-choices,
+  body .dynamics-articulation-choices {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+  body .interval-choice,
+  body .chord-choice,
+  body .exam-rec-choice,
+  body .chord-comparison-choice,
+  body .tuning-choice,
+  body .interval-comparison-choice,
+  body .dynamics-articulation-choice {
+    flex: none;
+    min-width: 0;
+    max-width: none;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.35rem;
+    font-size: 0.74rem;
+    line-height: 1.15;
+    text-align: center;
+  }
+  /* Forces a full-width break inside the grid, same as its flex-basis:100%
+     job in the desktop flex layout — a full-row grid item pushes whatever
+     follows onto a fresh row automatically. */
+  body .grouped-choice-divider {
+    grid-column: 1 / -1;
+  }
 }
