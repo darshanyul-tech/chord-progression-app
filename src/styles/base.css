@@ -6,28 +6,13 @@
 }
 
 body {
-  /* Default page scale. The user prefers the app at ~175% (what browser zoom
-     175% looks like), so bake that in as the baseline. `zoom` scales the whole
-     document — layout, text, and graphics — like browser zoom, and stacks on
-     top of any further zoom the user applies. Applied to <body>, not <html>:
-     zooming the root element collapses the viewport width to 0 in Chromium. */
-  zoom: 1.75;
+  /* No page-wide zoom: renders at the natural 100% the rem/px sizing
+     throughout the app was authored at, on every viewport. */
   margin: 0;
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-1);
   color: var(--text);
   min-height: 100vh;
-}
-
-/* The 175% desktop preference above was tuned for desktop viewing and,
-   on phones, eats into the already-small viewport (effective content
-   width = real width / 1.75) — everything reads cramped and oversized.
-   Mobile looks better zoomed out further than the 100% the rem/px sizing
-   was authored at, so scale down below this breakpoint. */
-@media (max-width: 640px) {
-  body {
-    zoom: 0.85;
-  }
 }
 
 /* generalized from legacy body.rhythm-active (02-ui-shell §6).
