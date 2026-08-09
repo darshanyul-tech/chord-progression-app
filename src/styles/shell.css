@@ -645,6 +645,16 @@
   .syllabus-sidebar.open {
     left: 0;
   }
+  /* The selected row bleeds out to the drawer's own left edge instead of
+     floating as a rounded "bubble" inset from it — curve kept only on the
+     trailing (right) corners. padding-left is bumped by the same amount
+     reclaimed from the negative margin so the label text doesn't jump. */
+  .syllabus-topic.active {
+    width: calc(100% + 1rem);
+    margin-left: -1rem;
+    padding-left: 1.75rem;
+    border-radius: 0 8px 8px 0;
+  }
   .syllabus-scrim.visible {
     display: block;
     position: fixed;
