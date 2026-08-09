@@ -181,6 +181,7 @@ export function MelodicDictationTopic() {
               armedIsRest={practice.armedIsRest}
               armedAccidental={practice.armedAccidental}
               isTieActive={practice.isTieActive}
+              minBeatForMeasure={practice.minBeatForMeasure}
               onPlace={handlePlace}
               onCursorMoveBeat={practice.moveCursorBeat}
               onCursorMovePitch={practice.moveCursorPitch}

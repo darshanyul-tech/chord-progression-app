@@ -1,4 +1,5 @@
 import { Barline, Dot, Renderer, Stave, StaveNote } from 'vexflow';
+import { PREVIEW_COLOR, VICTIM_COLOR } from '../notation/colors';
 import type { MeasureGeometry } from '../notation/geometry';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
 import { drawTies } from '../notation/ties';
@@ -61,8 +62,10 @@ export const CURSOR_COLOR = '#005f6b';
 export const MUTED_COLOR = '#8a8a8a';
 /** Keyboard insertion-cursor highlight (distinct from the teal playback cursor). */
 export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
-/** Mouse-hover placement ghost — same color as Melodic Dictation's HOVER_COLOR (lib/melody/vexscore.ts), translucent teal. */
-export const HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
+/** Mouse-hover placement ghost — shared preview colour, see lib/notation/colors.ts. */
+export const HOVER_COLOR = PREVIEW_COLOR;
+/** Ghost outline of a real note a hover would displace — see lib/notation/colors.ts. */
+export { VICTIM_COLOR };
 
 // Rhythm dictation is single-pitch (percussion-style) — every note sits on
 // the same line, unlike melodic dictation's real MIDI-to-staff-line spelling.
@@ -70,6 +73,7 @@ const rhythmAdapter: MeasureVoiceAdapter<RhythmNote> = {
   beat: (n) => n.beat,
   duration: (n) => n.duration,
   isRest: (n) => n.isRest,
+  makeRest: (beat, duration) => ({ beat, duration, isRest: true }),
   buildNote: (n) => {
     const { duration, dots } = vexDurationFor(n.duration);
     const staveNote = new StaveNote({
@@ -175,9 +179,12 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
   // can span a barline into the next measure) can look up either side's
   // built StaveNote after the whole staff is drawn — see drawTies below.
   const noteToStave = new Map<RhythmNote, StaveNote>();
-  // Captured when the hover ghost is built below, so the tie-preview pass
-  // after the loop can look it up in noteToStave by reference.
-  let hoverNoteRef: RhythmNote | null = null;
+  // Populated per-measure below with whatever drawMeasureVoice actually
+  // rendered (the plain committed notes, or the hover-preview-folded list
+  // when hovering) — drawTies uses this instead of `measures` directly so a
+  // tied hover ghost participates in ties exactly like the committed
+  // placement would.
+  const tieMeasures: RhythmNote[][] = [];
 
   for (let mi = 0; mi < numMeasures; mi++) {
     const row = Math.floor(mi / measuresPerRow);
@@ -226,16 +233,15 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       stave.setContext(context).draw();
     }
     staves.push(stave);
-    geometry.push({
-      index: mi,
-      noteStartX: stave.getNoteStartX(),
-      noteEndX: stave.getNoteEndX(),
-      topLineY: stave.getYForLine(0),
-      spacing: stave.getSpacingBetweenLines(),
-    });
 
     const userNotes = measures[mi] ?? [];
     const ok = hasSubmitted ? measureResults[mi] : undefined;
+    // Populated below with whatever's actually drawn for this measure, so
+    // click hit-testing (lib/notation/placement.ts's xToBeat) can interpolate
+    // against real positions instead of assuming the note area is evenly
+    // spaced by beat.
+    let breakpointNotes: readonly RhythmNote[] = userNotes;
+    let breakpointMap: ReadonlyMap<RhythmNote, StaveNote> = new Map();
 
     if (hasSubmitted && !ok) {
       // Reveal: user's (wrong) answer greyed out + correct pattern in red on
@@ -243,7 +249,7 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
       // reading as a second competing answer at the same y (Part B4). Only
       // the user's own voice can carry ties (the generator never produces
       // any), so only its map feeds drawTies below.
-      const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+      const { noteToStave: userMap } = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
         style: { fillStyle: MUTED_COLOR, strokeStyle: MUTED_COLOR },
         hoverColor: HOVER_COLOR,
         tupletGroups: detectTupletGroups,
@@ -254,19 +260,54 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
         hoverColor: HOVER_COLOR,
         tupletGroups: detectTupletGroups,
       });
+      tieMeasures.push(userNotes);
+      breakpointMap = userMap;
     } else {
       const hoverNote: RhythmNote | null =
         !hasSubmitted && hover && hover.measureIndex === mi
           ? { beat: hover.beat, duration: hover.duration, isRest: hover.isRest, tied: hover.tied && !hover.isRest ? true : undefined }
           : null;
-      if (hoverNote) hoverNoteRef = hoverNote;
-      const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
-        hoverNote,
-        hoverColor: HOVER_COLOR,
-        tupletGroups: detectTupletGroups,
-      });
+      if (hoverNote) {
+        const hb = hoverNote.beat;
+        const he = hb + hoverNote.duration;
+        // A real note the hover would displace stays visible underneath the
+        // preview, dimmed — drawn as its own independent voice pass (same
+        // trick the reveal branch above uses for two voices on one stave) so
+        // replacing a note doesn't make it vanish before the swap commits.
+        // Rests aren't shown this way — there's nothing meaningful to compare.
+        const victims = userNotes.filter((n) => !n.isRest && hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001);
+        if (victims.length) {
+          drawMeasureVoice(context, stave, victims, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter, {
+            style: { fillStyle: VICTIM_COLOR, strokeStyle: VICTIM_COLOR },
+            hoverColor: VICTIM_COLOR,
+            tupletGroups: detectTupletGroups,
+          });
+        }
+      }
+      const { noteToStave: userMap, notes: renderedNotes } = drawMeasureVoice(
+        context, stave, userNotes, measureTotalBeats, beatsPerBar, beatValue, rhythmAdapter,
+        { hoverNote, hoverColor: HOVER_COLOR, tupletGroups: detectTupletGroups },
+      );
       userMap.forEach((v, k) => noteToStave.set(k, v));
+      tieMeasures.push(renderedNotes);
+      breakpointNotes = renderedNotes;
+      breakpointMap = userMap;
     }
+
+    geometry.push({
+      index: mi,
+      noteStartX: stave.getNoteStartX(),
+      noteEndX: stave.getNoteEndX(),
+      topLineY: stave.getYForLine(0),
+      spacing: stave.getSpacingBetweenLines(),
+      breakpoints: breakpointNotes
+        .map((n) => {
+          const sn = breakpointMap.get(n);
+          return sn ? { beat: n.beat, x: sn.getAbsoluteX() } : null;
+        })
+        .filter((b): b is { beat: number; x: number } => b !== null)
+        .sort((a, b) => a.beat - b.beat),
+    });
 
     if (hasSubmitted) {
       const cx = stave.getNoteEndX() - 10;
@@ -283,20 +324,12 @@ export function renderStaff(container: HTMLDivElement, model: RhythmStaffModel):
     }
   }
 
-  // Ties are drawn over the measures *with the hover ghost folded in* (the
-  // same replaces-what-it-overlaps substitution drawMeasureVoice applies) so
-  // the ghost participates in ties exactly like the committed placement
-  // would: a tied ghost previews its own curve leading right (full to the
-  // next note, or a pending partial tie), and a committed tied note previews
-  // its curve completing into the ghost that follows it.
-  const tieMeasures = hoverNoteRef
-    ? measures.map((m, mi) => {
-        if (mi !== hover!.measureIndex) return m;
-        const hb = hover!.beat;
-        const he = hb + hover!.duration;
-        return [...m.filter((n) => !(hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001)), hoverNoteRef!];
-      })
-    : measures;
+  // Ties are drawn over what drawMeasureVoice actually rendered for each
+  // measure (tieMeasures, built above) — with the hover ghost folded in via
+  // applyPlacement exactly like a committed placement would be, a tied ghost
+  // previews its own curve leading right (full to the next note, or a
+  // pending partial tie), and a committed tied note previews its curve
+  // completing into the ghost that follows it.
   drawTies(context, tieMeasures, noteToStave, {
     beat: (n) => n.beat,
     duration: (n) => n.duration,

@@ -146,6 +146,11 @@
   transition: width 0.3s ease;
 }
 
+.stats-item-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .stats-item-table {
   width: 100%;
   border-collapse: collapse;
@@ -201,4 +206,47 @@
   background: var(--danger);
   border-color: var(--danger);
   color: #fff;
+}
+
+@media (max-width: 560px) {
+  .stats-page {
+    padding: 1rem 0.75rem 2.5rem;
+  }
+  .stats-header {
+    gap: 0.5rem;
+  }
+  .stats-grand-pct {
+    font-size: 1.7rem;
+  }
+  .stats-topic-toggle {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    padding: 0.6rem 0.6rem;
+    font-size: 0.9rem;
+  }
+  .stats-topic-title {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+  .stats-num {
+    font-size: 0.82rem;
+  }
+  .stats-reset-btn {
+    padding: 0 0.6rem;
+    font-size: 0.75rem;
+  }
+  .stats-item-table {
+    font-size: 0.82rem;
+  }
+  .stats-item-table th[scope='col'],
+  .stats-item-table td,
+  .stats-item-table tbody th {
+    padding: 0.3rem 0.5rem;
+  }
+  .stats-item-table tbody th {
+    white-space: normal;
+  }
+  .stats-item-bar-cell {
+    width: 38%;
+  }
 }

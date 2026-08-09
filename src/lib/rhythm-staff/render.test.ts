@@ -6,6 +6,7 @@ import {
   HOVER_COLOR,
   KEYBOARD_CURSOR_COLOR,
   MUTED_COLOR,
+  VICTIM_COLOR,
   WRONG_COLOR,
   renderStaff,
   type RhythmStaffModel,
@@ -296,6 +297,74 @@ describe('renderStaff hover ghost', () => {
       (el) => el.getAttribute('fill') === HOVER_COLOR || el.getAttribute('stroke') === HOVER_COLOR,
     );
     expect(ghost).toBe(false);
+  });
+
+  it('previews the whole resulting bar, not just the placed note — a quaver hovered on the off-beat also previews the quaver rest it leaves behind', () => {
+    // 2/4 bar of two crotchet rests; hovering a quaver at beat 0.5 ("1+")
+    // must preview both: the quaver itself AND the quaver rest that
+    // applyPlacement (gaps.ts) derives to cover beat 0's other half.
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        beatsPerBar: 2,
+        measures: [
+          [
+            { beat: 0, duration: 1, isRest: true },
+            { beat: 1, duration: 1, isRest: true },
+          ],
+        ],
+        correctPattern: [[]],
+        hover: { measureIndex: 0, beat: 0.5, duration: 0.5, isRest: false },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    const ghosts = [...svg.querySelectorAll('g,path')].filter(
+      (el) => el.getAttribute('fill') === HOVER_COLOR || el.getAttribute('stroke') === HOVER_COLOR,
+    );
+    expect(ghosts.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('shows the displaced real note dimmed (VICTIM_COLOR) underneath the hover preview, not just the preview alone', () => {
+    // A crotchet already sits on beat 0; hovering a bigger note over it
+    // (armed duration covers the whole bar) displaces it entirely — the
+    // displaced note should still be visible, dimmed, not simply vanish.
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [[{ beat: 0, duration: 1, isRest: false }]],
+        correctPattern: [[]],
+        hover: { measureIndex: 0, beat: 0, duration: 4, isRest: false },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    expect(svg.querySelectorAll('.vf-stavenote').length).toBe(2);
+    const previewStyled = [...svg.querySelectorAll('g,path')].some(
+      (el) => el.getAttribute('fill') === HOVER_COLOR || el.getAttribute('stroke') === HOVER_COLOR,
+    );
+    const victimStyled = [...svg.querySelectorAll('g,path')].some(
+      (el) => el.getAttribute('fill') === VICTIM_COLOR || el.getAttribute('stroke') === VICTIM_COLOR,
+    );
+    expect(previewStyled).toBe(true);
+    expect(victimStyled).toBe(true);
+  });
+
+  it('never shows a victim outline for a displaced rest (only real notes)', () => {
+    const container = document.createElement('div');
+    renderStaff(
+      container,
+      baseModel({
+        measures: [[{ beat: 0, duration: 4, isRest: true }]],
+        correctPattern: [[]],
+        hover: { measureIndex: 0, beat: 0, duration: 1, isRest: false },
+      }),
+    );
+    const svg = container.querySelector('svg')!;
+    const victimStyled = [...svg.querySelectorAll('g,path')].some(
+      (el) => el.getAttribute('fill') === VICTIM_COLOR || el.getAttribute('stroke') === VICTIM_COLOR,
+    );
+    expect(victimStyled).toBe(false);
   });
 
   it('suppresses the hover ghost once the answer is submitted', () => {

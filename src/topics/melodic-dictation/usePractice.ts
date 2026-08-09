@@ -8,9 +8,9 @@ import { firstDifferingMeasure, pitchedMeasuresEqual } from '../../lib/melody/gr
 import type { MelodicDictationSettings } from '../../lib/melody/settings';
 import { spellMidi } from '../../lib/melody/spelling';
 import { keyById, resolveRangeWindow, tiePreview, type Clef, type KeyDef, type NoteSpelling, type PitchedMeasure } from '../../lib/melody/theory';
-import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
-import { findPrecedingNote, resolvePlacementBeat } from '../../lib/notation/placement';
-import { candidateBeats, DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
+import { applyPlacement, defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
+import { findPrecedingNote, legalPlacementBeats, resolvePlacementBeat } from '../../lib/notation/placement';
+import { DUR_LABELS, getActiveDurations } from '../../lib/rhythm/generator';
 import { durationClose, durationFitsBar, gridStep, maxNotesOfDuration, metricPulseBeats, metricPulseCount, type TimeSigInfo } from '../../lib/rhythm/time';
 import { midiToNoteName } from '../../lib/theory';
 import { prefersReducedMotion, REDUCED_MOTION_INTERVAL_SEC } from '../../lib/motion';
@@ -114,6 +114,13 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   // question is live. It occupies measure 0, beat 0 up to its own duration.
   const startLocked = settings.showStartingNote && !hasSubmitted && startNote !== null;
   const startLockedDur = startNote?.duration ?? 0;
+  // Passed to VexStaffHost so its hover preview excludes the locked span
+  // too — otherwise a hover could show a placement inside it that
+  // placeNoteAt's own identical minBeat exclusion would then resolve
+  // elsewhere on click, a preview/commit mismatch.
+  function minBeatForMeasure(measureIndex: number): number {
+    return measureIndex === 0 && startLocked ? startLockedDur : 0;
+  }
 
   function clearAllTimers() {
     const ch = channelRef.current;
@@ -295,7 +302,11 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     setFeedbackMsg('');
     setFeedbackKind('');
     setHasListened(false);
-    if (autoPlay && audio.status === 'ready') {
+    // isActive gates the autoplay only: every active-status topic across
+    // every section mounts hidden the first time ANY topic route loads
+    // (shell/TopicHost.tsx) — see the matching guard in
+    // rhythm-dictation/usePractice.ts for the bug this prevents.
+    if (autoPlay && isActive && audio.status === 'ready') {
       window.setTimeout(
         () =>
           runPlayback({
@@ -358,29 +369,15 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       reject();
       return;
     }
-    // Resolve the click/cursor's raw beat estimate into either a direct hit
-    // on an existing note (edit in place) or the nearest free slot the armed
-    // duration actually fits in — a gap click never silently replaces a
-    // neighbour to make room (docs/12-melodic-dictation-fixes.md MD-3 /
-    // RC-3), since resolvePlacementBeat only ever returns free slots there.
-    const resolved = resolvePlacementBeat(measure, rawBeat, dur, cap, gridStepVal);
-    if (!resolved) {
-      reject();
-      return;
-    }
-    const { beat, isReplace } = resolved;
-    // The locked starting note can't be edited or overwritten — reject any
-    // placement whose span reaches into it (measure 0, [0, its duration)).
-    if (measureIndex === 0 && startLocked && beat < startLockedDur - 0.001) {
-      reject();
-      return;
-    }
-    const end = beat + dur;
-    // A direct hit is a deliberate "put this note here instead" — unlike a
-    // gap click, it's allowed to replace whatever the new (possibly larger)
-    // duration now spans, not just the one note originally clicked. Only
-    // reject if the new duration itself can't fit the bar from that beat.
-    if (isReplace && end > cap + 0.001) {
+    // Resolve the click/cursor's raw beat estimate to the nearest beat the
+    // armed duration can legally occupy — any grid position, not just where
+    // a note already starts (docs/12-melodic-dictation-fixes.md MD-3 / RC-3
+    // established the shared preview/commit contract; the resolver itself no
+    // longer distinguishes "on a note" from "in a gap"). The locked starting
+    // note can't be edited or overwritten — minBeat excludes its span
+    // [0, its duration) from the legal set entirely on measure 0.
+    const beat = resolvePlacementBeat(rawBeat, dur, cap, gridStepVal, minBeatForMeasure(measureIndex));
+    if (beat === null) {
       reject();
       return;
     }
@@ -426,36 +423,28 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
       const spelled = spellMidi(placedMidi, key, armedAccidental);
       if (spelled.accidental) placedSpelling = { letter: spelled.letter, accidental: spelled.accidental, octave: spelled.octave };
     }
-    // Gap-fill placements never overlap anything (resolvePlacementBeat only
-    // returns beats that fit clean), so this filter is a no-op there; on a
-    // direct hit it clears every note the new, possibly-larger span now covers.
-    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
-    const removedBeats = measure.filter(overlaps).map((n) => n.beat);
     const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
+    const newNote: PitchedMeasure[number] = {
+      beat,
+      duration: dur,
+      rest: isRest,
+      midi: isRest ? null : placedMidi,
+      spelling: isRest ? undefined : placedSpelling,
+      // Tie armed: this new note itself is the tied one — its curve leads
+      // forward to whatever gets placed next (a pending partial tie until
+      // then; lib/notation/ties.ts).
+      tied: !isRest && isTieActive ? true : undefined,
+    };
+    // Bookkeeping only (which placementHistory entries this placement
+    // invalidates) — computed against the `measure` snapshot captured above.
+    // The authoritative new measure state is recomputed against live state
+    // below, inside setUserMeasures's functional updater, so two placeNoteAt
+    // calls batched into the same React update still compose correctly
+    // instead of the second silently discarding the first's effect.
+    const { notes: staleNextMeasure } = applyPlacement(measure, newNote, cap, pulse, melodyRestAdapter);
+    const removedBeats = measure.filter((n) => !staleNextMeasure.includes(n)).map((n) => n.beat);
     setUserMeasures((prev) =>
-      prev.map((m, i) =>
-        i === measureIndex
-          ? fillGaps(
-              [
-                ...m.filter((n) => !overlaps(n)),
-                {
-                  beat,
-                  duration: dur,
-                  rest: isRest,
-                  midi: isRest ? null : placedMidi,
-                  spelling: isRest ? undefined : placedSpelling,
-                  // Tie armed: this new note itself is the tied one — its
-                  // curve leads forward to whatever gets placed next (a
-                  // pending partial tie until then; lib/notation/ties.ts).
-                  tied: !isRest && isTieActive ? true : undefined,
-                },
-              ],
-              cap,
-              pulse,
-              melodyRestAdapter,
-            )
-          : m,
-      ),
+      prev.map((m, i) => (i === measureIndex ? applyPlacement(m, newNote, cap, pulse, melodyRestAdapter).notes : m)),
     );
     setPlacementHistory((prev) => [
       ...prev.filter(
@@ -471,23 +460,22 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
   // rhythm-dictation's insertion cursor, plus a pitch dimension (Up/Down
   // select a staff line before Enter commits, per the plan's melodic note).
   //
-  // Steps through the union of (a) free beats the armed duration could fill
-  // and (b) existing notes' own beats (so the cursor can still reach a note
-  // to replace it), always moving to the single nearest steppable beat in
-  // the travel direction — never "nearest overall, then +1" (that skipped
-  // the very next beat whenever the cursor wasn't itself sitting on a
-  // candidate, e.g. right after a placement; docs/12-melodic-dictation-
-  // fixes.md MD-3 item 4, found via live verification of this fix).
+  // Steps through every beat the armed duration could legally land on (any
+  // grid position, same set the mouse hover resolves against —
+  // lib/notation/placement.ts's legalPlacementBeats), always moving to the
+  // single nearest steppable beat in the travel direction — never "nearest
+  // overall, then +1" (that skipped the very next beat whenever the cursor
+  // wasn't itself sitting on a candidate, e.g. right after a placement;
+  // docs/12-melodic-dictation-fixes.md MD-3 item 4, found via live
+  // verification of this fix).
   function moveCursorBeat(delta: number) {
     if (hasSubmitted) return;
     setCursorBeat((prev) => {
       const cur = prev ?? 0;
       const cap = timeSig.measureBeats;
-      const measure = userMeasures[activeMeasureIndex] ?? [];
-      const spans = measure.map((n) => ({ start: n.beat, end: n.beat + n.duration }));
       const dur = effectiveDuration(armedDuration);
-      const freeCandidates = candidateBeats(dur, spans, cap, gridStepVal);
-      const steppable = Array.from(new Set([...freeCandidates, ...measure.map((n) => n.beat)])).sort((a, b) => a - b);
+      const minBeat = activeMeasureIndex === 0 && startLocked ? startLockedDur : 0;
+      const steppable = legalPlacementBeats(dur, cap, gridStepVal, minBeat);
 
       const next =
         delta > 0
@@ -705,6 +693,7 @@ export function useMelodicPractice(settings: MelodicDictationSettings) {
     armedAccidental,
     activeDurations,
     gridStepVal,
+    minBeatForMeasure,
     capacityHint,
     submitEnabled,
     statusText,

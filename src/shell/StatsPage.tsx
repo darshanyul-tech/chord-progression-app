@@ -94,20 +94,22 @@ function TopicCard({
         </button>
       </div>
       {open && hasBreakdown && (
-        <table className="stats-item-table">
-          <thead>
-            <tr>
-              <th scope="col">Item</th>
-              <th scope="col">Accuracy</th>
-              <th scope="col" className="stats-num">Rate</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
-              <ItemRow key={item.label} item={item} />
-            ))}
-          </tbody>
-        </table>
+        <div className="stats-item-table-wrap">
+          <table className="stats-item-table">
+            <thead>
+              <tr>
+                <th scope="col">Item</th>
+                <th scope="col">Accuracy</th>
+                <th scope="col" className="stats-num">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+                <ItemRow key={item.label} item={item} />
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

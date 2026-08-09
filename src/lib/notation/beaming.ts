@@ -37,9 +37,9 @@ export function beamableRuns<T extends { beat: number; duration: number }>(
  * Builds (but does not draw) every beam group in a measure, grouped at the
  * meter's own main-beat boundaries (`Beam.getDefaultBeamGroups`) — e.g. four
  * eighths crossing beat 2 in 4/4 split into two beam groups, not one long
- * beam. A run whose notes include the hover-preview ghost gets styled in
- * `hoverColor` instead of `style`, matching how the ghost's own notehead is
- * styled (see notation/tickables.ts's buildGapPaddedTickables).
+ * beam. A run with any note in `ghostRefs` (the hover-preview set) gets
+ * styled in `hoverColor` instead of `style`, matching how the ghost's own
+ * notehead is styled (see notation/tickables.ts's buildGapPaddedTickables).
  *
  * Returns a plain `Beam[]` rather than drawing directly: VexFlow requires
  * beams to be *generated* — which prepares their notes' stems — before
@@ -61,7 +61,7 @@ export function generateBeamedRuns<T extends { beat: number; duration: number }>
   isRest: (n: T) => boolean,
   beatsPerBar: number,
   beatValue: number,
-  ghostRef: T | null,
+  ghostRefs: ReadonlySet<T>,
   style: { fillStyle: string; strokeStyle: string } | undefined,
   hoverColor: string,
 ): Beam[] {
@@ -69,7 +69,7 @@ export function generateBeamedRuns<T extends { beat: number; duration: number }>
   return beamableRuns(sorted, isRest).flatMap((run) => {
     const runStaveNotes = run.map((n) => noteToStave.get(n)!);
     const runBeams = Beam.generateBeams(runStaveNotes, { groups: beamGroups });
-    if (ghostRef && run.includes(ghostRef)) {
+    if (run.some((n) => ghostRefs.has(n))) {
       runBeams.forEach((b) => b.setStyle({ fillStyle: hoverColor, strokeStyle: hoverColor }));
     } else if (style) {
       runBeams.forEach((b) => b.setStyle(style));

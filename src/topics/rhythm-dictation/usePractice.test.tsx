@@ -102,27 +102,49 @@ describe('useRhythmPractice — placement', () => {
     ]);
   });
 
-  it('a direct hit on an existing note replaces it instead of rejecting the click', () => {
+  it('a click on an exact grid beat inside an existing note clears that note and targets the clicked beat precisely, not the note\'s own start', () => {
     const { result } = renderPractice();
     act(() => result.current.placeNoteAt(0, 0, 2, false)); // half note at beat 0 (replaces the two default rests it spans)
-    act(() => result.current.placeNoteAt(0, 1, 1, false)); // click the half note's middle with a quarter armed
-    // The half note shrinks back to a quarter — the beat it no longer
-    // covers (1-2) is refilled with a default rest, not left empty.
+    act(() => result.current.placeNoteAt(0, 1, 1, false)); // beat 1 — the grid point the half note's second half starts at
+    // The half note is cleared entirely (whatever a new placement overlaps
+    // is displaced, never partially truncated) and the new quarter lands
+    // exactly at beat 1 — not, as the old coreHit-based model would have,
+    // snapped back to the enclosing note's own start (beat 0).
     expect(byBeat(result.current.userMeasures[0])).toEqual([
-      { beat: 0, duration: 1, isRest: false },
-      { beat: 1, duration: 1, isRest: true },
+      { beat: 0, duration: 1, isRest: true },
+      { beat: 1, duration: 1, isRest: false },
       { beat: 2, duration: 1, isRest: true },
       { beat: 3, duration: 1, isRest: true },
     ]);
   });
 
-  it('flashes the measure and rejects a placement with no free slot anywhere', () => {
+  it('snaps to the sole legal beat when the armed duration only fits there, even clicking far away', () => {
     const { result } = renderPractice();
     act(() => result.current.placeNoteAt(0, 0, 1, false)); // quarter at beat 0
+    act(() => result.current.placeNoteAt(0, 2.5, 4, false)); // whole note only fits at beat 0 — snaps there, clearing the bar
+    expect(byBeat(result.current.userMeasures[0])).toEqual([{ beat: 0, duration: 4, isRest: false }]);
+  });
+
+  it('flashes the measure and rejects a placement whose duration exceeds the bar entirely', () => {
+    const { result } = renderPractice({ signatures: ['3/4'] });
     const before = byBeat(result.current.userMeasures[0]);
-    act(() => result.current.placeNoteAt(0, 2.5, 4, false)); // whole note can no longer fit anywhere in 4/4
+    act(() => result.current.placeNoteAt(0, 1, 4, false)); // whole note (4 beats) can't fit a 3-beat bar anywhere
     expect(byBeat(result.current.userMeasures[0])).toEqual(before);
     expect(result.current.flashMeasure).toBe(0);
+  });
+
+  it('places a quaver on the off-beat (1+) in a 2/4 bar of crotchet rests, leaving a quaver rest behind — not just onto where a rest already starts', () => {
+    const { result } = renderPractice({ signatures: ['2/4'], durations: [1, 0.5] });
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, isRest: true },
+      { beat: 1, duration: 1, isRest: true },
+    ]);
+    act(() => result.current.placeNoteAt(0, 0.6, 0.5, false)); // a click aimed at "1+" (beat 0.5)
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 0.5, isRest: true },
+      { beat: 0.5, duration: 0.5, isRest: false },
+      { beat: 1, duration: 1, isRest: true },
+    ]);
   });
 });
 

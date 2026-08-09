@@ -7,7 +7,7 @@ import { keyById, lineToLetterOctave, NATURAL_LETTERS, staffLineFor, type Clef, 
 import { spelledToMidi } from '../written-theory/spelledPitch';
 import { beamableRuns } from '../notation/beaming';
 import { decomposeGap } from '../notation/gaps';
-import { buildVexScore, CURSOR_COLOR, HOVER_COLOR, WRONG_COLOR } from './vexscore';
+import { buildVexScore, CURSOR_COLOR, HOVER_COLOR, VICTIM_COLOR, WRONG_COLOR } from './vexscore';
 
 // Smoke test (docs/04-notation-engine.md §B7): builds without throwing for
 // generated melodies across all settings combinations (property-style loop).
@@ -432,21 +432,40 @@ describe('buildVexScore smoke test', () => {
       cursorMidi: null,
     };
 
+    // A realistic committed bar (defaultRestMeasure's own shape — a bar
+    // never has unaccounted-for space) with the note at beat 1, so its
+    // sibling rests are real tickables the Formatter allocates room for —
+    // exactly the shape the hover-preview comparison below needs to match.
+    const filledMeasure = [
+      { beat: 0, duration: 1, rest: true, midi: null },
+      { beat: 1, duration: 1, rest: false, midi: 64 },
+      { beat: 2, duration: 1, rest: true, midi: null },
+      { beat: 3, duration: 1, rest: true, midi: null },
+    ];
+
     const realContainer = document.createElement('div');
     buildVexScore(realContainer, {
       ...model,
-      measures: [[{ beat: 1, duration: 1, rest: false, midi: 64 }]],
+      measures: [filledMeasure],
       hover: null,
     });
-    const realX = realContainer.querySelector('.vf-notehead text')?.getAttribute('x');
+    // Both containers render the same 4-tickable shape (rest, the beat-1
+    // note/ghost, rest, rest) in beat order — the beat-1 one is always the
+    // second notehead in DOM order in either.
+    const realX = realContainer.querySelectorAll('.vf-notehead text')[1]?.getAttribute('x');
 
     const ghostContainer = document.createElement('div');
     buildVexScore(ghostContainer, {
       ...model,
-      measures: [[]],
+      // A pre-filled bar (defaultRestMeasure's own shape — every beat other
+      // than the hover's own already covered by an unchanged committed
+      // rest), matching what the app always has before a hover: the hover
+      // preview (applyPlacement, gaps.ts) then has nothing left to fill in,
+      // so the ghost note is the *only* hover-styled tickable.
+      measures: [filledMeasure.filter((n) => n.beat !== 1)],
       hover: { measureIndex: 0, beat: 1, duration: 1, midi: 64, isRest: false },
     });
-    const ghostX = ghostContainer.querySelector('.vf-notehead text')?.getAttribute('x');
+    const ghostX = ghostContainer.querySelectorAll('.vf-notehead text')[1]?.getAttribute('x');
 
     expect(ghostX).toBeDefined();
     expect(ghostX).toBe(realX);
@@ -501,7 +520,7 @@ describe('buildVexScore smoke test', () => {
     expect(staveNote?.querySelector('.vf-notehead')).not.toBeNull();
   });
 
-  it('never lets the hover ghost overlap an existing note (replace preview)', () => {
+  it('never lets the *committed* hover note sit alongside the real note it overlaps (replace preview)', () => {
     const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
     const generated = generateMelody(settings);
     const container = document.createElement('div');
@@ -519,12 +538,56 @@ describe('buildVexScore smoke test', () => {
       cursorMeasureIndex: 0,
       cursorBeat: null,
       cursorMidi: null,
-      // A direct-hit replace at beat 0 with a bigger duration — the ghost
-      // must be the only note left, not sitting alongside the one it replaces.
+      // A direct-hit replace at beat 0 with a bigger duration.
       hover: { measureIndex: 0, beat: 0, duration: 4, midi: 67, isRest: false },
     });
     const svg = container.querySelector('svg')!;
-    expect(svg.querySelectorAll('.vf-stavenote').length).toBe(1);
+    // Two noteheads: the hover preview (HOVER_COLOR) and the displaced real
+    // note it would replace, dimmed underneath (VICTIM_COLOR) — not the note
+    // it replaces rendered a *second* time at full strength, which would
+    // read as a competing answer rather than a "here's what's being removed"
+    // hint.
+    expect(svg.querySelectorAll('.vf-stavenote').length).toBe(2);
+    const fills = [...svg.querySelectorAll('.vf-notehead text')].map((el) => el.closest('[fill]')?.getAttribute('fill'));
+    expect(fills).toContain(HOVER_COLOR);
+    expect(fills).toContain(VICTIM_COLOR);
+  });
+
+  it('previews the whole resulting bar, not just the placed note — an eighth hovered on the off-beat also previews the eighth rest it leaves behind', () => {
+    // 2/4 bar of two crotchet rests; hovering an eighth note at beat 0.5
+    // ("1+") must preview both: the eighth itself AND the eighth rest that
+    // applyPlacement (gaps.ts) derives to cover beat 0's other half.
+    const settings = { ...defaultMelodicDictationSettings(), measures: 1 };
+    const generated = generateMelody(settings);
+    const container = document.createElement('div');
+    buildVexScore(container, {
+      key: generated.key,
+      clef: generated.clef,
+      timeSig: { beatsPerBar: 2, beatValue: 4, measureBeats: 2 },
+      numMeasures: 1,
+      measures: [
+        [
+          { beat: 0, duration: 1, rest: true, midi: null },
+          { beat: 1, duration: 1, rest: true, midi: null },
+        ],
+      ],
+      hasSubmitted: false,
+      isCorrect: false,
+      revealMeasures: null,
+      flashMeasure: null,
+      playbackFraction: null,
+      cursorMeasureIndex: 0,
+      cursorBeat: null,
+      cursorMidi: null,
+      hover: { measureIndex: 0, beat: 0.5, duration: 0.5, midi: 64, isRest: false },
+    });
+    const svg = container.querySelector('svg')!;
+    const hoverStyled = [...svg.querySelectorAll('.vf-stavenote')].filter(
+      (g) => g.getAttribute('fill') === HOVER_COLOR || [...g.querySelectorAll('*')].some((el) => el.getAttribute('fill') === HOVER_COLOR),
+    );
+    expect(hoverStyled.length).toBe(2);
+    // The untouched beat-1 crotchet rest stays a normal 3-note bar total.
+    expect(svg.querySelectorAll('.vf-stavenote').length).toBe(3);
   });
 
   // Regression test for the melodic-dictation Sharp bug: two chromatic notes

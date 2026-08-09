@@ -1,130 +1,115 @@
-import { candidateBeats } from '../rhythm/generator';
 import type { MeasureGeometry } from './geometry';
 
 /** The only note shape the resolver needs — both melodic's PitchedMeasure and rhythm's Measure satisfy it. */
 export type PlacedNote = { beat: number; duration: number };
 
-// docs/12-melodic-dictation-fixes.md MD-3. The single resolver both the
-// commit path (usePractice's placeNoteAt) and the hover preview
-// (VexStaffHost/RhythmStaffHost) call, so a mouse placement can never land
-// anywhere other than where its own ghost preview showed it. Reuses
-// rhythm/generator.ts's candidateBeats (already the exact-fit-without-
-// overlap beat search the rhythm generator uses to place notes) instead of
-// re-deriving it.
+// A note/rest can go on ANY grid-aligned beat that fits within the bar —
+// what's already written there is irrelevant to *where a click can land*;
+// it only matters for what gets displaced, which is applyPlacement's job
+// (gaps.ts), run identically by both the commit path (usePractice's
+// placeNoteAt) and the hover preview (VexStaffHost/RhythmStaffHost) so a
+// mouse placement can never land anywhere other than where its own ghost
+// preview showed it (docs/12-melodic-dictation-fixes.md MD-3).
 
-export interface ResolvedPlacement {
-  /** The beat the note will actually be placed at — may differ from rawBeat (snapped to a free slot, or to a direct hit). */
-  beat: number;
-  /** True when this placement replaces the note it landed on, rather than filling empty space. */
-  isReplace: boolean;
-}
-
-// A click landing anywhere in an existing note's *full* span used to count
-// as a direct hit — so a click aimed at the free beat right after a note
-// (off by only a little, e.g. raw beat 0.9 when the next note starts at 1)
-// still fell inside that note's [0, 1) span and replaced it instead of
-// filling the next beat. Shrinking the hit-zone to a note's own middle
-// keeps a real "click this note to edit it" target while leaving the
-// boundary near a free neighbour free to resolve there instead.
-//
-// The margin itself is pinned to gridStepVal (the smallest addressable
-// position for the current question) rather than scaled to whichever
-// note's or armed duration's length happens to be involved — that's what
-// keeps a measure's snap zones anchored to the same beat positions no
-// matter what's placed in them. E.g. in 4/4 on a quarter-note grid, filling
-// zone 1 with a half note (spanning zones 1-2) never moves zone 3's own
-// boundary; only whether zones 1-2 are still free changes. Capped to a
-// fraction of the referenced span so a note/candidate no longer than one
-// grid step still keeps a non-empty confident core.
-const BOUNDARY_MARGIN_FRACTION = 0.3;
-const BOUNDARY_MARGIN_CAP_FRACTION = 0.4;
-
-function boundaryMargin(gridStepVal: number, referenceDuration: number): number {
-  return Math.min(gridStepVal * BOUNDARY_MARGIN_FRACTION, referenceDuration * BOUNDARY_MARGIN_CAP_FRACTION);
-}
-
-function coreContains(clamped: number, beat: number, duration: number, leftMargin: number, rightMargin: number): boolean {
-  return clamped >= beat + leftMargin - 0.001 && clamped < beat + duration - rightMargin - 0.001;
+/**
+ * Every beat >= minBeat on the gridStepVal grid where `duration` fits
+ * entirely within the bar. minBeat lets a caller exclude a locked region
+ * (e.g. melodic dictation's pre-placed starting note) from the legal set
+ * entirely, so neither the hover preview nor a click can ever land inside it.
+ */
+export function legalPlacementBeats(
+  duration: number,
+  measureTotalBeats: number,
+  gridStepVal: number,
+  minBeat = 0,
+): number[] {
+  const out: number[] = [];
+  const start = Math.ceil(minBeat / gridStepVal - 0.001) * gridStepVal;
+  for (let b = start; b <= measureTotalBeats - duration + 0.001; b += gridStepVal) {
+    out.push(Math.max(minBeat, Math.round(b / gridStepVal) * gridStepVal));
+  }
+  return out;
 }
 
 /**
  * Resolves a raw (proportional, unsnapped) beat estimate — from a click or
- * hover x-position — into either a direct hit on an existing note (replace)
- * or a free beat that can hold `armedDuration` without overlapping anything
- * (place). Prefers whichever note or candidate the click confidently lands
- * within its own (margin-shrunk, where adjacent to something else) core
- * before falling back to nearest-distance, so a click can't get pulled onto
- * the wrong side of a boundary just because a raw distance calculation
- * narrowly favours it. Returns null only when no free slot exists anywhere
- * for this duration (caller should reject/flash rather than guess).
+ * hover x-position — to the nearest beat `armedDuration` can legally occupy,
+ * regardless of what's currently written there (a rest, a real note, or
+ * nothing — all equally placeable; applyPlacement in gaps.ts decides what
+ * gets displaced). Returns null only when the duration itself can't fit the
+ * bar anywhere (caller should reject/flash rather than guess).
  */
 export function resolvePlacementBeat(
-  measure: readonly PlacedNote[],
   rawBeat: number,
   armedDuration: number,
   measureTotalBeats: number,
   gridStepVal: number,
-): ResolvedPlacement | null {
-  const clamped = Math.max(0, Math.min(measureTotalBeats, rawBeat));
+  minBeat = 0,
+): number | null {
+  const legal = legalPlacementBeats(armedDuration, measureTotalBeats, gridStepVal, minBeat);
+  if (!legal.length) return null;
+  const clamped = Math.max(minBeat, Math.min(measureTotalBeats, rawBeat));
+  return legal.reduce((best, b) => (Math.abs(b - clamped) < Math.abs(best - clamped) ? b : best));
+}
 
-  const coreHit = measure.find((n) => {
-    const m = boundaryMargin(gridStepVal, n.duration);
-    return coreContains(clamped, n.beat, n.duration, m, m);
-  });
-  if (coreHit) return { beat: coreHit.beat, isReplace: true };
+/** A real x-position (post-Formatter) tagged with the beat it represents — see `xToBeat`. */
+export interface Breakpoint {
+  beat: number;
+  x: number;
+}
 
-  const spans = measure.map((n) => ({ start: n.beat, end: n.beat + n.duration }));
-  const candidates = candidateBeats(armedDuration, spans, measureTotalBeats, gridStepVal);
-
-  if (candidates.length) {
-    // Prefer a candidate the click confidently lands within — margined only
-    // on a side that actually touches an existing note (where confusing it
-    // with that note is possible); an isolated candidate with free space on
-    // both sides accepts a click anywhere across its full width, so aiming
-    // loosely at open space still works exactly as before. Whenever
-    // gridStepVal is finer than armedDuration, two isolated (full-width)
-    // candidates' ranges can overlap (e.g. candidates 0.5 apart but each a
-    // full 1-beat-wide range) — picking the *nearest* confident match
-    // rather than the first one found in ascending order avoids a
-    // systematic bias toward the earlier candidate whenever a click lands
-    // in that overlap.
-    const touchesLeft = (c: number) => measure.some((n) => Math.abs(n.beat + n.duration - c) < 0.01);
-    const touchesRight = (c: number) => measure.some((n) => Math.abs(n.beat - (c + armedDuration)) < 0.01);
-    const candidateMargin = boundaryMargin(gridStepVal, armedDuration);
-    const confidentMatches = candidates.filter((c) =>
-      coreContains(clamped, c, armedDuration, touchesLeft(c) ? candidateMargin : 0, touchesRight(c) ? candidateMargin : 0),
-    );
-    if (confidentMatches.length) {
-      const nearestConfident = confidentMatches.reduce((best, c) =>
-        Math.abs(c - clamped) < Math.abs(best - clamped) ? c : best,
-      );
-      return { beat: nearestConfident, isReplace: false };
-    }
-
-    // Missed every confident zone — the click is somewhere in the boundary
-    // buffer between a note and a candidate that neither wants to claim
-    // outright (the breathing room you'd naturally leave writing notes by
-    // hand). Still resolves to whichever is nearest rather than rejecting a
-    // click that's merely a little off-centre — but critically, it now
-    // *tries the confident zones first*, so a click that's actually well
-    // inside a candidate's own space always wins that candidate outright,
-    // instead of an existing note's unshrunk full span (or the raw nearest-
-    // distance calculation) pulling it back the wrong way. That's what let
-    // a click approaching a barline — where the beat↔pixel mapping is
-    // least exact — sometimes snap onto a note the click wasn't visually
-    // anywhere near.
-    const nearest = candidates.reduce((best, c) => (Math.abs(c - clamped) < Math.abs(best - clamped) ? c : best));
-    return { beat: nearest, isReplace: false };
+/**
+ * Converts a click/hover x-coordinate to a beat estimate by piecewise-
+ * linearly interpolating between the *actual* rendered positions of
+ * whatever's currently drawn in the measure (`breakpoints` — one per real
+ * tickable, beat-ascending), rather than one global linear scale across the
+ * whole note area.
+ *
+ * A single global scale assumes VexFlow's Formatter gives every beat the
+ * same pixel width, but it doesn't: a lone sixteenth note sitting among
+ * quarter rests gets a much smaller share of the bar's width than its
+ * "1/16 of the bar" beat-proportion would suggest, since the Formatter also
+ * accounts for each glyph's own minimum width. That skew is small enough to
+ * ignore for coarse (quarter/eighth) grids, but at a sixteenth-note grid it's
+ * large enough that a click aimed at "e" or "a" (the off-eighth 16th
+ * positions) can land measurably closer, in this naive proportional space,
+ * to a neighbouring on-eighth candidate instead — i.e. finer subdivisions
+ * become unreliable to click even though resolvePlacementBeat's candidate
+ * list already includes them. Interpolating between *neighbouring real
+ * tickables* instead sidesteps this: VexFlow spaces adjacent notes evenly
+ * within their own local region even when the bar's global proportions are
+ * skewed, so a click between two known real positions maps far more
+ * accurately to the beat in between.
+ *
+ * Extrapolates past either end using the nearest pair's own slope (the
+ * caller's later clamp to [0, measureTotalBeats] handles any overshoot).
+ * Falls back to a single linear scale across `noteStartX`..`noteEndX` when
+ * fewer than two breakpoints exist (e.g. one note/rest filling the whole
+ * bar) — nothing to interpolate between.
+ */
+export function xToBeat(
+  x: number,
+  breakpoints: readonly Breakpoint[],
+  noteStartX: number,
+  noteEndX: number,
+  measureTotalBeats: number,
+): number {
+  if (breakpoints.length < 2) {
+    const rel = (x - noteStartX) / Math.max(1, noteEndX - noteStartX);
+    return rel * measureTotalBeats;
   }
-
-  // No free slot anywhere for this duration — fall back to any note whose
-  // full, unshrunk span contains the click, so a near-edge click can still
-  // land as an edit rather than being rejected outright just for missing
-  // the stricter core zone.
-  const edgeHit = measure.find((n) => clamped >= n.beat - 0.001 && clamped < n.beat + n.duration - 0.001);
-  if (edgeHit) return { beat: edgeHit.beat, isReplace: true };
-
-  return null;
+  const interp = (a: Breakpoint, b: Breakpoint): number => {
+    if (Math.abs(b.x - a.x) < 0.001) return a.beat;
+    const t = (x - a.x) / (b.x - a.x);
+    return a.beat + t * (b.beat - a.beat);
+  };
+  const n = breakpoints.length;
+  if (x <= breakpoints[0]!.x) return interp(breakpoints[0]!, breakpoints[1]!);
+  if (x >= breakpoints[n - 1]!.x) return interp(breakpoints[n - 2]!, breakpoints[n - 1]!);
+  for (let i = 0; i < n - 1; i++) {
+    if (x >= breakpoints[i]!.x && x <= breakpoints[i + 1]!.x) return interp(breakpoints[i]!, breakpoints[i + 1]!);
+  }
+  return breakpoints[n - 1]!.beat;
 }
 
 /** A note plus which measure it lives in — findPrecedingNote/findFollowingNote's result, since the caller often needs to mutate that specific measure (e.g. retroactively tagging a tie). */

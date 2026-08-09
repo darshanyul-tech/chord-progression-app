@@ -189,7 +189,18 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     expect(result.current.userMeasures[0].find((n) => !n.rest)).toEqual({ beat: 0, duration: 1, rest: false, midi: 65 });
   });
 
-  it('flashes and rejects a placement once the bar has no room for the armed duration', () => {
+  it('flashes and rejects a placement whose duration cannot fit the bar anywhere', () => {
+    const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
+    const before = byBeat(result.current.userMeasures[0]);
+    act(() => {
+      // A whole note (4 beats) can never fit a 3-beat bar, regardless of click position.
+      result.current.placeNoteAt(0, 1, 4, false, 67);
+    });
+    expect(byBeat(result.current.userMeasures[0])).toEqual(before);
+    expect(result.current.flashMeasure).toBe(0);
+  });
+
+  it('a click beyond a fully-packed bar still snaps to the nearest legal beat and replaces what is there, rather than rejecting', () => {
     const { result } = renderPractice({ signatures: ['3/4'], durations: [1] });
     act(() => {
       result.current.placeNoteAt(0, 0.1, 1, false, 60);
@@ -198,12 +209,29 @@ describe('useMelodicPractice — placement resolution (docs/12 regression)', () 
     });
     expect(result.current.userMeasures[0]).toHaveLength(3);
     act(() => {
-      // Beyond the bar end (clamps to beat 3) — not inside any existing
-      // note's span, and the fully-filled 3/4 bar has no free slot left.
+      // Beyond the bar end (clamps to beat 3) — the quarter-note grid's
+      // nearest legal beat is 2, which already holds a note; that note is
+      // deliberately replaced rather than the click being rejected.
       result.current.placeNoteAt(0, 3.4, 1, false, 67);
     });
     expect(result.current.userMeasures[0]).toHaveLength(3);
-    expect(result.current.flashMeasure).toBe(0);
+    expect(byBeat(result.current.userMeasures[0])[2]).toMatchObject({ beat: 2, midi: 67 });
+  });
+
+  it('places an eighth note on the off-beat (1+) inside a quarter rest, not just onto where the rest already starts', () => {
+    const { result } = renderPractice({ signatures: ['2/4'], durations: [1, 0.5] });
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 1, rest: true, midi: null },
+      { beat: 1, duration: 1, rest: true, midi: null },
+    ]);
+    act(() => {
+      result.current.placeNoteAt(0, 0.6, 0.5, false, 64); // a click aimed at "1+" (beat 0.5)
+    });
+    expect(byBeat(result.current.userMeasures[0])).toEqual([
+      { beat: 0, duration: 0.5, rest: true, midi: null },
+      { beat: 0.5, duration: 0.5, rest: false, midi: 64 },
+      { beat: 1, duration: 1, rest: true, midi: null },
+    ]);
   });
 
   // Reported after the MD-3 fix shipped: clicking directly on an existing
@@ -347,9 +375,14 @@ describe('useMelodicPractice — show starting note', () => {
     expect(result.current.userMeasures[0].filter((n) => !n.rest)).toHaveLength(1);
     expect(result.current.userMeasures[1].every((n) => n.rest)).toBe(true);
 
-    // Trying to overwrite it does nothing — the note stays put.
+    // The locked span itself can never be a placement target — a click aimed
+    // at it (even squarely at beat 0) resolves to the nearest legal beat
+    // *outside* the lock instead, same "snap to the nearest legal beat"
+    // resolution any out-of-reach click gets; it does not silently do
+    // nothing. The anchor note itself stays exactly as it was.
     act(() => result.current.placeNoteAt(0, 0, 1, false, 71));
     expect(byBeat(result.current.userMeasures[0])[0]).toMatchObject({ beat: 0, midi: firstCorrect.midi });
+    expect(byBeat(result.current.userMeasures[0])[1]).toMatchObject({ beat: firstCorrect.duration, midi: 71 });
   });
 
   it('keeps the anchor when the measure is cleared', () => {

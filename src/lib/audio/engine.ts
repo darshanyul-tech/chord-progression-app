@@ -47,6 +47,30 @@ async function initAudio(): Promise<void> {
   }
 }
 
+/**
+ * Mobile browsers suspend the AudioContext when the tab/screen is
+ * backgrounded (screen lock, app switch) and — unlike desktop — don't
+ * reliably auto-resume it when the page comes back. Without this, every
+ * topic's own per-call `ctx.state === 'suspended'` resume (if it even has
+ * one) can silently no-op or race, and audio stays dead until a full reload.
+ * One shared listener here covers every topic with no per-call-site code.
+ */
+function resumeIfSuspended(): void {
+  if (status !== 'ready') return;
+  const ctx = Tone.getContext().rawContext as unknown as AudioContext;
+  if (ctx && ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+    void ctx.resume();
+  }
+}
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') resumeIfSuspended();
+  });
+  window.addEventListener('pageshow', resumeIfSuspended);
+  window.addEventListener('focus', resumeIfSuspended);
+}
+
 export const audio = {
   initAudio,
   get status(): AudioStatus {

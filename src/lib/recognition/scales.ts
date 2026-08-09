@@ -98,7 +98,13 @@ export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
     intervals: [0, 2, 3, 5, 7, 8, 9, 11],
     default: false,
   },
-  { id: 'dom8', group: 'eightNote', label: 'Dominant 8-note', intervals: [0, 2, 4, 5, 7, 9, 10, 11], default: false },
+  {
+    id: 'dom8',
+    group: 'eightNote',
+    label: 'Dominant 8 note / Half-Whole diminished',
+    intervals: [0, 1, 3, 4, 6, 7, 9, 10],
+    default: false,
+  },
   {
     id: 'diminished',
     group: 'eightNote',

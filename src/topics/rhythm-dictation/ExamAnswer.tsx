@@ -3,9 +3,17 @@ import { RhythmStaffHost } from './RhythmStaffHost';
 import { NotePalette, NotePaletteRestToggle } from '../../components/NotePalette';
 import { EXAM_PALETTE_ENTRIES } from '../../components/notePaletteEntries';
 import type { ExamDictationProps, ExamDictationResultProps } from '../../exam/types';
+import { applyPlacement, defaultRestMeasure, type RestAdapter } from '../../lib/notation/gaps';
 import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { getActiveDurations } from '../../lib/rhythm/generator';
-import { durationFitsBar, gridStep, measuresEqual, type Measure, type TimeSigInfo } from '../../lib/rhythm/time';
+import { durationFitsBar, gridStep, measuresEqual, metricPulseBeats, type Measure, type RhythmNote, type TimeSigInfo } from '../../lib/rhythm/time';
+
+const rhythmRestAdapter: RestAdapter<RhythmNote> = {
+  beat: (n) => n.beat,
+  duration: (n) => n.duration,
+  isRest: (n) => n.isRest,
+  makeRest: (beat, duration) => ({ beat, duration, isRest: true }),
+};
 
 export interface RhythmDictationQuestion {
   typeId: 'rhythmDictation';
@@ -21,13 +29,18 @@ export interface RhythmDictationQuestion {
 const PALETTE_DURATIONS = EXAM_PALETTE_ENTRIES.map((e) => e.duration);
 
 // Ported per docs/06-exam-mode.md §B3 — lightweight local copy of
-// usePractice.ts's overlap-replace placement algorithm (no settings/session
-// -score coupling needed in an exam context).
+// usePractice.ts's placement algorithm (no settings/session-score coupling
+// needed in an exam context), kept in sync with it so the shared staff
+// host's hover preview (which now shows the whole resulting bar, not just
+// the placed note — lib/notation/gaps.ts's applyPlacement) never shows a
+// result this commit path wouldn't actually produce.
 export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: ExamDictationProps) {
   const q = question as unknown as RhythmDictationQuestion;
   const [armedDuration, setArmedDuration] = useState(1);
   const [armedIsRest, setArmedIsRest] = useState(false);
-  const measures = (answer as Measure[] | null) ?? Array.from({ length: q.numMeasures }, () => []);
+  const pulse = metricPulseBeats(q.timeSig.beatValue, q.timeSig.beatsPerBar);
+  const measures =
+    (answer as Measure[] | null) ?? Array.from({ length: q.numMeasures }, () => defaultRestMeasure(q.timeSig.measureBeats, pulse, rhythmRestAdapter));
   const gridStepVal = gridStep(getActiveDurations(PALETTE_DURATIONS, false, q.timeSig.measureBeats));
 
   function placeNoteAt(measureIndex: number, rawBeat: number, duration: number, isRest: boolean) {
@@ -37,16 +50,11 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
     const measure = measures[measureIndex] ?? [];
     // Same click resolver as practice mode (lib/notation/placement.ts) — the
     // staff host now reports a raw proportional beat from the real drawn
-    // geometry, and this maps it to a direct hit or the nearest free slot.
-    const resolved = resolvePlacementBeat(measure, rawBeat, duration, cap, gridStepVal);
-    if (!resolved) return;
-    const { beat } = resolved;
-    const end = beat + duration;
-    if (end > cap + 0.001) return;
-    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
-    const next = measures.map((m, i) =>
-      i === measureIndex ? [...m.filter((n) => !overlaps(n)), { beat, duration, isRest }] : m,
-    );
+    // geometry, and this maps it to the nearest legal grid beat.
+    const beat = resolvePlacementBeat(rawBeat, duration, cap, gridStepVal);
+    if (beat === null) return;
+    const { notes } = applyPlacement(measure, { beat, duration, isRest }, cap, pulse, rhythmRestAdapter);
+    const next = measures.map((m, i) => (i === measureIndex ? notes : m));
     onAnswer(next);
   }
 
@@ -77,7 +85,11 @@ export function RhythmDictationAnswer({ question, answer, onAnswer, disabled }: 
       <div className="note-palette-row" style={{ marginTop: '0.5rem' }}>
         <NotePalette entries={EXAM_PALETTE_ENTRIES} armedDuration={armedDuration} onArm={setArmedDuration} />
         <NotePaletteRestToggle active={armedIsRest} onToggle={() => setArmedIsRest((p) => !p)} />
-        <button type="button" className="ghost" onClick={() => onAnswer(measures.map(() => []))}>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => onAnswer(measures.map(() => defaultRestMeasure(q.timeSig.measureBeats, pulse, rhythmRestAdapter)))}
+        >
           Clear all
         </button>
       </div>

@@ -1,14 +1,22 @@
 import { Formatter, Tuplet, Voice, type Renderer, type Stave, type StaveNote } from 'vexflow';
 import { generateBeamedRuns } from './beaming';
+import { applyPlacement, type RestAdapter } from './gaps';
 import { buildGapPaddedTickables, type TickableAdapter } from './tickables';
+import { metricPulseBeats } from '../rhythm/time';
 
-export interface MeasureVoiceAdapter<T> extends TickableAdapter<T> {
-  isRest(n: T): boolean;
-}
+export interface MeasureVoiceAdapter<T> extends TickableAdapter<T>, RestAdapter<T> {}
 
 export interface DrawMeasureVoiceOptions<T> {
   style?: { fillStyle: string; strokeStyle: string };
-  /** Ghost preview of where a mouse placement would land, or null/omitted when not hovering (docs/12 MD-4). */
+  /**
+   * Ghost preview of where a mouse placement would land, or null/omitted
+   * when not hovering (docs/12 MD-4). This is the *raw* candidate note
+   * (armed duration/pitch at its resolved beat) — drawMeasureVoice runs it
+   * through applyPlacement itself (gaps.ts) so the preview always shows the
+   * *whole* resulting bar, not just the note under the cursor: placing a
+   * quaver over half of a rest previews the quaver's own rest neighbour too,
+   * not silence where fillGaps would put one.
+   */
   hoverNote?: T | null;
   hoverColor: string;
   /** Runs once the tickables are in the voice, before formatting — melodic dictation hooks in Accidental.applyAccidentals() here. */
@@ -38,10 +46,12 @@ export interface DrawMeasureVoiceOptions<T> {
  * topic only needs to supply a `MeasureVoiceAdapter` for its own note shape
  * (how to build a StaveNote from it) and doesn't need to re-derive any of
  * gap-padding, hover-ghost substitution, or beat-boundary-aware beaming.
- * Returns the built note→StaveNote mapping (real notes plus the hover ghost,
- * if any) so a caller can draw ties across this call's own measure boundary
- * afterward (lib/notation/ties.ts) — this function only draws one measure at
- * a time and has no notion of "the previous measure's note" itself.
+ * Returns the built note→StaveNote mapping (real notes plus whatever the
+ * hover preview added) *and* the effective note list actually drawn, so a
+ * caller can draw ties across this call's own measure boundary afterward
+ * (lib/notation/ties.ts, using the same preview-folded list this function
+ * rendered) — this function only draws one measure at a time and has no
+ * notion of "the previous measure's note" itself.
  */
 export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   context: ReturnType<Renderer['getContext']>,
@@ -52,30 +62,30 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   beatValue: number,
   adapter: MeasureVoiceAdapter<T>,
   options: DrawMeasureVoiceOptions<T>,
-): Map<T, StaveNote> {
+): { noteToStave: Map<T, StaveNote>; notes: T[] } {
   const { style, hoverNote = null, hoverColor, beforeFormat, tupletGroups } = options;
 
-  // A hover ghost is rendered as a real tickable in this same voice, not a
+  // A hover ghost is rendered as real tickables in this same voice, not a
   // hand-drawn overlay — that's what makes its position and glyph exact
   // (flags, dots, rest shape, full note size) instead of an approximated
   // marker sitting wherever a raw beat-proportional formula lands, which is
-  // *not* where the Formatter actually places a real note. It replaces
-  // whatever it would overlap if committed, mirroring placeNoteAt's own
-  // direct-hit-clears-neighbours behaviour, so the preview always matches
-  // what clicking would actually do.
+  // *not* where the Formatter actually places a real note. applyPlacement
+  // (gaps.ts) is the same function the commit path runs, so the preview
+  // always shows the *whole* resulting bar — the placed note, whatever it
+  // displaced removed, and any rest needed to cover what's left uncovered —
+  // never just the one note under the cursor.
   let effectiveNotes: readonly T[] = notes;
-  let ghostRef: T | null = null;
+  let ghostRefs: ReadonlySet<T> = new Set();
   if (hoverNote) {
-    const hoverBeat = adapter.beat(hoverNote);
-    const hoverEnd = hoverBeat + adapter.duration(hoverNote);
-    const overlaps = (n: T) => hoverBeat < adapter.beat(n) + adapter.duration(n) - 0.001 && hoverEnd > adapter.beat(n) + 0.001;
-    effectiveNotes = [...notes.filter((n) => !overlaps(n)), hoverNote];
-    ghostRef = hoverNote;
+    const pulseBeats = metricPulseBeats(beatValue, beatsPerBar);
+    const { notes: preview, added } = applyPlacement(notes, hoverNote, measureTotalBeats, pulseBeats, adapter);
+    effectiveNotes = preview;
+    ghostRefs = new Set(added);
   }
-  if (!effectiveNotes.length) return new Map();
+  if (!effectiveNotes.length) return { noteToStave: new Map(), notes: [] };
   const sorted = [...effectiveNotes].sort((a, b) => adapter.beat(a) - adapter.beat(b));
 
-  const { tickables, noteToStave } = buildGapPaddedTickables(sorted, measureTotalBeats, adapter, ghostRef, style, hoverColor);
+  const { tickables, noteToStave } = buildGapPaddedTickables(sorted, measureTotalBeats, adapter, ghostRefs, style, hoverColor);
 
   // Tuplets must be constructed before the Voice/Formatter run below — the
   // constructor is what applies VexFlow's tick-multiplier to each note
@@ -97,7 +107,7 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   // Beams must be generated — and their notes' stems prepared — *before*
   // draw(), per VexFlow's own documented order; generating them afterward
   // causes doubled flags / stems that don't reach the beam (docs/12 RC-2).
-  const beams = generateBeamedRuns(sorted, noteToStave, adapter.isRest, beatsPerBar, beatValue, ghostRef, style, hoverColor);
+  const beams = generateBeamedRuns(sorted, noteToStave, adapter.isRest, beatsPerBar, beatValue, ghostRefs, style, hoverColor);
 
   voice.draw(context, stave);
   beams.forEach((b) => b.setContext(context).draw());
@@ -105,5 +115,5 @@ export function drawMeasureVoice<T extends { beat: number; duration: number }>(
   // exist once the Formatter/voice.draw() above have positioned the notes —
   // same after-draw ordering as beams.
   tuplets.forEach((t) => t.setContext(context).draw());
-  return noteToStave;
+  return { noteToStave, notes: sorted };
 }

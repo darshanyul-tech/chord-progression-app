@@ -3,10 +3,11 @@
 // single StaveNote with multiple keys, not one note per beat.
 import { Accidental, Formatter, Renderer, Stave, StaveNote, Voice, type RenderContext } from 'vexflow';
 import type { Clef } from '../melody/theory';
+import { PREVIEW_COLOR } from '../notation/colors';
 import type { Accidental as AccidentalStr, SpelledPitch } from './spelledPitch';
 
 export const CHORD_MUTED_COLOR = '#9a9a9a';
-export const CHORD_HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
+export const CHORD_HOVER_COLOR = PREVIEW_COLOR;
 export const CHORD_WRONG_COLOR = '#b3261e';
 
 function toVexKey(letter: string, acc: AccidentalStr, octave: number): string {
