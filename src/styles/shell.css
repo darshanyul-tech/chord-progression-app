@@ -581,15 +581,6 @@
   max-width: 62ch;
   line-height: 1.5;
 }
-.section-landing-jump {
-  display: inline-block;
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-.section-landing-jump:hover {
-  text-decoration: underline;
-}
 .section-landing-group {
   margin-bottom: 2rem;
 }
