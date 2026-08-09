@@ -18,20 +18,13 @@ describe('App shell', () => {
     expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
   });
 
-  it('navigating into the Aural section shows its overview page with a working syllabus sidebar, then the topic shell on "Jump straight in"', () => {
+  it('navigating into the Aural section shows its overview page first (no sidebar), then the topic shell on "Jump straight in"', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /Aural Training/ }));
+    // Section overview is a standalone page like Home — no syllabus sidebar.
     expect(screen.getByRole('heading', { name: 'Aural Training' })).toBeInTheDocument();
-    // The syllabus sidebar/hamburger works on the section overview too, not
-    // just on a specific topic's own page — nothing is active yet since no
-    // topic is selected here.
-    expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
-    expect(
-      screen
-        .queryAllByRole('button')
-        .filter((btn) => btn.className.includes('syllabus-topic') && btn.className.includes('active')),
-    ).toHaveLength(0);
+    expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('link', { name: /Jump straight in/ }));
     expect(screen.getByRole('heading', { name: 'TryTone' })).toBeInTheDocument();
@@ -49,8 +42,8 @@ describe('App shell', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
-    // Overview page already has the syllabus sidebar (theory-scoped).
-    expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
+    // Overview page first — no sidebar until you're inside a topic.
+    expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('link', { name: /Jump straight in/ }));
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
     // Theory's default topic (note-reading, active as of Phase 28) is

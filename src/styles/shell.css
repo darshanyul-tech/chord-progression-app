@@ -346,6 +346,16 @@
   overflow-y: auto;
   padding-right: 0.5rem;
 }
+/* `zoom` compounds with an ancestor's zoom (unlike transform:scale) — the
+   inverse factor here cancels the desktop-only body zoom (base.css) back
+   out to 1x for the sidebar's own box AND its contents, so the topic list
+   keeps its current (already-fits-without-scrolling) size instead of
+   getting 175% bigger and forcing a scroll to see every topic. */
+@media (min-width: 1025px) {
+  .syllabus-sidebar {
+    zoom: calc(1 / 1.75);
+  }
+}
 .syllabus-nav {
   display: flex;
   flex-direction: column;
@@ -534,17 +544,11 @@
   opacity: 0.85;
 }
 
-/* Section overview pages (/aural, /theory, /arranging) — one per genre,
+/* Section overview pages (/aural, /theory, /arranging) — standalone pages
+   like Home (own header/footer, no syllabus sidebar), one per genre,
    listing every active topic grouped by category so navigating into a
    section never drops you straight into an arbitrary default topic. */
 .section-landing {
-  /* A grid item of .shell-main defaults to min-width:auto, so its own
-     content's intrinsic minimum can force the item — and the whole page —
-     wider than the viewport instead of shrinking/wrapping to fit, which on
-     mobile makes the browser render everything zoomed out to compensate
-     (the exact same risk .topic-view guards against above for topic
-     content; this page isn't wrapped in .topic-view, so it needs its own). */
-  min-width: 0;
   max-width: 1000px;
   margin: 2.5rem auto;
   padding: 0 1.25rem 3rem;

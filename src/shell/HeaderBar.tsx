@@ -16,17 +16,23 @@ function activeSectionFor(pathname: string): SectionId | null {
   return 'aural';
 }
 
+// Section overview pages (/aural, /theory, /arranging) are standalone pages
+// like Home — no syllabus sidebar, so the hamburger that would open it has
+// nothing to open.
+const SIDEBARLESS_PATHS = new Set(['/', '/aural', '/theory', '/arranging']);
+
 export function HeaderBar() {
   const toggleDrawer = useUIStore((s) => s.toggleDrawer);
   const examActive = useUIStore((s) => s.examActive);
   const location = useLocation();
   const isHome = location.pathname === '/';
+  const hasSidebar = !SIDEBARLESS_PATHS.has(location.pathname);
   const activeSection = activeSectionFor(location.pathname);
 
   return (
     <header className="shell-header">
       <div className="shell-header-inner">
-        {!isHome && (
+        {hasSidebar && (
           <button
             type="button"
             className="shell-hamburger"
