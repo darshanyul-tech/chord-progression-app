@@ -235,18 +235,48 @@
     padding: 0 0.6rem;
     font-size: 0.75rem;
   }
+  /* A native <table>'s auto layout still sizes each column to fit its
+     content — the nowrap rate text ("50% (2/4)") and a long item label
+     compete for width and can force the row wider than the screen even
+     with the overflow-x wrapper (which only lets you scroll to see it,
+     it doesn't make it fit). Stack each row into its own block instead —
+     label line, then bar, then rate — so no column ever needs its own
+     width and every row fits regardless of content length. */
+  .stats-item-table thead {
+    display: none;
+  }
+  .stats-item-table,
+  .stats-item-table tbody,
+  .stats-item-table tr {
+    display: block;
+    width: 100%;
+  }
   .stats-item-table {
     font-size: 0.82rem;
   }
-  .stats-item-table th[scope='col'],
-  .stats-item-table td,
-  .stats-item-table tbody th {
-    padding: 0.3rem 0.5rem;
+  .stats-item-table tr {
+    padding: 0.4rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .stats-item-table tr:last-child {
+    border-bottom: 0;
+  }
+  .stats-item-table th,
+  .stats-item-table td {
+    display: block;
+    width: auto;
+    padding: 0.1rem 0.5rem;
   }
   .stats-item-table tbody th {
     white-space: normal;
   }
   .stats-item-bar-cell {
-    width: 38%;
+    width: auto;
+    padding-top: 0.3rem;
+  }
+  .stats-item-table td.stats-num {
+    text-align: left;
+    font-size: 0.78rem;
+    padding-top: 0.2rem;
   }
 }
