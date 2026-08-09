@@ -538,6 +538,13 @@
    listing every active topic grouped by category so navigating into a
    section never drops you straight into an arbitrary default topic. */
 .section-landing {
+  /* A grid item of .shell-main defaults to min-width:auto, so its own
+     content's intrinsic minimum can force the item — and the whole page —
+     wider than the viewport instead of shrinking/wrapping to fit, which on
+     mobile makes the browser render everything zoomed out to compensate
+     (the exact same risk .topic-view guards against above for topic
+     content; this page isn't wrapped in .topic-view, so it needs its own). */
+  min-width: 0;
   max-width: 1000px;
   margin: 2.5rem auto;
   padding: 0 1.25rem 3rem;
