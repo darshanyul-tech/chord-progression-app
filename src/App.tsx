@@ -36,9 +36,30 @@ function LegacyTopicRedirect() {
 function buildRouter() {
   return createHashRouter([
     { path: '/', element: <HomePage /> },
-    { path: '/aural', element: <SectionLandingPage section="aural" /> },
-    { path: '/theory', element: <SectionLandingPage section="theory" /> },
-    { path: '/arranging', element: <SectionLandingPage section="arranging" /> },
+    {
+      path: '/aural',
+      element: (
+        <Layout>
+          <SectionLandingPage section="aural" />
+        </Layout>
+      ),
+    },
+    {
+      path: '/theory',
+      element: (
+        <Layout>
+          <SectionLandingPage section="theory" />
+        </Layout>
+      ),
+    },
+    {
+      path: '/arranging',
+      element: (
+        <Layout>
+          <SectionLandingPage section="arranging" />
+        </Layout>
+      ),
+    },
     {
       path: '/aural/topic/:id',
       element: (

@@ -634,6 +634,10 @@
     left: -380px;
     width: min(380px, 85vw);
     max-width: 380px;
+    /* As a fixed-position drawer this escapes .shell-layout's own padding
+       entirely, so without its own inset the topic buttons' hover/active
+       background sits flush against the device's physical edge. */
+    padding-left: 1rem;
     transition: left 0.2s ease;
     z-index: 200;
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25);
