@@ -6,13 +6,31 @@
 }
 
 body {
-  /* No page-wide zoom: renders at the natural 100% the rem/px sizing
-     throughout the app was authored at, on every viewport. */
+  /* Natural 100% by default — the mobile-safe baseline. The 175% desktop
+     zoom (below) stays scoped to a min-width media query so none of the
+     mobile fixes fought for across earlier sessions regress. */
   margin: 0;
   font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-1);
   color: var(--text);
   min-height: 100vh;
+}
+
+/* Desktop-only: the user's preferred ~175% (what browser zoom 175% looks
+   like) baked in as the baseline, same as the app's original long-standing
+   desktop behavior — but now scoped to min-width so it never touches
+   mobile, where this exact `zoom` used to cause a run of real bugs (toggle
+   track sizing, answer-button overflow, layout width) fixed in earlier
+   sessions. `zoom` scales the whole document — layout, text, and graphics —
+   like browser zoom, and stacks on top of any further zoom the user
+   applies. Applied to <body>, not <html>: zooming the root element
+   collapses the viewport width to 0 in Chromium. 1025px matches the
+   syllabus sidebar's own mobile/desktop breakpoint (shell.css) so both
+   switch at the same point. */
+@media (min-width: 1025px) {
+  body {
+    zoom: 1.75;
+  }
 }
 
 /* generalized from legacy body.rhythm-active (02-ui-shell §6).
