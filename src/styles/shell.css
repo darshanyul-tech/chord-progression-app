@@ -6,6 +6,17 @@
   position: relative;
   z-index: 20;
 }
+/* `zoom` compounds with an ancestor's zoom (unlike transform:scale) — the
+   inverse factor here cancels the desktop-only body zoom (base.css) back
+   out to 1x for the header, so the logo/nav bar stays exactly the size it
+   already is today; only the rest of the page (everything below the
+   header) grows to 175%. Same technique as the syllabus sidebar's own
+   counter-zoom below, same breakpoint. */
+@media (min-width: 1025px) {
+  .shell-header {
+    zoom: calc(1 / 1.75);
+  }
+}
 /* Bar height is the logo's own rendered height plus a small fixed black margin
    above and below it (no more, no less — the black background covers that
    margin itself, so there's no gap of page background showing through). */
