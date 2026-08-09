@@ -560,7 +560,12 @@
    listing every active topic grouped by category so navigating into a
    section never drops you straight into an arbitrary default topic. */
 .section-landing {
-  max-width: 1000px;
+  /* Matches .home-sections' max-width exactly (900px, not some other
+     "reasonable" value) — both are centered with the same side padding, so
+     if the widths ever differ the centered block's left edge shifts by
+     half the difference, and left-aligned text visibly jumps sideways when
+     navigating Home <-> a section overview. */
+  max-width: 900px;
   margin: 2.5rem auto;
   padding: 0 1.25rem 3rem;
 }
