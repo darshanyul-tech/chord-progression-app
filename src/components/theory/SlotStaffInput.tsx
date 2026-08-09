@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Accidental, Formatter, Renderer, Stave, StaveNote, StaveTie, Voice } from 'vexflow';
 import { NATURAL_LETTERS, resolveStaffPosition, type Clef, type NoteSpelling } from '../../lib/melody/theory';
+import { PREVIEW_COLOR } from '../../lib/notation/colors';
 import { signatureAccidentalForLetter, type TheoryKey } from '../../lib/written-theory/keys';
 import type { SpelledPitch } from '../../lib/written-theory/spelledPitch';
 import { vexDurationFor } from '../../lib/rhythm-staff/vexDuration';
@@ -47,7 +48,7 @@ const MARGIN_LEFT = 10;
 const MARGIN_RIGHT = 10;
 const STAVE_Y = 40;
 const MUTED_COLOR = '#9a9a9a';
-export const HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
+export const HOVER_COLOR = PREVIEW_COLOR;
 // VexFlow line 2 === kpLine 3 (the middle line), per the getYForNote(kpLine)
 // === getYForLine(5 - kpLine) relationship lib/melody/theory.ts documents.
 const MIDDLE_LINE_VEX_INDEX = 2;

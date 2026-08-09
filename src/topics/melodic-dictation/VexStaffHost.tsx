@@ -2,7 +2,7 @@ import { useEffect, useReducer, useRef, useState } from 'react';
 import { buildVexScore, type MelodyStaffModel } from '../../lib/melody/vexscore';
 import { NATURAL_LETTERS, resolveStaffPosition, tiePreview, type NoteSpelling } from '../../lib/melody/theory';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
-import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
+import { findMeasureAt, resolvePlacementBeat, xToBeat } from '../../lib/notation/placement';
 
 interface VexStaffHostProps {
   /** VexStaffHost owns the hover ghost itself (see `hover` state below) — callers never supply `MelodyStaffModel.hover`. */
@@ -12,6 +12,8 @@ interface VexStaffHostProps {
   armedIsRest: boolean;
   armedAccidental: '' | '#' | 'b';
   isTieActive: boolean;
+  /** Lowest beat a placement may land on for a given measure (e.g. melodic dictation's locked starting note excludes its own span on measure 0) — defaults to always-0 when omitted. */
+  minBeatForMeasure?(measureIndex: number): number;
   onPlace(measureIndex: number, beat: number, midi: number, spelling?: NoteSpelling): void;
   onCursorMoveBeat?(delta: number): void;
   onCursorMovePitch?(delta: number): void;
@@ -63,6 +65,7 @@ export function VexStaffHost({
   armedIsRest,
   armedAccidental,
   isTieActive,
+  minBeatForMeasure,
   onPlace,
   onCursorMoveBeat,
   onCursorMovePitch,
@@ -168,9 +171,7 @@ export function VexStaffHost({
   function resolveAt(x: number, y: number): ResolvedPoint | null {
     const geo = findMeasureAt(geometryRef.current, x, y);
     if (!geo) return null;
-    const measureTotalBeats = model.timeSig.measureBeats;
-    const rel = (x - geo.noteStartX) / Math.max(1, geo.noteEndX - geo.noteStartX);
-    const rawBeat = rel * measureTotalBeats;
+    const rawBeat = xToBeat(x, geo.breakpoints, geo.noteStartX, geo.noteEndX, model.timeSig.measureBeats);
     const { midi, spelling } = midiFromY(y, geo);
     return { geo, rawBeat, midi, spelling };
   }
@@ -194,9 +195,9 @@ export function VexStaffHost({
       setHover(null);
       return;
     }
-    const measure = model.measures[resolved.geo.index] ?? [];
-    const placed = resolvePlacementBeat(measure, resolved.rawBeat, armedDuration, model.timeSig.measureBeats, gridStepVal);
-    if (!placed) {
+    const minBeat = minBeatForMeasure?.(resolved.geo.index) ?? 0;
+    const beat = resolvePlacementBeat(resolved.rawBeat, armedDuration, model.timeSig.measureBeats, gridStepVal, minBeat);
+    if (beat === null) {
       setHover(null);
       return;
     }
@@ -209,7 +210,7 @@ export function VexStaffHost({
     let midi = armedIsRest ? null : resolved.midi;
     let spelling = armedIsRest ? undefined : resolved.spelling;
     if (!armedIsRest && midi !== null) {
-      const preview = tiePreview(model.measures, resolved.geo.index, placed.beat, midi);
+      const preview = tiePreview(model.measures, resolved.geo.index, beat, midi);
       if (preview.fromTiedPredecessor) {
         midi = preview.midi;
         spelling = preview.spelling;
@@ -217,7 +218,7 @@ export function VexStaffHost({
     }
     setHover({
       measureIndex: resolved.geo.index,
-      beat: placed.beat,
+      beat,
       duration: armedDuration,
       midi,
       spelling,

@@ -18,10 +18,15 @@ describe('App shell', () => {
     expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
   });
 
-  it('navigating into the Aural section renders its shell with exactly one active syllabus entry', () => {
+  it('navigating into the Aural section shows its overview page first, then the topic shell on "Jump straight in"', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /Aural Training/ }));
+    // Section overview, not a topic shell yet — no syllabus sidebar.
+    expect(screen.getByRole('heading', { name: 'Aural Training' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('link', { name: /Jump straight in/ }));
     expect(screen.getByRole('heading', { name: 'TryTone' })).toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
     // Default aural topic is chord-progressions; its Settings card confirms it rendered.
@@ -37,6 +42,9 @@ describe('App shell', () => {
     const { container } = render(<App />);
     const homeGrid = within(container.querySelector('.home-section-grid')!);
     fireEvent.click(homeGrid.getByRole('link', { name: /^Theory/ }));
+    // Section overview first — no syllabus sidebar yet.
+    expect(screen.queryByRole('navigation', { name: 'Syllabus' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('link', { name: /Jump straight in/ }));
     expect(screen.getByRole('navigation', { name: 'Syllabus' })).toBeInTheDocument();
     // Theory's default topic (note-reading, active as of Phase 28) is
     // lazy-loaded — its own content only appears once Suspense resolves,

@@ -6,16 +6,22 @@
  * should be too, rather than re-deriving any of the pieces below.
  *
  * What it covers, and where:
- *  - Rendering a measure (gap-padded spacing, hover-preview ghost note,
- *    meter-aware beaming) — `drawMeasureVoice` in measureVoice.ts, built on
- *    tickables.ts + beaming.ts.
- *  - Click/hover hit-testing (resolving a raw x/y or beat estimate to a
- *    direct-hit replace or a free-slot placement, with fixed-position snap
- *    "zones" that never shift based on what's already placed) —
- *    `resolvePlacementBeat` / `findMeasureAt` in placement.ts.
- *  - Filling every beat of a measure with rests by default, so a bar never
- *    has unaccounted-for space — `fillGaps` / `defaultRestMeasure` in
- *    gaps.ts.
+ *  - Rendering a measure (gap-padded spacing, a hover preview of the *whole*
+ *    resulting bar — not just the note under the cursor, meter-aware
+ *    beaming) — `drawMeasureVoice` in measureVoice.ts, built on tickables.ts
+ *    + beaming.ts.
+ *  - Click/hover hit-testing: resolving a raw x/y or beat estimate to the
+ *    nearest beat the armed duration can legally occupy — any grid
+ *    position, since what's already written there (a rest or a real note)
+ *    never blocks where a new note can land, only what it displaces —
+ *    `resolvePlacementBeat` / `legalPlacementBeats` / `findMeasureAt` in
+ *    placement.ts.
+ *  - Turning a resolved placement into the bar's new state: clearing
+ *    whatever the new note's span overlaps and re-filling any span left
+ *    uncovered with rests, so a bar never has unaccounted-for space —
+ *    `applyPlacement` / `fillGaps` / `defaultRestMeasure` in gaps.ts. This is
+ *    the one function both the commit path and the hover preview call, so a
+ *    preview can never show a result the click wouldn't actually produce.
  *  - Measure geometry for hit-testing — `MeasureGeometry` in geometry.ts.
  *  - Ties (always connect forward, to "the note in front"): arming Tie tags
  *    the newly placed note itself as tied; `drawTies` (ties.ts, called once
@@ -34,17 +40,19 @@
  */
 
 export type { MeasureGeometry } from './geometry';
-export { fillGaps, defaultRestMeasure, decomposeGap, pulseRestSpans, type RestAdapter } from './gaps';
+export { fillGaps, defaultRestMeasure, applyPlacement, decomposeGap, pulseRestSpans, type RestAdapter, type AppliedPlacement } from './gaps';
 export { beamableRuns, generateBeamedRuns } from './beaming';
 export { buildGapPaddedTickables, buildGhostNote, type TickableAdapter, type GapPaddedTickables } from './tickables';
 export { drawMeasureVoice, type MeasureVoiceAdapter, type DrawMeasureVoiceOptions } from './measureVoice';
 export {
   resolvePlacementBeat,
+  legalPlacementBeats,
+  xToBeat,
   findMeasureAt,
   findPrecedingNote,
   findFollowingNote,
   type PlacedNote,
-  type ResolvedPlacement,
+  type Breakpoint,
   type LocatedNote,
 } from './placement';
 export { drawTies, type TieAdapter } from './ties';

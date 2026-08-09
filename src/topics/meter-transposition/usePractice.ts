@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
+import { applyPlacement, defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
 import { resolvePlacementBeat } from '../../lib/notation/placement';
 import {
   buildMeterTranspositionQuestion,
@@ -86,26 +86,17 @@ export function useMeterTranspositionPractice(settings: MeterTranspositionSettin
       reject();
       return;
     }
-    const resolved = resolvePlacementBeat(measure, rawBeat, armed.duration, cap, gridStepVal);
-    if (!resolved) {
+    const beat = resolvePlacementBeat(rawBeat, armed.duration, cap, gridStepVal);
+    if (beat === null) {
       reject();
       return;
     }
-    const { beat, isReplace } = resolved;
-    const end = beat + armed.duration;
-    if (isReplace && end > cap + 0.001) {
-      reject();
-      return;
-    }
-    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
     const pulse = metricPulseBeats(question.targetSig.beatValue, question.targetSig.beatsPerBar);
-    setUserMeasures((prev) =>
-      prev.map((m, i) =>
-        i === measureIndex
-          ? fillGaps([...m.filter((n) => !overlaps(n)), { beat, duration: armed.duration, isRest: armed.isRest }], cap, pulse, rhythmRestAdapter)
-          : m,
-      ),
-    );
+    const newNote: RhythmNote = { beat, duration: armed.duration, isRest: armed.isRest };
+    // Recomputed against live state (not the `measure` snapshot above) so
+    // two placeAt calls batched into the same React update still compose
+    // correctly instead of the second discarding the first's effect.
+    setUserMeasures((prev) => prev.map((m, i) => (i === measureIndex ? applyPlacement(m, newNote, cap, pulse, rhythmRestAdapter).notes : m)));
     setPlacementHistory((prev) => [...prev.filter((p) => !(p.measureIndex === measureIndex && durationClose(p.beat, beat))), { measureIndex, beat }]);
     setActiveMeasureIndex(measureIndex);
   }

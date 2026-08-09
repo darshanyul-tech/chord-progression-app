@@ -9,7 +9,7 @@ import {
   scheduleNote,
   type ScheduledNode,
 } from '../../lib/audio/percussion';
-import { defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
+import { applyPlacement, defaultRestMeasure, fillGaps, type RestAdapter } from '../../lib/notation/gaps';
 import { resolvePlacementBeat } from '../../lib/notation/placement';
 import { DUR_LABELS, TRIPLET_DURS, fillMeasure, getActiveDurations } from '../../lib/rhythm/generator';
 import {
@@ -287,7 +287,11 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
     setQuestionScoreText('');
     setHasListened(false);
 
-    if (autoPlay && audio.status === 'ready') {
+    // isActive gates the autoplay only, not question generation: every
+    // active-status topic across every section mounts hidden the first time
+    // ANY topic route loads (shell/TopicHost.tsx), so an unguarded autoplay
+    // here would fire audio for a topic the user isn't even looking at.
+    if (autoPlay && isActive && audio.status === 'ready') {
       channelRef.current.autoPlayTimer = window.setTimeout(() => runPlayback(pattern, ts, nMeasures), 450);
     }
   }
@@ -315,46 +319,31 @@ export function useRhythmPractice(settings: RhythmDictationSettings) {
       reject();
       return;
     }
-    // Resolve the click/cursor's raw beat estimate into either a direct hit
-    // on an existing note (edit in place) or the nearest free slot the armed
-    // duration actually fits in — shared framework resolver
-    // (lib/notation/placement.ts), so a gap click never silently replaces a
-    // neighbour to make room.
-    const resolved = resolvePlacementBeat(measure, rawBeat, dur, cap, gridStepVal);
-    if (!resolved) {
+    // Resolve the click/cursor's raw beat estimate to the nearest beat the
+    // armed duration can legally occupy — any grid position, not just where
+    // a note already starts (shared framework resolver, lib/notation/
+    // placement.ts). What that placement displaces is applyPlacement's job.
+    const beat = resolvePlacementBeat(rawBeat, dur, cap, gridStepVal);
+    if (beat === null) {
       reject();
       return;
     }
-    const { beat, isReplace } = resolved;
-    const end = beat + dur;
-    // A direct hit is a deliberate "put this note here instead" — unlike a
-    // gap click, it's allowed to replace whatever the new (possibly larger)
-    // duration now spans, not just the one note originally clicked. Only
-    // reject if the new duration itself can't fit the bar from that beat.
-    if (isReplace && end > cap + 0.001) {
-      reject();
-      return;
-    }
-    const overlaps = (n: { beat: number; duration: number }) => beat < n.beat + n.duration - 0.001 && end > n.beat + 0.001;
-    const replacedBeats = measure.filter(overlaps).map((n) => n.beat);
     const pulse = metricPulseBeats(timeSig.beatValue, timeSig.beatsPerBar);
+    // Tie armed: this new note itself is the tied one — its curve leads
+    // forward to whatever gets placed next (a pending partial tie until
+    // then; lib/notation/ties.ts).
+    const newNote: RhythmNote = { duration: dur, isRest: !!isRest, beat, tied: !isRest && isTieActive ? true : undefined };
+    // Bookkeeping only (which placementHistory entries this placement
+    // invalidates) — computed against the `measure` snapshot captured above.
+    // The authoritative new measure state is recomputed against live state
+    // below, inside setUserMeasures's functional updater, so two placeNoteAt
+    // calls batched into the same React update (e.g. both inside one act())
+    // still compose correctly instead of the second silently discarding the
+    // first's not-yet-committed effect.
+    const { notes: staleNextMeasure } = applyPlacement(measure, newNote, cap, pulse, rhythmRestAdapter);
+    const replacedBeats = measure.filter((n) => !staleNextMeasure.includes(n)).map((n) => n.beat);
     setUserMeasures((prev) =>
-      prev.map((m, i) =>
-        i === measureIndex
-          ? fillGaps(
-              [
-                ...m.filter((n) => !overlaps(n)),
-                // Tie armed: this new note itself is the tied one — its
-                // curve leads forward to whatever gets placed next (a
-                // pending partial tie until then; lib/notation/ties.ts).
-                { duration: dur, isRest: !!isRest, beat, tied: !isRest && isTieActive ? true : undefined },
-              ],
-              cap,
-              pulse,
-              rhythmRestAdapter,
-            )
-          : m,
-      ),
+      prev.map((m, i) => (i === measureIndex ? applyPlacement(m, newNote, cap, pulse, rhythmRestAdapter).notes : m)),
     );
     setPlacementHistory((prev) => [
       ...prev.filter(

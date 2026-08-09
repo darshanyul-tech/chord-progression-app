@@ -21,18 +21,20 @@ export interface GapPaddedTickables<T> {
 
 /**
  * Builds the full-bar tickable list for a Voice: real notes (styled per
- * `style`, or `hoverColor` for whichever one is `ghostRef` — the mouse-hover
- * placement preview) plus invisible GhostNotes filling every gap — before
- * the first note, between notes, and up to the bar end — so the Formatter
- * spaces everything proportionally to beat position instead of packing
- * placed notes with no regard for the empty space around them (docs/12
- * RC-3). `sorted` must already be beat-ascending.
+ * `style`, or `hoverColor` for whichever ones are in `ghostRefs` — the
+ * mouse-hover placement preview, which can be more than one note: the
+ * placed note itself plus any rest a hover would newly create to cover
+ * whatever it doesn't span) plus invisible GhostNotes filling every gap —
+ * before the first note, between notes, and up to the bar end — so the
+ * Formatter spaces everything proportionally to beat position instead of
+ * packing placed notes with no regard for the empty space around them
+ * (docs/12 RC-3). `sorted` must already be beat-ascending.
  */
 export function buildGapPaddedTickables<T>(
   sorted: readonly T[],
   measureTotalBeats: number,
   adapter: TickableAdapter<T>,
-  ghostRef: T | null,
+  ghostRefs: ReadonlySet<T>,
   style: { fillStyle: string; strokeStyle: string } | undefined,
   hoverColor: string,
 ): GapPaddedTickables<T> {
@@ -43,7 +45,7 @@ export function buildGapPaddedTickables<T>(
     const gap = adapter.beat(n) - cursor;
     if (gap > 0.001) decomposeGap(gap).forEach((d) => tickables.push(buildGhostNote(d)));
     const staveNote = adapter.buildNote(n);
-    if (n === ghostRef) {
+    if (ghostRefs.has(n)) {
       staveNote.setStyle({ fillStyle: hoverColor, strokeStyle: hoverColor });
     } else if (style) {
       staveNote.setStyle(style);

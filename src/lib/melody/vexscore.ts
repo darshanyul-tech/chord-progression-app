@@ -1,4 +1,5 @@
 import { Accidental, Dot, Renderer, Stave, StaveNote, type Voice } from 'vexflow';
+import { PREVIEW_COLOR, VICTIM_COLOR } from '../notation/colors';
 import { drawMeasureVoice, type MeasureVoiceAdapter } from '../notation/measureVoice';
 import { drawTies } from '../notation/ties';
 import { computeSystemLayout } from '../notation/systemLayout';
@@ -96,14 +97,17 @@ export const WRONG_COLOR = '#b3261e';
 export const CURSOR_COLOR = '#005f6b';
 /** Keyboard insertion-cursor highlight (distinct from the teal playback cursor). */
 export const KEYBOARD_CURSOR_COLOR = '#8a2be2';
-/** Mouse-hover placement ghost (docs/12 MD-4) — same hue as the keyboard cursor's teal accent, translucent. */
-export const HOVER_COLOR = 'rgba(0, 95, 107, 0.4)';
+/** Mouse-hover placement ghost (docs/12 MD-4) — shared preview colour, see lib/notation/colors.ts. */
+export const HOVER_COLOR = PREVIEW_COLOR;
+/** Ghost outline of a real note a hover would displace — see lib/notation/colors.ts. */
+export { VICTIM_COLOR };
 
 function melodyAdapter(key: KeyDef, clef: Clef): MeasureVoiceAdapter<PitchedNote> {
   return {
     beat: (n) => n.beat,
     duration: (n) => n.duration,
     isRest: (n) => n.rest,
+    makeRest: (beat, duration) => ({ beat, duration, rest: true, midi: null }),
     buildNote: (n) => {
       const { duration, dots } = vexDurationFor(n.duration);
       const staveNote = n.rest
@@ -176,9 +180,12 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
   // can span a barline into the next measure) can look up either side's
   // built StaveNote after the whole staff is drawn — see drawTies below.
   const noteToStave = new Map<PitchedNote, StaveNote>();
-  // Captured when the hover ghost is built below, so the tie-preview pass
-  // after the loop can look it up in noteToStave by reference.
-  let hoverNoteRef: PitchedNote | null = null;
+  // Populated per-measure below with whatever drawMeasureVoice actually
+  // rendered (the plain committed notes, or the hover-preview-folded list
+  // when hovering) — drawTies uses this instead of `measures` directly so a
+  // tied hover ghost participates in ties exactly like the committed
+  // placement would.
+  const tieMeasures: PitchedNote[][] = [];
   for (let row = 0; row < numRows; row++) {
     const measuresInRow = Math.min(measuresPerRow, numMeasures - row * measuresPerRow);
     if (measuresInRow <= 0) continue;
@@ -209,14 +216,21 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
 
       const userNotes = measures[mi] ?? [];
       const beforeFormat = (voice: Voice) => Accidental.applyAccidentals([voice], key.vexKeySpec);
+      // Populated below with whatever's actually drawn for this measure, so
+      // click hit-testing (lib/notation/placement.ts's xToBeat) can
+      // interpolate against real positions instead of assuming the note area
+      // is evenly spaced by beat.
+      let breakpointNotes: readonly PitchedNote[] = userNotes;
+      let breakpointMap: ReadonlyMap<PitchedNote, StaveNote> = new Map();
       if (hasSubmitted && !isCorrect && revealMeasures) {
         // Only the user's own voice can carry ties (the generator never
         // produces any), so only its map feeds drawTies below.
-        const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+        const { noteToStave: userMap } = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
           hoverColor: HOVER_COLOR,
           beforeFormat,
         });
         userMap.forEach((v, k) => noteToStave.set(k, v));
+        breakpointMap = userMap;
         drawMeasureVoice(
           context,
           stave,
@@ -231,6 +245,7 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
             beforeFormat,
           },
         );
+        tieMeasures.push(userNotes);
       } else {
         const hoverNote: PitchedNote | null =
           !hasSubmitted && hover && hover.measureIndex === mi
@@ -243,13 +258,31 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
                 tied: hover.tied && !hover.isRest ? true : undefined,
               }
             : null;
-        if (hoverNote) hoverNoteRef = hoverNote;
-        const userMap = drawMeasureVoice(context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
-          hoverNote,
-          hoverColor: HOVER_COLOR,
-          beforeFormat,
-        });
+        if (hoverNote) {
+          const hb = hoverNote.beat;
+          const he = hb + hoverNote.duration;
+          // A real note the hover would displace stays visible underneath the
+          // preview, dimmed — drawn as its own independent voice pass (same
+          // trick the reveal branch above uses for two voices on one stave)
+          // so replacing a note doesn't make it vanish before the swap
+          // commits. Rests aren't shown this way — nothing meaningful to compare.
+          const victims = userNotes.filter((n) => !n.rest && hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001);
+          if (victims.length) {
+            drawMeasureVoice(context, stave, victims, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter, {
+              style: { fillStyle: VICTIM_COLOR, strokeStyle: VICTIM_COLOR },
+              hoverColor: VICTIM_COLOR,
+              beforeFormat,
+            });
+          }
+        }
+        const { noteToStave: userMap, notes: renderedNotes } = drawMeasureVoice(
+          context, stave, userNotes, measureTotalBeats, timeSig.beatsPerBar, timeSig.beatValue, adapter,
+          { hoverNote, hoverColor: HOVER_COLOR, beforeFormat },
+        );
         userMap.forEach((v, k) => noteToStave.set(k, v));
+        tieMeasures.push(renderedNotes);
+        breakpointNotes = renderedNotes;
+        breakpointMap = userMap;
       }
 
       geometry.push({
@@ -258,24 +291,23 @@ export function buildVexScore(container: HTMLDivElement, model: MelodyStaffModel
         noteEndX: stave.getNoteEndX(),
         topLineY: stave.getYForLine(0),
         spacing: stave.getSpacingBetweenLines(),
+        breakpoints: breakpointNotes
+          .map((n) => {
+            const sn = breakpointMap.get(n);
+            return sn ? { beat: n.beat, x: sn.getAbsoluteX() } : null;
+          })
+          .filter((b): b is { beat: number; x: number } => b !== null)
+          .sort((a, b) => a.beat - b.beat),
       });
     }
   }
 
-  // Ties are drawn over the measures *with the hover ghost folded in* (the
-  // same replaces-what-it-overlaps substitution drawMeasureVoice applies) so
-  // the ghost participates in ties exactly like the committed placement
-  // would: a tied ghost previews its own curve leading right (full to the
-  // next note, or a pending partial tie), and a committed tied note previews
-  // its curve completing into the ghost that follows it.
-  const tieMeasures = hoverNoteRef
-    ? measures.map((m, mi) => {
-        if (mi !== hover!.measureIndex) return m;
-        const hb = hover!.beat;
-        const he = hb + hover!.duration;
-        return [...m.filter((n) => !(hb < n.beat + n.duration - 0.001 && he > n.beat + 0.001)), hoverNoteRef!];
-      })
-    : measures;
+  // Ties are drawn over what drawMeasureVoice actually rendered for each
+  // measure (tieMeasures, built above) — with the hover ghost folded in via
+  // applyPlacement exactly like a committed placement would be, a tied ghost
+  // previews its own curve leading right (full to the next note, or a
+  // pending partial tie), and a committed tied note previews its curve
+  // completing into the ghost that follows it.
   drawTies(context, tieMeasures, noteToStave, {
     beat: (n) => n.beat,
     duration: (n) => n.duration,

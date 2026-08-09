@@ -446,7 +446,13 @@
 .home-welcome h2 {
   margin: 0 0 0.35rem;
 }
-.home-welcome p {
+.home-welcome-lede {
+  margin: 0 0 0.6rem;
+  color: var(--text);
+  max-width: 62ch;
+  line-height: 1.5;
+}
+.home-welcome-sub {
   margin: 0;
   color: var(--muted);
 }
@@ -526,6 +532,87 @@
 .home-progress-btn-sub {
   font-size: 0.8rem;
   opacity: 0.85;
+}
+
+/* Section overview pages (/aural, /theory, /arranging) — one per genre,
+   listing every active topic grouped by category so navigating into a
+   section never drops you straight into an arbitrary default topic. */
+.section-landing {
+  max-width: 1000px;
+  margin: 2.5rem auto;
+  padding: 0 1.25rem 3rem;
+}
+.section-landing-intro {
+  margin-bottom: 2rem;
+}
+.section-landing-intro h2 {
+  margin: 0 0 0.5rem;
+}
+.section-landing-intro p {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  max-width: 62ch;
+  line-height: 1.5;
+}
+.section-landing-jump {
+  display: inline-block;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.section-landing-jump:hover {
+  text-decoration: underline;
+}
+.section-landing-group {
+  margin-bottom: 2rem;
+}
+.section-landing-group h3 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+  margin: 0 0 1rem;
+}
+.section-landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+.section-landing-card {
+  display: block;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  text-decoration: none;
+  color: var(--text);
+}
+.section-landing-card:hover {
+  background: var(--ecu-teal-light);
+  cursor: pointer;
+}
+.section-landing-card h4 {
+  margin: 0 0 0.4rem;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+.section-landing-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+@media (max-width: 560px) {
+  .section-landing {
+    margin: 1.5rem auto;
+    padding: 0 0.9rem 2.5rem;
+  }
+  .section-landing-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 1024px) {

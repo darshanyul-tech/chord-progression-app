@@ -25,7 +25,14 @@ describe('scale catalogue coverage', () => {
     melodicMinorModes: ['Lydian dominant', 'Locrian ♯2', 'Altered scale'],
     minorScales: ['Harmonic minor', 'Jazz minor'],
     fiveSixNote: ['Major pentatonic', 'Minor pentatonic', 'Blues scale', 'Whole tone'],
-    eightNote: ['Major bebop', 'Dominant bebop', 'Minor bebop', 'Jazz minor bebop', 'Dominant 8-note', 'Diminished (whole–half)'],
+    eightNote: [
+      'Major bebop',
+      'Dominant bebop',
+      'Minor bebop',
+      'Jazz minor bebop',
+      'Dominant 8 note / Half-Whole diminished',
+      'Diminished (whole–half)',
+    ],
   };
 
   for (const [group, labels] of Object.entries(required)) {

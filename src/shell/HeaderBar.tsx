@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useUIStore } from '../state/ui';
-import { DEFAULT_TOPIC_BY_SECTION, SECTIONS, type SectionId } from '../topics/registry';
+import { SECTIONS, type SectionId } from '../topics/registry';
 import trytoneLogo from '../assets/trytone-logo-with-text.png';
 import trytoneIcon from '../assets/trytone-emblem.png';
 
@@ -11,8 +11,8 @@ function activeSectionFor(pathname: string): SectionId | null {
   if (pathname === '/') return null;
   // Progress is a cross-section page, not part of any genre — highlight nothing.
   if (pathname === '/stats') return null;
-  if (pathname.startsWith('/theory/')) return 'theory';
-  if (pathname.startsWith('/arranging/')) return 'arranging';
+  if (pathname === '/theory' || pathname.startsWith('/theory/')) return 'theory';
+  if (pathname === '/arranging' || pathname.startsWith('/arranging/')) return 'arranging';
   return 'aural';
 }
 
@@ -69,7 +69,7 @@ export function HeaderBar() {
               {SECTIONS.map((s) => (
                 <Link
                   key={s.id}
-                  to={`/${s.id}/topic/${DEFAULT_TOPIC_BY_SECTION[s.id]}`}
+                  to={`/${s.id}`}
                   className={`shell-section-link${activeSection === s.id ? ' active' : ''}`}
                 >
                   {s.navLabel}

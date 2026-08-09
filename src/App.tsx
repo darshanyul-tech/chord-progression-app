@@ -4,6 +4,7 @@ import { ExamRoute } from './exam/ExamRoute';
 import { ErrorBoundary } from './shell/ErrorBoundary';
 import { HomePage } from './shell/HomePage';
 import { Layout } from './shell/Layout';
+import { SectionLandingPage } from './shell/SectionLandingPage';
 import { StatsPage } from './shell/StatsPage';
 import { TopicHost } from './shell/TopicHost';
 import { useProfileStore } from './state/profileStore';
@@ -35,6 +36,9 @@ function LegacyTopicRedirect() {
 function buildRouter() {
   return createHashRouter([
     { path: '/', element: <HomePage /> },
+    { path: '/aural', element: <SectionLandingPage section="aural" /> },
+    { path: '/theory', element: <SectionLandingPage section="theory" /> },
+    { path: '/arranging', element: <SectionLandingPage section="arranging" /> },
     {
       path: '/aural/topic/:id',
       element: (

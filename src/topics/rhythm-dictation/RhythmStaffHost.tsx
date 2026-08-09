@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import type { MeasureGeometry } from '../../lib/notation/geometry';
-import { findMeasureAt, resolvePlacementBeat } from '../../lib/notation/placement';
+import { findMeasureAt, resolvePlacementBeat, xToBeat } from '../../lib/notation/placement';
 import { renderStaff, type RhythmStaffModel } from '../../lib/rhythm-staff/render';
 
 interface RhythmStaffHostProps {
@@ -126,8 +126,7 @@ export function RhythmStaffHost({
   function resolveAt(x: number, y: number): { geo: MeasureGeometry; rawBeat: number } | null {
     const geo = findMeasureAt(geometryRef.current, x, y);
     if (!geo) return null;
-    const rel = (x - geo.noteStartX) / Math.max(1, geo.noteEndX - geo.noteStartX);
-    return { geo, rawBeat: rel * measureTotalBeats };
+    return { geo, rawBeat: xToBeat(x, geo.breakpoints, geo.noteStartX, geo.noteEndX, measureTotalBeats) };
   }
 
   function handleClick(evt: React.MouseEvent<HTMLDivElement>) {
@@ -149,9 +148,8 @@ export function RhythmStaffHost({
       setHover(null);
       return;
     }
-    const measure = model.measures[resolved.geo.index] ?? [];
-    const placed = resolvePlacementBeat(measure, resolved.rawBeat, armedDuration, measureTotalBeats, gridStepVal);
-    if (!placed) {
+    const beat = resolvePlacementBeat(resolved.rawBeat, armedDuration, measureTotalBeats, gridStepVal);
+    if (beat === null) {
       setHover(null);
       return;
     }
@@ -159,7 +157,7 @@ export function RhythmStaffHost({
     // the tied one — the ghost previews its own forward curve.
     setHover({
       measureIndex: resolved.geo.index,
-      beat: placed.beat,
+      beat,
       duration: armedDuration,
       isRest: armedIsRest,
       tied: !armedIsRest && isTieActive,

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { buildArrStave, type ArrStaveResult, type ArrStaveTone } from '../../lib/arranging/arrStave';
 import { NATURAL_LETTERS, resolveStaffPosition } from '../../lib/melody/theory';
+import { PREVIEW_COLOR } from '../../lib/notation/colors';
 import { spelledToMidi, type Accidental, type SpelledPitch } from '../../lib/written-theory/spelledPitch';
 import { midiToName, type Spelling } from '../../lib/arranging/pitch';
 
@@ -16,7 +17,7 @@ interface StaveVoicingInputProps {
   onChange: (midis: number[]) => void;
 }
 
-const HOVER_COLOR = 'rgba(0, 95, 107, 0.45)';
+const HOVER_COLOR = PREVIEW_COLOR;
 const REMOVE_COLOR = 'rgba(179, 38, 30, 0.5)';
 
 function midiToSpelled(midi: number, spelling: Spelling): SpelledPitch {
