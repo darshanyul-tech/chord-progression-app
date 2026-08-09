@@ -4,7 +4,6 @@ import { HeaderBar } from './HeaderBar';
 import { TOPIC_DESCRIPTIONS } from '../topics/topicDescriptions';
 import {
   CATEGORY_TITLES,
-  DEFAULT_TOPIC_BY_SECTION,
   SECTION_CATEGORY_ORDER,
   SECTIONS,
   topicPath,
@@ -28,9 +27,6 @@ export function SectionLandingPage({ section }: { section: SectionId }) {
           <div className="section-landing-intro">
             <h2>{def.title}</h2>
             <p>{def.blurb}</p>
-            <Link className="section-landing-jump" to={topicPath(DEFAULT_TOPIC_BY_SECTION[section])}>
-              Jump straight in →
-            </Link>
           </div>
 
           {categories.map((cat) => (

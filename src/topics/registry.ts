@@ -155,19 +155,19 @@ export const SECTIONS: SectionDef[] = [
     id: 'aural',
     title: 'Aural Training',
     navLabel: 'Aural',
-    blurb: 'Interval, chord, rhythm and melody recognition, dictation and singing — training by ear.',
+    blurb: 'Exercises to train your ear — recognise intervals, chords, rhythms and melodies by listening alone, then sing and place what you hear.',
   },
   {
     id: 'theory',
     title: 'Theory',
     navLabel: 'Theory',
-    blurb: 'Note reading, key signatures, scale and chord writing, transposition — written music theory.',
+    blurb: 'Exercises to build your written musicianship — read, notate and think fluently in keys, scales, chords and rhythm on the stave.',
   },
   {
     id: 'arranging',
     title: 'Arranging',
     navLabel: 'Arranging',
-    blurb: 'Voicings, upper structures, transposition, ranges, approach notes and score order — writing for ensembles.',
+    blurb: 'Exercises in writing for ensembles — voicings, harmony and orchestration decisions, practised the way a working arranger makes them.',
   },
 ];
 
