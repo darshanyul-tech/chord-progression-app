@@ -192,7 +192,7 @@ export function ExamSetup({ onBegin, onCancel, setupError }: ExamSetupProps) {
         get a <strong>30 second</strong> answer timer; dictation questions get <strong>120 seconds</strong>. The
         next question begins when you submit or when time runs out.
       </p>
-      <div className="buttons" style={{ marginTop: '1rem' }}>
+      <div className="buttons">
         <button type="button" onClick={handleBegin}>
           Begin exam
         </button>

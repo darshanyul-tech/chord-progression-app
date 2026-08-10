@@ -35,6 +35,18 @@ export function degreeFunction(degree: number): string {
   return 'dominant';
 }
 
+// Chromatic roman numeral for any pitch class relative to the key (e.g. 'bIII',
+// 'VI'), from the tonality's 12-entry chromatic table.
+function chromaticRoman(pc: number, s: ResolvedProgressionSettings): string {
+  return scaleOf(s).chromatic[mod12(pc - s.keyPc)] ?? String(pc);
+}
+
+// Numeric suffix for a dominant-family quality ('7' | '9' | '11' | '13'), or ''
+// for a plain triad ('dom'). Lets the roman numeral read 'VI7', 'bIII9', etc.
+function dominantSuffix(quality: string): string {
+  return quality.replace(/\D/g, '');
+}
+
 export function makeDiatonicChord(degree: number, fnName: string, s: ResolvedProgressionSettings): ProgChord | null {
   const resolved = resolveDegreeQualityRoman(degree, s);
   if (!resolved) return null;
@@ -95,6 +107,9 @@ export function makeSecondaryDominant(targetDegree: number, s: ResolvedProgressi
   const rootName = noteName(domPc);
   const parts = qualityParts(quality);
   const target = scaleOf(s).roman[targetDegree] || String(targetDegree);
+  // Labelled both ways: the chord's own roman numeral, then its dominant
+  // function in parentheses — e.g. 'VI7 (V/ii)'.
+  const plain = chromaticRoman(domPc, s) + dominantSuffix(quality);
   return {
     degree: targetDegree,
     fn: 'dominant',
@@ -105,7 +120,7 @@ export function makeSecondaryDominant(targetDegree: number, s: ResolvedProgressi
     family: parts.family,
     ext: parts.ext,
     symbol: chordSymbol(rootName, quality),
-    roman: `V/${target}`,
+    roman: `${plain} (V/${target})`,
     inversion: chooseInversion(quality, s),
     secondary: true,
   };
@@ -117,7 +132,10 @@ export function makeTritoneSub(targetDegree: number, s: ResolvedProgressionSetti
   const quality = applyExtensions('7', s.extensions);
   const rootName = noteName(subPc);
   const parts = qualityParts(quality);
-  const target = scaleOf(s).roman[targetDegree] || String(targetDegree);
+  // Written like a secondary dominant: its own roman numeral, then the dominant
+  // it literally spells (a fourth above its root) — e.g. 'bIII7 (V/bVI)'.
+  const plain = chromaticRoman(subPc, s) + dominantSuffix(quality);
+  const litTarget = chromaticRoman(mod12(subPc + 5), s);
   return {
     degree: targetDegree,
     fn: 'dominant',
@@ -128,7 +146,7 @@ export function makeTritoneSub(targetDegree: number, s: ResolvedProgressionSetti
     family: parts.family,
     ext: parts.ext,
     symbol: chordSymbol(rootName, quality),
-    roman: `subV/${target}`,
+    roman: `${plain} (V/${litTarget})`,
     inversion: chooseInversion(quality, s),
     secondary: true,
     // Unlike makeChromaticApproach (the insertChromaticChords pass), this is a
@@ -165,8 +183,10 @@ export function makeChromaticApproach(next: ProgChord, s: ResolvedProgressionSet
   const quality = applyExtensions('7', s.extensions);
   const rootName = noteName(rootPc);
   const parts = qualityParts(quality);
-  const nextDeg = pcToDegree(s.keyPc, next.rootPc, s);
-  const targetLabel = nextDeg ? scaleOf(s).roman[nextDeg] : next.rootName;
+  // Same dual notation as the other tritone subs: own roman numeral, then the
+  // dominant it literally spells (a fourth above its root) — e.g. 'bIII7 (V/bVI)'.
+  const plain = chromaticRoman(rootPc, s) + dominantSuffix(quality);
+  const litTarget = chromaticRoman(mod12(rootPc + 5), s);
   return {
     degree: null,
     fn: 'dominant',
@@ -177,7 +197,7 @@ export function makeChromaticApproach(next: ProgChord, s: ResolvedProgressionSet
     family: parts.family,
     ext: parts.ext,
     symbol: chordSymbol(rootName, quality),
-    roman: `subV/${targetLabel}`,
+    roman: `${plain} (V/${litTarget})`,
     inversion: chooseInversion(quality, s),
     secondary: true,
     chromatic: true,
@@ -204,22 +224,25 @@ function buildBarChord(
     return { chord: makeDiatonicChord(1, 'tonic', s)!, fn: 'tonic', forced: true };
   }
 
-  let candidates = FLOW[prevFn] ? FLOW[prevFn]!.slice() : ['tonic'];
-  if (!s.useSubdominant) candidates = candidates.filter((f) => f !== 'subdominant');
-  if (!candidates.length) candidates = ['tonic', 'dominant'];
+  const candidates = FLOW[prevFn] ? FLOW[prevFn]!.slice() : ['tonic'];
   const fnName = pick(candidates);
 
-  // fnName is drawn from `candidates`, which already excludes 'subdominant'
-  // whenever `!s.useSubdominant` (see above), so no fallback guard is needed here.
   const degreePool = functionDegreePool(fnName, s);
   const degree = pickByVoiceLeading(degreePool, (d) => degreePc(s.keyPc, d, s), prevRootPc)!;
 
   if (!s.diatonicOnly && random() < 0.34) {
-    const colours = ['secdom'];
-    if (s.useSubdominant && degree !== 1) colours.push('applied');
-    if (s.useSubdominant) colours.push('borrowediv');
+    // Secondary dominants gate their whole family — the true V/x plus the
+    // applied dominants and borrowed iv that share their harmonic slot — so that
+    // with the toggle off the progression stays diatonic. Tritone subs are a
+    // separate colour, gated by Chromaticism instead. `colours` can be empty
+    // (both off), in which case we fall through to the diatonic chord below.
+    const colours: string[] = [];
+    if (s.useSecondaryDominant) {
+      colours.push('secdom', 'borrowediv');
+      if (degree !== 1) colours.push('applied');
+    }
     if (s.chromaticism) colours.push('tritonesub');
-    const choice = pick(colours);
+    const choice = colours.length ? pick(colours) : null;
 
     if (choice === 'secdom' || choice === 'tritonesub') {
       const targets = [1, 2, 3, 4, 5, 6, 7].filter(
@@ -255,8 +278,7 @@ export function dedupeAdjacent(prog: ProgChord[], s: ResolvedProgressionSettings
     const tPrevId = target > 0 ? chordId(prog[target - 1]!) : null;
     const tNextId = target + 1 < prog.length ? chordId(prog[target + 1]!) : null;
 
-    let degrees = shuffle([1, 2, 3, 4, 5, 6, 7]);
-    if (!s.useSubdominant) degrees = degrees.filter((d) => FUNCTIONS.subdominant!.indexOf(d) === -1);
+    const degrees = shuffle([1, 2, 3, 4, 5, 6, 7]);
     const prevRoot = target > 0 ? prog[target - 1]!.rootPc : null;
     if (prevRoot != null) {
       degrees.sort(

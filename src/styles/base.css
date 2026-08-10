@@ -192,6 +192,11 @@ input[type="checkbox"] {
   flex-wrap: wrap;
   gap: 0.6rem;
   align-items: center;
+  /* Even breathing room above and below the row so it's never crammed against
+     neighbouring text; collapses with adjacent margins (e.g. .status) so it
+     doesn't double up. Per-topic marginTop overrides were removed in favour of
+     this single consistent value. */
+  margin: 0.85rem 0;
 }
 
 .toggle-switch {
@@ -524,4 +529,39 @@ body.theme-dark footer a {
   body .grouped-choice-divider {
     grid-column: 1 / -1;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ADVANCED USER MODE (trial feature — self-contained; see src/state/advancedMode.ts)
+   Hides explanatory text app-wide when <body> carries the `advanced-mode` class.
+   To REMOVE the feature, delete this whole block (plus the 3 spots noted in
+   advancedMode.ts). To tune WHAT gets hidden, edit the selector list below.
+   ───────────────────────────────────────────────────────────────────────────── */
+body.advanced-mode .help,
+body.advanced-mode .sub,
+body.advanced-mode .section-landing-card p {
+  display: none;
+}
+
+/* Toggle row inside the Home profile box. */
+.home-advanced-mode {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+.home-advanced-mode-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.home-advanced-mode-label {
+  font-weight: 600;
+}
+.home-advanced-mode-note {
+  font-size: 0.85rem;
+  color: var(--muted);
 }

@@ -153,24 +153,24 @@ export function ProgressionSettings() {
               <span className="toggle-slider" aria-hidden="true" />
             </label>
           </div>
-          <div className="help">When off, allows secondary dominants and a borrowed iv chord.</div>
+          <div className="help">When off, unlocks the Secondary dominants and Chromaticism options below.</div>
         </div>
 
         {!settings.diatonicOnly && (
           <div className="field">
             <div className="field-toggle-header">
-              <span className="field-toggle-title" id="prog-subdominant-title">Use sub-dominant chords</span>
+              <span className="field-toggle-title" id="prog-secondary-title">Secondary dominants</span>
               <label className="toggle-switch">
                 <input
                   type="checkbox"
-                  aria-labelledby="prog-subdominant-title"
-                  checked={settings.allowSubdominant}
-                  onChange={(e) => setState({ allowSubdominant: e.target.checked })}
+                  aria-labelledby="prog-secondary-title"
+                  checked={settings.allowSecondaryDominant}
+                  onChange={(e) => setState({ allowSecondaryDominant: e.target.checked })}
                 />
                 <span className="toggle-slider" aria-hidden="true" />
               </label>
             </div>
-            <div className="help">Toggles ii and IV (sub-dominant function) material.</div>
+            <div className="help">Adds secondary dominants (V/ii, V/V, …) and their related colour (applied dominants, a borrowed iv), labelled both ways — e.g. VI7 (V/ii).</div>
           </div>
         )}
 

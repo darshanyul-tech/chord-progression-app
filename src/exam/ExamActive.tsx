@@ -88,7 +88,7 @@ export function ExamActive({
         <entry.type.AnswerComponent question={entry.question} answer={answer} onAnswer={onAnswer} disabled={disabled} />
       )}
 
-      <div className="buttons" style={{ marginTop: '0.9rem' }}>
+      <div className="buttons">
         <button type="button" onClick={onSubmit} disabled={disabled}>
           Submit answer
         </button>

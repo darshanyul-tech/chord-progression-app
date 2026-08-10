@@ -185,7 +185,7 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
 
         {/* Audio */}
         {question && (
-          <div className="buttons" style={{ marginTop: '0.5rem' }}>
+          <div className="buttons">
             {audio.status !== 'ready' ? (
               <button type="button" onClick={audio.initAudio} disabled={audio.status === 'loading'}>
                 Initialize Audio
@@ -286,7 +286,7 @@ export function ArrangingHost({ exerciseId }: { exerciseId: string }) {
 
         <SessionScoreLine className="arr-session-score" correct={score.correct} total={score.total} />
 
-        <div className="buttons" style={{ marginTop: '0.6rem' }}>
+        <div className="buttons">
           {question?.kind === 'multi' && !answered && <button type="button" onClick={submitMulti}>Submit</button>}
           {question?.kind === 'order' && !answered && <button type="button" onClick={submitOrder}>Submit</button>}
           {question?.kind === 'stacked' && !answered && <button type="button" disabled={!canSubmitStacked} onClick={submitStacked}>Submit</button>}

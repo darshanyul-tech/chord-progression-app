@@ -1,13 +1,56 @@
 /* Ported from legacy <style> block (docs/05-topics/01-interval-recognition.md). */
 
 .interval-matrix-wrap {
-  overflow-x: auto;
+  /* `clip` (not `auto`) on purpose: with the full-width tables below, `auto`
+     would flip a horizontal scrollbar on/off around sub-pixel rounding, and each
+     flip changes the available width — a feedback loop that makes the whole grid
+     visibly shimmer while resizing. Neither layout overflows (both fill the
+     width and the component flips to the vertical layout before it would), so
+     there's nothing to scroll; clip just contains any 1px rounding spill. */
+  overflow-x: clip;
   margin-top: 0.5rem;
 }
 .interval-matrix {
+  /* Fills the card width in both layouts. */
   width: 100%;
   border-collapse: collapse;
   font-size: 0.85rem;
+}
+/* Vertical layout: balanced proportional columns so it fills the width without
+   the interval column ballooning and stranding the ticks far to the right. */
+.interval-matrix:not(.transposed) th:not(:first-child),
+.interval-matrix:not(.transposed) td:not(:first-child) {
+  width: 27%;
+}
+
+/* Transposed layout: intervals across the top, directions down the side.
+   Fills the card width — table-layout:fixed splits the 14 interval columns
+   equally after the fixed label/All columns. Flips to the vertical layout below
+   TRANSPOSE_MIN_WIDTH (see IntervalMatrix.tsx). */
+.interval-matrix.transposed {
+  table-layout: fixed;
+  width: 100%;
+}
+.interval-matrix.transposed th,
+.interval-matrix.transposed td {
+  padding: 0.35rem 0.25rem;
+}
+.interval-matrix.transposed thead th {
+  /* Keep the interval ids as authored (m2/M2), not force-uppercased. */
+  text-transform: none;
+}
+.interval-matrix.transposed th:first-child,
+.interval-matrix.transposed td:first-child {
+  width: 5rem;
+}
+.interval-matrix.transposed th:last-child,
+.interval-matrix.transposed td:last-child {
+  width: 2.9rem;
+}
+.interval-matrix.transposed .toggle-all-btn {
+  width: 100%;
+  padding: 0.28rem 0.4rem;
+  font-size: 0.8rem;
 }
 .interval-matrix th,
 .interval-matrix td {
@@ -31,6 +74,9 @@
 .interval-matrix input[type='checkbox'] {
   width: 1.05rem;
   height: 1.05rem;
+  /* Drop the browser's lopsided default (~4px left / 3px right) so the cell's
+     centering leaves equal space on both sides of the tick. */
+  margin: 0;
 }
 .interval-matrix tr.interval-toggle-row td {
   padding-top: 0.45rem;

@@ -19,7 +19,7 @@ export function ScaleWritingTopic() {
       </SettingsDisclosure>
 
       <section className="card">
-        <div className="buttons" style={{ marginTop: '0.1rem' }}>
+        <div className="buttons">
           <button type="button" onClick={practice.next}>
             New question
           </button>

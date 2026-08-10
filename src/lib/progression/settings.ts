@@ -12,7 +12,7 @@ export interface ProgressionSettings extends Record<string, unknown> {
   rootless: boolean;
   bouncingBass: boolean;
   diatonicOnly: boolean;
-  allowSubdominant: boolean;
+  allowSecondaryDominant: boolean;
   chromatic: boolean;
   chromaticCount: number;
   cadence: boolean;
@@ -34,7 +34,7 @@ export function defaultProgressionSettings(): ProgressionSettings {
     rootless: false,
     bouncingBass: false,
     diatonicOnly: true,
-    allowSubdominant: true,
+    allowSecondaryDominant: false,
     chromatic: false,
     chromaticCount: 1,
     cadence: true,
@@ -59,7 +59,7 @@ export interface ResolvedProgressionSettings {
   randomKey: boolean;
   tonicFirst: boolean;
   diatonicOnly: boolean;
-  useSubdominant: boolean;
+  useSecondaryDominant: boolean;
   cadenceEnd: boolean;
   chromaticism: boolean;
   chromaticCount: number;
@@ -89,7 +89,7 @@ export function resolvePracticeSettings(settings: ProgressionSettings): Resolved
     randomKey: settings.randomKey,
     tonicFirst: settings.tonicFirst,
     diatonicOnly,
-    useSubdominant: diatonicOnly ? true : settings.allowSubdominant,
+    useSecondaryDominant: !diatonicOnly && settings.allowSecondaryDominant,
     cadenceEnd: settings.cadence,
     chromaticism,
     chromaticCount: chromaticism ? settings.chromaticCount : 0,
@@ -111,7 +111,7 @@ export const HARMONY_REGEN_KEYS: (keyof ProgressionSettings)[] = [
   'minorV7',
   'tonicFirst',
   'diatonicOnly',
-  'allowSubdominant',
+  'allowSecondaryDominant',
   'cadence',
   'chromatic',
   'chromaticCount',

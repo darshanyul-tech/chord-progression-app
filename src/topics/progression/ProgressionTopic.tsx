@@ -131,7 +131,7 @@ export function ProgressionTopic() {
           inversionOptionsFor={practice.inversionOptionsFor}
           onChange={practice.updateGuessRow}
         />
-        <div className="buttons" style={{ marginTop: '0.8rem' }}>
+        <div className="buttons">
           <button type="button" onClick={practice.check}>
             Check Answers
           </button>
@@ -167,7 +167,7 @@ export function ProgressionTopic() {
           </div>
         </div>
         <div className="help">Totals accumulate each time you use Check Answers until you reset.</div>
-        <div className="buttons" style={{ marginTop: '0.65rem' }}>
+        <div className="buttons">
           <button type="button" className="ghost" onClick={practice.resetScore}>
             Reset score
           </button>

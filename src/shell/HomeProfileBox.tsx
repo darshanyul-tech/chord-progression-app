@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { accuracyPct } from '../lib/stats/aggregate';
 import type { Tally } from '../lib/stats/types';
 import { useStatsStore } from '../state/statsStore';
+import { useAdvancedMode } from '../state/advancedMode'; // ADVANCED USER MODE (trial) — remove with the feature
 import { ProfileMenu } from './ProfileMenu';
 
 // Home-only box surfacing the current profile and a link into the progress
@@ -10,6 +11,7 @@ import { ProfileMenu } from './ProfileMenu';
 // stays just the logo + section nav (see 13-home-and-sections.md).
 export function HomeProfileBox() {
   const data = useStatsStore((s) => s.data);
+  const [advanced, setAdvanced] = useAdvancedMode(); // ADVANCED USER MODE (trial)
 
   const grand = useMemo(
     () =>
@@ -35,6 +37,24 @@ export function HomeProfileBox() {
             : 'No practice recorded yet'}
         </span>
       </Link>
+
+      {/* ── ADVANCED USER MODE (trial) — remove this block to remove the toggle ── */}
+      <div className="home-advanced-mode">
+        <div className="home-advanced-mode-text">
+          <span className="home-advanced-mode-label" id="home-advanced-title">Advanced user mode</span>
+          <span className="home-advanced-mode-note">Hides the explanatory hints under toggles and topics.</span>
+        </div>
+        <label className="toggle-switch">
+          <input
+            type="checkbox"
+            aria-labelledby="home-advanced-title"
+            checked={advanced}
+            onChange={(e) => setAdvanced(e.target.checked)}
+          />
+          <span className="toggle-slider" aria-hidden="true" />
+        </label>
+      </div>
+      {/* ── end advanced user mode ── */}
     </div>
   );
 }

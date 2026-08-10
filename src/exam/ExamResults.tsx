@@ -155,7 +155,7 @@ export function ExamResults({ summary, dictationSummary, answers, onRepeat, onLe
         </>
       )}
 
-      <div className="buttons" style={{ marginTop: '1rem' }}>
+      <div className="buttons">
         <button type="button" onClick={onRepeat}>
           New test (same setup)
         </button>
