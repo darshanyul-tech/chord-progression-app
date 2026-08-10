@@ -106,7 +106,7 @@ export function RhythmDictationTopic() {
       </SettingsDisclosure>
 
       <section className="card">
-        <div className="buttons" style={{ marginTop: '0.1rem' }}>
+        <div className="buttons">
           {!ready && (
             <button type="button" onClick={() => audio.initAudio()} disabled={practice.audioStatus === 'loading'}>
               Initialize Audio

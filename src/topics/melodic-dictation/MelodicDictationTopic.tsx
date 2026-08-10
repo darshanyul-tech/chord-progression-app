@@ -125,7 +125,7 @@ export function MelodicDictationTopic() {
       </SettingsDisclosure>
 
       <section className="card">
-        <div className="buttons" style={{ marginTop: '0.1rem' }}>
+        <div className="buttons">
           {!ready && (
             <button type="button" onClick={practice.init} disabled={practice.audioStatus === 'loading'}>
               Initialize Audio<span className="loadbadge">{loadBadgeFor(practice.audioStatus)}</span>

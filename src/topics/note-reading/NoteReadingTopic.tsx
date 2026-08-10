@@ -49,7 +49,7 @@ export function NoteReadingTopic() {
 
         <SessionScoreLine className="theory-session-score" correct={practice.score.correct} total={practice.score.total} />
 
-        <div className="buttons" style={{ marginTop: '0.65rem' }}>
+        <div className="buttons">
           {practice.answered && (
             <button type="button" onClick={practice.next}>
               Next

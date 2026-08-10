@@ -28,7 +28,7 @@ export function IntervalSingingTopic() {
           recording, no upload.
         </p>
 
-        <div className="buttons" style={{ marginTop: '0.1rem' }}>
+        <div className="buttons">
           {!audioReady && (
             <button type="button" onClick={() => audio.initAudio()} disabled={practice.audioStatus === 'loading'}>
               Initialize Audio

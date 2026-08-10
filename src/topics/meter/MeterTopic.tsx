@@ -74,7 +74,7 @@ export function MeterTopic() {
           correct={practice.score.correct}
           total={practice.score.total}
         />
-        <div className="buttons" style={{ marginTop: '0.65rem' }}>
+        <div className="buttons">
           <button type="button" className="ghost" onClick={practice.resetScore}>
             Reset score
           </button>
