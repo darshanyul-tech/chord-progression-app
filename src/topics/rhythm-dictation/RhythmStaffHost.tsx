@@ -135,6 +135,16 @@ export function RhythmStaffHost({
     const resolved = resolveAt(pt.x, pt.y);
     if (!resolved) return;
     onClick(resolved.geo.index, resolved.rawBeat);
+    // Deselect immediately after placing: drop the hover ghost and the remembered
+    // point (and cancel any hover update the tap's own synthetic mousemove queued)
+    // so re-arming a different duration/rest can't re-preview over the note just
+    // placed. On touch there's no mouseleave to clear it otherwise.
+    if (hoverRafRef.current !== null) {
+      cancelAnimationFrame(hoverRafRef.current);
+      hoverRafRef.current = null;
+    }
+    lastPointRef.current = null;
+    setHover(null);
   }
 
   function updateHover(x: number, y: number) {
