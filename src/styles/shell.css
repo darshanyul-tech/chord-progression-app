@@ -709,3 +709,15 @@
     padding: 1rem;
   }
 }
+
+/* "Not available on mobile" notice, shown in place of finger-on-stave exercises
+   below the mobile breakpoint (see MobileUnavailableNotice / useIsMobile). */
+.mobile-unavailable {
+  text-align: center;
+}
+.mobile-unavailable-msg {
+  color: var(--muted);
+  max-width: 34ch;
+  margin: 0.6rem auto 0;
+  line-height: 1.5;
+}

@@ -198,6 +198,13 @@ export interface TopicDefinition {
    * bring one back, just delete this flag from its entry.
    */
   hidden?: boolean;
+  /**
+   * Exercises that require placing notes on a stave by finger — unreliable on a
+   * touch screen and too cramped to scale down. When set, TopicHost shows a
+   * "not available on mobile" notice instead of the exercise below a small
+   * breakpoint (see MobileUnavailableNotice). Remove the flag to re-enable.
+   */
+  mobileUnavailable?: boolean;
 }
 
 // One Arranging topic entry, wired to the generic host by exercise id.
@@ -325,6 +332,7 @@ export const TOPICS: TopicDefinition[] = [
     status: 'active',
     Component: RhythmDictationTopic,
     examTypes: rhythmDictationExamTypes,
+    mobileUnavailable: true,
   },
   { id: 'rhythm-comparison', title: 'Rhythm Comparison', category: 'rhythm', status: 'placeholder', hidden: true },
   { id: 'rhythm-imitation', title: 'Rhythm Imitation', category: 'rhythm', status: 'placeholder', hidden: true },
@@ -365,6 +373,7 @@ export const TOPICS: TopicDefinition[] = [
     status: 'active',
     Component: MelodicDictationTopic,
     examTypes: melodicDictationExamTypes,
+    mobileUnavailable: true,
   },
   { id: 'pitch-dictation', title: 'Pitch Dictation', category: 'pitch-melody', status: 'placeholder', hidden: true },
   { id: 'melodic-comparison', title: 'Melodic Comparison', category: 'pitch-melody', status: 'placeholder', hidden: true },
@@ -455,6 +464,7 @@ export const TOPICS: TopicDefinition[] = [
     section: 'theory',
     theme: 'light',
     Component: IntervalWritingTopic,
+    mobileUnavailable: true,
     // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
@@ -465,6 +475,7 @@ export const TOPICS: TopicDefinition[] = [
     section: 'theory',
     theme: 'light',
     Component: ScaleWritingTopic,
+    mobileUnavailable: true,
     // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
@@ -485,6 +496,7 @@ export const TOPICS: TopicDefinition[] = [
     section: 'theory',
     theme: 'light',
     Component: TranspositionTopic,
+    mobileUnavailable: true,
     // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
   {
@@ -495,6 +507,7 @@ export const TOPICS: TopicDefinition[] = [
     section: 'theory',
     theme: 'light',
     Component: MeterTranspositionTopic,
+    mobileUnavailable: true,
     // No exam type this phase — theory exam papers are backlog (docs/16 §Out of scope).
   },
 

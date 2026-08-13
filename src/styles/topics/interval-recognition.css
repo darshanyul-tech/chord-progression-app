@@ -16,11 +16,28 @@
   border-collapse: collapse;
   font-size: 0.85rem;
 }
-/* Vertical layout: balanced proportional columns so it fills the width without
-   the interval column ballooning and stranding the ticks far to the right. */
+/* Vertical layout: fixed table layout so the table is always exactly the
+   wrapper's width and can never overflow it (auto layout let percentage columns
+   plus a nowrap label expand the table past 100% and spill off-screen on
+   phones). Balanced proportional columns keep the ticks from stranding right. */
+.interval-matrix:not(.transposed) {
+  table-layout: fixed;
+}
 .interval-matrix:not(.transposed) th:not(:first-child),
 .interval-matrix:not(.transposed) td:not(:first-child) {
   width: 27%;
+}
+/* Let long interval names (e.g. "Perfect octave") wrap rather than force the
+   column — and thus the table — wider than the screen. */
+.interval-matrix:not(.transposed) td:first-child {
+  white-space: normal;
+}
+/* Single-word headers ("Ascending"/"Descending") can't wrap at a space, so on a
+   narrow phone column they'd overflow and clip; allow them to break anywhere so
+   they wrap within the fixed column width instead. */
+.interval-matrix:not(.transposed) th {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* Transposed layout: intervals across the top, directions down the side.
