@@ -2,7 +2,9 @@ import { Suspense, useEffect } from 'react';
 import { getTopic, TOPICS } from '../topics/registry';
 import { useUIStore } from '../state/ui';
 import { ErrorBoundary } from './ErrorBoundary';
+import { MobileUnavailableNotice } from './MobileUnavailableNotice';
 import { PlaceholderView } from './PlaceholderView';
+import { useIsMobile } from './useIsMobile';
 
 /**
  * Keeps every "active" topic mounted once and toggles visibility (D9a) —
@@ -14,6 +16,7 @@ export function TopicHost({ activeId }: { activeId: string }) {
   const setLastActiveTopicId = useUIStore((s) => s.setLastActiveTopicId);
   const currentTopic = getTopic(activeId);
   const activeTopics = TOPICS.filter((t) => t.status === 'active');
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (currentTopic?.status === 'active') {
@@ -33,7 +36,9 @@ export function TopicHost({ activeId }: { activeId: string }) {
           className="topic-view"
           style={{ display: t.id === activeId ? undefined : 'none' }}
         >
-          {t.Component ? (
+          {t.mobileUnavailable && isMobile ? (
+            <MobileUnavailableNotice title={t.title} />
+          ) : t.Component ? (
             <ErrorBoundary label={t.title}>
               <Suspense fallback={<p className="sub">Loading…</p>}>
                 <t.Component />
