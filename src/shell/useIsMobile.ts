@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from 'react';
 
-// Width below which finger-on-stave exercises are gated (see MobileUnavailableNotice
-// / TopicDefinition.mobileUnavailable). Covers phones and small tablets in
-// portrait, where both the note-placement touch precision and the stave scaling
-// break down. Adjust here to move the cutoff.
+// Width below which finger-on-stave exercises show the mobile caution (see
+// MobileWarningDialog / TopicDefinition.mobileUnavailable). Covers phones and
+// small tablets in portrait, where both the note-placement touch precision and
+// the stave scaling break down. Adjust here to move the cutoff.
 const MOBILE_QUERY = '(max-width: 768px)';
 
 function subscribe(callback: () => void): () => void {

@@ -1,8 +1,8 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { getTopic, TOPICS } from '../topics/registry';
 import { useUIStore } from '../state/ui';
 import { ErrorBoundary } from './ErrorBoundary';
-import { MobileUnavailableNotice } from './MobileUnavailableNotice';
+import { MobileWarningDialog } from './MobileWarningDialog';
 import { PlaceholderView } from './PlaceholderView';
 import { useIsMobile } from './useIsMobile';
 
@@ -17,6 +17,14 @@ export function TopicHost({ activeId }: { activeId: string }) {
   const currentTopic = getTopic(activeId);
   const activeTopics = TOPICS.filter((t) => t.status === 'active');
   const isMobile = useIsMobile();
+  // Caution shown each time a finger-on-stave exercise is opened on a small
+  // screen. The exercise stays usable; dismissing clears it until the topic is
+  // selected again.
+  const [warnedTopic, setWarnedTopic] = useState<string | null>(null);
+
+  useEffect(() => {
+    setWarnedTopic(isMobile && currentTopic?.mobileUnavailable ? activeId : null);
+  }, [activeId, isMobile, currentTopic]);
 
   useEffect(() => {
     if (currentTopic?.status === 'active') {
@@ -36,9 +44,7 @@ export function TopicHost({ activeId }: { activeId: string }) {
           className="topic-view"
           style={{ display: t.id === activeId ? undefined : 'none' }}
         >
-          {t.mobileUnavailable && isMobile ? (
-            <MobileUnavailableNotice title={t.title} />
-          ) : t.Component ? (
+          {t.Component ? (
             <ErrorBoundary label={t.title}>
               <Suspense fallback={<p className="sub">Loading…</p>}>
                 <t.Component />
@@ -51,6 +57,9 @@ export function TopicHost({ activeId }: { activeId: string }) {
         <div className="topic-view">
           <PlaceholderView topic={currentTopic} />
         </div>
+      )}
+      {warnedTopic === activeId && currentTopic && (
+        <MobileWarningDialog title={currentTopic.title} onDismiss={() => setWarnedTopic(null)} />
       )}
     </>
   );
