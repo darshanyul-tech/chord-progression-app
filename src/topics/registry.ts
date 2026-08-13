@@ -200,9 +200,9 @@ export interface TopicDefinition {
   hidden?: boolean;
   /**
    * Exercises that require placing notes on a stave by finger — unreliable on a
-   * touch screen and too cramped to scale down. When set, TopicHost shows a
-   * "not available on mobile" notice instead of the exercise below a small
-   * breakpoint (see MobileUnavailableNotice). Remove the flag to re-enable.
+   * touch screen and cramped when scaled down. When set, opening the exercise on
+   * a small screen shows a dismissible caution (the exercise stays usable — see
+   * MobileWarningDialog / TopicHost). Remove the flag to drop the warning.
    */
   mobileUnavailable?: boolean;
 }

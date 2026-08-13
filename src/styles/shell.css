@@ -710,14 +710,35 @@
   }
 }
 
-/* "Not available on mobile" notice, shown in place of finger-on-stave exercises
-   below the mobile breakpoint (see MobileUnavailableNotice / useIsMobile). */
-.mobile-unavailable {
-  text-align: center;
+/* Dismissible caution when a finger-on-stave exercise is opened on mobile
+   (see MobileWarningDialog / useIsMobile). The exercise stays usable. */
+.mobile-warning-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(0, 0, 0, 0.5);
 }
-.mobile-unavailable-msg {
+.mobile-warning-dialog {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.3rem 1.4rem;
+  max-width: 24rem;
+  text-align: center;
+  box-shadow: 0 12px 44px rgba(0, 0, 0, 0.35);
+}
+.mobile-warning-title {
+  margin: 0 0 0.5rem;
+}
+.mobile-warning-msg {
   color: var(--muted);
-  max-width: 34ch;
-  margin: 0.6rem auto 0;
   line-height: 1.5;
+  margin: 0 0 1.1rem;
+}
+.mobile-warning-btn {
+  width: 100%;
 }
