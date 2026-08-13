@@ -182,6 +182,16 @@ export function VexStaffHost({
     const resolved = resolveAt(pt.x, pt.y);
     if (!resolved) return;
     onPlace(resolved.geo.index, resolved.rawBeat, resolved.midi, resolved.spelling);
+    // Deselect immediately after placing: drop the hover ghost and the remembered
+    // point (and cancel any hover update the tap's own synthetic mousemove queued)
+    // so re-arming a different note value can't re-preview over the note just
+    // placed. On touch there's no mouseleave to clear it otherwise.
+    if (hoverRafRef.current !== null) {
+      cancelAnimationFrame(hoverRafRef.current);
+      hoverRafRef.current = null;
+    }
+    lastPointRef.current = null;
+    setHover(null);
   }
 
   function updateHover(x: number, y: number) {

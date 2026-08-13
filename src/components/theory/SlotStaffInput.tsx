@@ -227,6 +227,14 @@ export function SlotStaffInput({
     const resolved = resolveAt(pt.x, pt.y);
     if (!resolved) return;
     onPlace(resolved.index, { letter: resolved.letter, accidental: accidentalFor(resolved.letter), octave: resolved.octave });
+    // Deselect after placing: drop the hover ghost (and cancel any hover update
+    // the tap's synthetic mousemove queued) so re-arming an accidental can't
+    // re-preview over the note just placed. On touch there's no mouseleave.
+    if (hoverRafRef.current !== null) {
+      cancelAnimationFrame(hoverRafRef.current);
+      hoverRafRef.current = null;
+    }
+    setHover(null);
   }
 
   function updateHover(x: number, y: number) {
