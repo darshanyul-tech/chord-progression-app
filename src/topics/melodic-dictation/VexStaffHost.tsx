@@ -176,6 +176,17 @@ export function VexStaffHost({
     return { geo, rawBeat, midi, spelling };
   }
 
+  function handleMouseDown(evt: React.MouseEvent<HTMLDivElement>) {
+    // The staff is focusable (tabIndex=0) for keyboard placement, but a native
+    // click-focus scrolls its top edge into view — and since the staff is tall
+    // (multi-row on mobile), tapping a lower row yanks the whole page up toward
+    // the top on every placement. Take focus ourselves without that scroll.
+    if (document.activeElement !== evt.currentTarget) {
+      evt.preventDefault();
+      evt.currentTarget.focus({ preventScroll: true });
+    }
+  }
+
   function handleClick(evt: React.MouseEvent<HTMLDivElement>) {
     const pt = pointFromEvent(evt);
     if (!pt) return;
@@ -286,6 +297,7 @@ export function VexStaffHost({
       role="application"
       aria-label="Melody stave. Left and right arrow keys move the beat cursor, up and down arrow keys move the pitch cursor, and Enter places the armed note or rest at the cursor."
       tabIndex={0}
+      onMouseDown={handleMouseDown}
       onClick={handleClick}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
