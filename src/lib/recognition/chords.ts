@@ -1,4 +1,5 @@
 import { midiToNoteName, pick, random } from '../theory';
+import { lowIntervalLimitMidi } from './lowIntervalLimit';
 
 // Ported verbatim from legacy CHORD_RECOGNITION_* tables / functions
 // (docs/05-topics/03-chord-recognition.md). "Do not confuse with the
@@ -212,13 +213,31 @@ export function chordTypeById(id: string): ChordTypeDef | undefined {
   return CHORD_RECOGNITION_TYPES.find((t) => t.id === id);
 }
 
-export function pickChordRootMidi(pitchClass: number): number {
+export function pickChordRootMidi(pitchClass: number, minMidi: number = CHORD_ROOT_MIDI_MIN): number {
   const pc = ((pitchClass % 12) + 12) % 12;
+  const lo = Math.max(CHORD_ROOT_MIDI_MIN, minMidi);
   const choices: number[] = [];
-  for (let m = CHORD_ROOT_MIDI_MIN; m <= CHORD_ROOT_MIDI_MAX; m++) {
+  for (let m = lo; m <= CHORD_ROOT_MIDI_MAX; m++) {
     if (((m % 12) + 12) % 12 === pc) choices.push(m);
   }
-  return choices.length ? pick(choices) : 48;
+  return choices.length ? pick(choices) : lo;
+}
+
+// The lowest root at which this chord (in this inversion) clears the low
+// interval limit of its BOTTOM interval — so nothing is voiced low enough to
+// turn muddy. Bottom interval and bass offset are transposition-invariant, so
+// the reference root cancels out. Callers pass the result as the floor to
+// pickChordRootMidi, which keeps a chord no lower than it should sound while
+// still letting wide-bottomed chords (e.g. major triads) sit lower than tight
+// ones (e.g. sus2). See lowIntervalLimit.ts.
+export function minRootForChord(quality: string, inversion = 0): number {
+  const ref = 60;
+  const midis = getChordRecognitionMidis(ref, quality, inversion);
+  if (midis.length < 2) return CHORD_ROOT_MIDI_MIN;
+  const bottomInterval = midis[1]! - midis[0]!;
+  const bassOffset = midis[0]! - ref; // 0 in root position, >0 for inversions
+  const min = lowIntervalLimitMidi(bottomInterval) - bassOffset;
+  return Math.max(CHORD_ROOT_MIDI_MIN, min);
 }
 
 export function getChordRecognitionMidis(rootMidi: number, quality: string, inversion = 0): number[] {
@@ -365,7 +384,7 @@ export function buildChordQuestion(settings: ChordRecognitionSettings): ChordQue
   if (!pool.length) return null;
   const picked = pick(pool);
   const rootPc = Math.floor(random() * 12);
-  const rootMidi = pickChordRootMidi(rootPc);
+  const rootMidi = pickChordRootMidi(rootPc, minRootForChord(picked.quality, picked.inversion));
   return {
     id: picked.id,
     label: picked.label,

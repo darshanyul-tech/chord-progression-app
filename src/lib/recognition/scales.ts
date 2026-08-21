@@ -116,7 +116,11 @@ export const SCALE_RECOGNITION_TYPES: ScaleTypeDef[] = [
 
 export const RECOGNITION_MAX_GUESSES = 3;
 export const RECOGNITION_AUTO_ADVANCE_MS = 450;
-export const RECOGNITION_ROOT_MIDI_MIN = 36; // C2
+// C3 floor (matches interval recognition's minRoot of 48). A scale is melodic,
+// so the harmonic low-interval-limit table doesn't apply note-to-note; the
+// concern is just that a scale rooted at C2 rumbles indistinctly on the low
+// piano samples. Keeping it at/above C3 keeps every degree clearly audible.
+export const RECOGNITION_ROOT_MIDI_MIN = 48; // C3
 export const RECOGNITION_ROOT_MIDI_MAX = 72; // C5
 export const RECOGNITION_MAX_TOP_MIDI = 84; // keep scale tops below ~C6
 

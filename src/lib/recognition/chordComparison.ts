@@ -4,6 +4,7 @@ import {
   CHORD_ROOT_MIDI_MAX,
   CHORD_ROOT_MIDI_MIN,
   chordTypeById,
+  minRootForChord,
   pickChordRootMidi,
 } from './chords';
 
@@ -134,10 +135,11 @@ function randomNonzeroOffset(maxAbs: number): number {
  * clamping alone can silently collapse to offset 0 when root A sits near an
  * edge, which would corrupt the "root B !== root A" guarantee.
  */
-function transposedRoot(rootMidiA: number): number {
+function transposedRoot(rootMidiA: number, minMidi: number = CHORD_ROOT_MIDI_MIN): number {
+  const lo = Math.max(CHORD_ROOT_MIDI_MIN, minMidi);
   const offset = randomNonzeroOffset(MAX_TRANSPOSE_OFFSET);
   let rootMidiB = rootMidiA + offset;
-  if (rootMidiB > CHORD_ROOT_MIDI_MAX || rootMidiB < CHORD_ROOT_MIDI_MIN) {
+  if (rootMidiB > CHORD_ROOT_MIDI_MAX || rootMidiB < lo) {
     rootMidiB = rootMidiA - offset;
   }
   return rootMidiB;
@@ -191,9 +193,14 @@ export function buildChordComparisonQuestion(settings: ChordComparisonSettings):
     answerId = 'different';
   }
 
+  // Both chords share one low-interval-limit floor — the higher of the two
+  // qualities' — so neither turns muddy and the pair stays register-matched
+  // (the transpose offset is only 1-5 semitones, so a per-chord floor could
+  // otherwise let one dip below its own limit).
+  const minRoot = Math.max(minRootForChord(qualityFirst), minRootForChord(qualitySecond));
   const rootPcA = Math.floor(random() * 12);
-  const rootMidiA = pickChordRootMidi(rootPcA);
-  const rootMidiB = settings.rootRelationship === 'same' ? rootMidiA : transposedRoot(rootMidiA);
+  const rootMidiA = pickChordRootMidi(rootPcA, minRoot);
+  const rootMidiB = settings.rootRelationship === 'same' ? rootMidiA : transposedRoot(rootMidiA, minRoot);
 
   const firstDef = chordTypeById(qualityFirst)!;
   const secondDef = chordTypeById(qualitySecond)!;

@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { setRng } from '../theory';
-import { CHORD_ROOT_MIDI_MAX, CHORD_ROOT_MIDI_MIN, CHORD_RECOGNITION_TYPES, chordTypeById } from './chords';
+import {
+  CHORD_ROOT_MIDI_MAX,
+  CHORD_ROOT_MIDI_MIN,
+  CHORD_RECOGNITION_TYPES,
+  chordTypeById,
+  minRootForChord,
+} from './chords';
 import {
   CHORD_CONFUSION_TIER_1,
   CHORD_CONFUSION_TIER_2,
@@ -139,7 +145,12 @@ describe('buildChordComparisonQuestion', () => {
     const s = withAllEnabled({ rootRelationship: 'transposed' });
     for (let trial = 0; trial < 50; trial++) {
       const q = buildChordComparisonQuestion(s)!;
-      expect(q.first.rootMidi).toBe(CHORD_ROOT_MIDI_MIN);
+      // rng=0 pins root A to the lowest candidate that still clears the pair's
+      // shared low-interval-limit floor — the lowest C at or above it.
+      const floor = Math.max(minRootForChord(q.first.typeId), minRootForChord(q.second.typeId));
+      expect(q.first.rootMidi % 12).toBe(0); // pitch class C
+      expect(q.first.rootMidi).toBeGreaterThanOrEqual(floor);
+      expect(q.first.rootMidi - 12).toBeLessThan(floor); // ...and no higher than it must be
       expect(q.second.rootMidi).toBeGreaterThanOrEqual(CHORD_ROOT_MIDI_MIN);
       expect(q.second.rootMidi).toBeLessThanOrEqual(CHORD_ROOT_MIDI_MAX);
       expect(q.second.rootMidi).not.toBe(q.first.rootMidi);
