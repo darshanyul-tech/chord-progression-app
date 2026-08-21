@@ -27,10 +27,10 @@
      same size on both sides of the narrow breakpoint, where the only change is
      the "Trytone" text alongside it disappearing. */
   --logo-w: min(clamp(120px, 12vw, 280px), 70vw, calc(100vw - 100px));
-  /* 0.3604 is the logo PNG's height/width aspect ratio — update if the asset
+  /* 0.3333 is the logo PNG's height/width aspect ratio — update if the asset
      is ever regenerated with different proportions. The emblem fills the full
      height of that PNG, so this is also the emblem's rendered height. */
-  --emblem-h: calc(var(--logo-w) * 0.3604);
+  --emblem-h: calc(var(--logo-w) * 0.3333);
   /* Nav buttons are locked to the logo: text at 0.3 of the logo's rendered
      height puts the pill at ~0.6 of it. Because both derive from --logo-w they
      shrink and grow together on one curve, staying matched at every width, and
@@ -79,10 +79,15 @@
   pointer-events: none;
 }
 /* Compact icon-only logo — hidden until the narrow breakpoint swaps it in.
-   Sized to --emblem-h, dropping only the text. */
+   The emblem must render at the exact same size it has inside the wide logo, so
+   dropping the text never changes the emblem's size. The wide PNG is 724px tall
+   and this emblem was cut from it as a 686px-tall square (the emblem has some
+   vertical padding in the source art), so the icon renders at 686/724 of the
+   wide logo's full height. Update these two numbers if either asset is
+   regenerated. */
 .shell-logo-icon {
   display: none;
-  height: var(--emblem-h);
+  height: calc(var(--emblem-h) * 686 / 724);
   width: auto;
   max-width: 100%;
   pointer-events: none;
